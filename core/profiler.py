@@ -345,9 +345,9 @@ class Profiler:
         elif valid_candidates > 0 and (bool_valid / valid_candidates) >= 0.95:
             inferred_type = "boolean"
         else:
-            # Check for timestamp / date candidates
+            # Check for timestamp / date candidates with whitespace tolerance
             fmt_cases = ", ".join(
-                [f"COUNT(try_strptime({quoted}, '{fmt}')) AS fmt_{i}"
+                [f"COUNT(try_strptime(trim({quoted}), '{fmt}')) AS fmt_{i}"
                  for i, fmt in enumerate(COMMON_DATE_FORMATS)]
             )
             date_q = f"""
@@ -361,7 +361,7 @@ class Profiler:
                     for i, fmt in enumerate(COMMON_DATE_FORMATS):
                         matched = date_res[i] or 0
                         pct = round((matched / sample_tested) * 100, 2)
-                        if pct > 10.0:  # Matches at least 10%
+                        if pct >= 2.0:  # Matches at least 2% of sample
                             formats.append(DateFormatMatch(format=fmt, match_pct=pct))
 
                     if formats:
