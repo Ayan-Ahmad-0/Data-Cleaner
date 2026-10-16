@@ -107,19 +107,29 @@ export function App() {
           <ReportPage
             jobData={jobData}
             onProceedToApproval={() => setCurrentStep(3)}
+            onGoToUpload={() => setCurrentStep(1)}
           />
         )}
         {currentStep === 3 && (
           <ApprovalPage
             jobData={jobData}
             onStartCleaning={handleStartCleaning}
+            onGoToUpload={() => setCurrentStep(1)}
           />
         )}
         {currentStep === 4 && (
-          <ProgressPage jobData={jobData} onCancel={handleRestart} />
+          <ProgressPage
+            jobData={jobData}
+            onCancel={handleRestart}
+            onGoToUpload={() => setCurrentStep(1)}
+          />
         )}
         {currentStep === 5 && (
-          <ResultsPage jobData={jobData} onRestart={handleRestart} />
+          <ResultsPage
+            jobData={jobData}
+            onRestart={handleRestart}
+            onGoToUpload={() => setCurrentStep(1)}
+          />
         )}
       </main>
     </div>

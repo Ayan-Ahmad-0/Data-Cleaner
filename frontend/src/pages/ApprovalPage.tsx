@@ -6,14 +6,15 @@ import { Disclosure } from '../components/ui/Disclosure';
 import { Tag } from '../components/ui/Tag';
 import { Toggle } from '../components/ui/Toggle';
 import { cleanRuleSentence, formatNumber, pluralize } from '../lib/format';
-import { Check, Sparkles, Sliders } from 'lucide-react';
+import { Check, CheckSquare, Sparkles, Sliders } from 'lucide-react';
 
 interface ApprovalPageProps {
   jobData: JobDetailResponse | null;
   onStartCleaning: (customRecipe?: any) => void;
+  onGoToUpload?: () => void;
 }
 
-export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartCleaning }) => {
+export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartCleaning, onGoToUpload }) => {
   const profile = jobData?.profile;
   const fileMeta = profile?.file || {};
   const duplicates = profile?.duplicates || {};
@@ -28,7 +29,6 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
 
   // Track answers to open questions: questionIndex -> answer
   const [questionAnswers, setQuestionAnswers] = useState<Record<number, string>>(() => {
-    // If no questions, default empty
     return {};
   });
 
@@ -43,16 +43,16 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
 
   // Projected impact computed strictly from real profile metrics
   const projectedImpact = useMemo(() => {
-    const duplicates = profile?.duplicates || {};
-    const columnsProfile = profile?.columns || {};
+    const dups = profile?.duplicates || {};
+    const colsProf = profile?.columns || {};
     const items: Array<{ title: string; count: number; detail: string; severity: 'ok' | 'warn' | 'danger' }> = [];
 
     // Duplicates
-    if (recipe?.dedupe && duplicates.exact_rows > 0) {
+    if (recipe?.dedupe && dups.exact_rows > 0) {
       items.push({
         title: 'Duplicate Row Removal',
-        count: duplicates.exact_rows,
-        detail: `${formatNumber(duplicates.exact_rows)} exact duplicates will be removed`,
+        count: dups.exact_rows,
+        detail: `${formatNumber(dups.exact_rows)} exact duplicates will be removed`,
         severity: 'ok',
       });
     }
@@ -60,7 +60,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
     // Column-level impacts
     if (recipe?.columns) {
       Object.entries(recipe.columns).forEach(([colName, colRule]: [string, any]) => {
-        const colProf = columnsProfile[colName] || {};
+        const colProf = colsProf[colName] || {};
 
         // Drop rows on null
         if (colRule.handle_nulls?.strategy === 'drop_row' && colProf.nulls > 0) {
@@ -157,20 +157,44 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
     onStartCleaning(recipe);
   };
 
+  if (!jobData) {
+    return (
+      <div className="container-shell py-16 sm:py-24 max-w-2xl mx-auto text-center space-y-6">
+        <div className="w-14 h-14 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto hairline-border">
+          <CheckSquare className="w-7 h-7" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)]">
+            No Cleaning Plan Compiled Yet
+          </h2>
+          <p className="text-base text-[var(--text-secondary)] leading-relaxed max-w-lg mx-auto">
+            After uploading a CSV file in Step 1, the AI compiles a deterministic cleaning recipe
+            for you to review, customize parameters, and approve before execution.
+          </p>
+        </div>
+        {onGoToUpload && (
+          <Button size="lg" variant="primary" onClick={onGoToUpload}>
+            Go to Upload (Step 1)
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="container-shell py-8 space-y-8">
+    <div className="container-shell py-8 sm:py-12 space-y-8">
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 hairline-b">
         <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
               Review & Approve Cleaning Plan
             </h1>
             <Tag variant="ok" font="mono">
               Vectorized Safe Execution
             </Tag>
           </div>
-          <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-2xl">
+          <p className="text-sm sm:text-base text-[var(--text-secondary)] mt-1.5 max-w-2xl leading-relaxed">
             Review proposed transformation rules, answer confirmation questions, and tailor parameters.
             Your original CSV file is never modified or overwritten.
           </p>
@@ -178,24 +202,24 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
 
         <Button
           variant="primary"
-          size="md"
+          size="lg"
           disabled={!allQuestionsAnswered || cleaningTriggered}
           onClick={handleApprove}
-          leftIcon={<Sparkles className="w-4 h-4" />}
+          leftIcon={<Sparkles className="w-5 h-5" />}
         >
           {cleaningTriggered
             ? 'Starting Cleaning...'
             : !allQuestionsAnswered
-            ? 'Answer Confirmation Questions Above'
+            ? 'Answer Human Confirmations Below'
             : 'Approve & Start Cleaning'}
         </Button>
       </div>
 
       {/* 1. Open Questions Banner (if any questions required) */}
       {initialOpenQuestions.length > 0 && (
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+        <div className="space-y-3.5">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
               Required Human Confirmations
             </h2>
             <Tag variant={allQuestionsAnswered ? 'ok' : 'warn'}>
@@ -203,25 +227,25 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
             </Tag>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {initialOpenQuestions.map((q, idx) => {
               const isAnswered = Boolean(questionAnswers[idx]);
               return (
                 <div
                   key={idx}
-                  className={`p-4 rounded-[var(--radius-sm)] border hairline-border transition-colors ${
+                  className={`p-5 rounded-[var(--radius-md)] border hairline-border transition-colors ${
                     isAnswered ? 'bg-[var(--bg-surface)]' : 'bg-[var(--status-warn-bg)] border-[var(--status-warn-border)]'
                   }`}
                 >
-                  <p className="text-xs font-medium text-[var(--text-primary)] leading-relaxed mb-3">
+                  <p className="text-sm sm:text-base font-medium text-[var(--text-primary)] leading-relaxed mb-3.5">
                     {cleanRuleSentence(q)}
                   </p>
 
-                  <div className="flex flex-wrap items-center gap-2 text-xs">
+                  <div className="flex flex-wrap items-center gap-2.5 text-sm">
                     <button
                       type="button"
                       onClick={() => setQuestionAnswers((prev) => ({ ...prev, [idx]: 'standard' }))}
-                      className={`px-3 py-1.5 rounded-[var(--radius-xs)] border text-xs font-sans transition-colors cursor-pointer ${
+                      className={`px-4 py-2 rounded-[var(--radius-sm)] border text-sm font-sans transition-colors cursor-pointer ${
                         questionAnswers[idx] === 'standard'
                           ? 'bg-[var(--accent)] text-white border-transparent font-medium'
                           : 'bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--border-hairline)] hover:bg-[var(--bg-hover)]'
@@ -233,7 +257,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                     <button
                       type="button"
                       onClick={() => setQuestionAnswers((prev) => ({ ...prev, [idx]: 'preserve' }))}
-                      className={`px-3 py-1.5 rounded-[var(--radius-xs)] border text-xs font-sans transition-colors cursor-pointer ${
+                      className={`px-4 py-2 rounded-[var(--radius-sm)] border text-sm font-sans transition-colors cursor-pointer ${
                         questionAnswers[idx] === 'preserve'
                           ? 'bg-[var(--accent)] text-white border-transparent font-medium'
                           : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:bg-[var(--bg-hover)]'
@@ -253,50 +277,50 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
         {/* Left Column: Interactive Rules List (7 cols) */}
         <div className="lg:col-span-7 space-y-4">
-          <div className="flex items-center justify-between pb-2 hairline-b">
+          <div className="flex items-center justify-between pb-2.5 hairline-b">
             <div>
-              <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+              <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
                 Proposed Cleaning Rules
               </h2>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5">
+              <p className="text-sm text-[var(--text-muted)] mt-0.5">
                 Toggle rules on or off, or customize how nulls and formats are treated.
               </p>
             </div>
-            <span className="text-xs font-mono text-[var(--text-muted)]">
+            <span className="text-sm font-mono text-[var(--text-muted)]">
               {recipe ? (Object.keys(recipe.columns || {}).length + (recipe.dedupe ? 1 : 0)) : 0} active
             </span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-3.5">
             {/* Rule 1: Deduplication Rule */}
             {initialRecipe?.dedupe && (
               <div
-                className={`p-4 rounded-[var(--radius-sm)] border hairline-border bg-[var(--bg-surface)] transition-all ${
+                className={`p-5 rounded-[var(--radius-md)] border hairline-border bg-[var(--bg-surface)] transition-all ${
                   recipe?.dedupe ? '' : 'opacity-60 bg-[var(--bg-subtle)]'
                 }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <span className="w-5 h-5 rounded-full bg-[var(--bg-subtle)] hairline-border flex items-center justify-center text-[11px] font-mono font-medium text-[var(--text-muted)] shrink-0 mt-0.5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                    <span className="w-6 h-6 rounded-full bg-[var(--bg-subtle)] hairline-border flex items-center justify-center text-xs font-mono font-medium text-[var(--text-muted)] shrink-0 mt-0.5">
                       1
                     </span>
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-xs text-[var(--text-primary)]">
+                    <div className="space-y-1.5 flex-1">
+                      <div className="flex items-center gap-2.5">
+                        <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)]">
                           Deduplicate Records
                         </span>
                         <Tag variant="neutral" font="mono">
                           {recipe?.dedupe?.keys.join(', ')}
                         </Tag>
                       </div>
-                      <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+                      <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
                         Remove exact and duplicate records partitioned by primary key{' '}
-                        <code className="font-mono text-[11px] font-medium text-[var(--text-primary)]">
+                        <code className="font-mono text-xs sm:text-sm font-medium text-[var(--text-primary)]">
                           {recipe?.dedupe?.keys.join(', ')}
                         </code>
                         {recipe?.dedupe?.order_by ? `, keeping the latest record ordered by ${recipe.dedupe.order_by}` : ''}.
                       </p>
-                      <span className="text-[11px] text-[var(--text-muted)] block">
+                      <span className="text-xs sm:text-sm text-[var(--text-muted)] block">
                         Why: Ingested dataset contains {formatNumber(duplicates.exact_rows || 0)} duplicate records ({duplicates.exact_pct || 0}%).
                       </span>
                     </div>
@@ -322,20 +346,20 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                 return (
                   <div
                     key={colName}
-                    className={`p-4 rounded-[var(--radius-sm)] border hairline-border bg-[var(--bg-surface)] transition-all ${
+                    className={`p-5 rounded-[var(--radius-md)] border hairline-border bg-[var(--bg-surface)] transition-all ${
                       isActive ? '' : 'opacity-60 bg-[var(--bg-subtle)]'
                     }`}
                   >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <span className="w-5 h-5 rounded-full bg-[var(--bg-subtle)] hairline-border flex items-center justify-center text-[11px] font-mono font-medium text-[var(--text-muted)] shrink-0 mt-0.5">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3.5 flex-1 min-w-0">
+                        <span className="w-6 h-6 rounded-full bg-[var(--bg-subtle)] hairline-border flex items-center justify-center text-xs font-mono font-medium text-[var(--text-muted)] shrink-0 mt-0.5">
                           {ruleNumber}
                         </span>
 
-                        <div className="space-y-2 flex-1 min-w-0">
+                        <div className="space-y-2.5 flex-1 min-w-0">
                           {/* Column header & type */}
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold text-xs text-[var(--text-primary)]">
+                          <div className="flex items-center gap-2.5">
+                            <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)]">
                               {colName}
                             </span>
                             <Tag variant="neutral" font="mono">
@@ -344,7 +368,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                           </div>
 
                           {/* Rule description */}
-                          <div className="space-y-1.5 text-xs text-[var(--text-secondary)]">
+                          <div className="space-y-2 text-sm text-[var(--text-secondary)]">
                             {activeRule.trim_and_normalize && (
                               <p>
                                 Trim whitespace and normalize empty placeholder tokens ('N/A', 'null', '-') to null.
@@ -353,7 +377,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                             {activeRule.parse_timestamp && (
                               <p>
                                 Parse date/time using verified patterns, standardized in{' '}
-                                <code className="font-mono text-[11px]">{activeRule.parse_timestamp.source_tz || 'UTC'}</code> timezone.
+                                <code className="font-mono text-xs sm:text-sm">{activeRule.parse_timestamp.source_tz || 'UTC'}</code> timezone.
                               </p>
                             )}
                             {activeRule.clip_outliers && (
@@ -362,14 +386,14 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                               </p>
                             )}
                             {activeRule.handle_nulls && (
-                              <div className="flex items-center gap-2 pt-1">
-                                <span className="text-[var(--text-muted)]">Null strategy:</span>
+                              <div className="flex items-center gap-2.5 pt-1">
+                                <span className="text-[var(--text-muted)] text-sm">Null strategy:</span>
                                 <select
                                   disabled={!isActive}
                                   value={activeRule.handle_nulls.strategy}
                                   aria-label={`Null handling strategy for ${colName}`}
                                   onChange={(e) => handleNullStrategyChange(colName, e.target.value)}
-                                  className="text-xs font-sans px-2 py-1 rounded-[var(--radius-xs)] border hairline-border bg-[var(--bg-surface)] text-[var(--text-primary)] cursor-pointer"
+                                  className="text-sm font-sans px-3 py-1.5 rounded-[var(--radius-sm)] border hairline-border bg-[var(--bg-surface)] text-[var(--text-primary)] cursor-pointer"
                                 >
                                   <option value="drop_row">Drop row if null</option>
                                   <option value="fill_median">Fill with median</option>
@@ -381,7 +405,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                           </div>
 
                           {/* Diagnostic Reason */}
-                          <div className="text-[11px] text-[var(--text-muted)] pt-1 hairline-t border-[var(--border-subtle)]">
+                          <div className="text-xs sm:text-sm text-[var(--text-muted)] pt-1.5 hairline-t border-[var(--border-subtle)]">
                             Why: Column contains {pluralize(colProfile.nulls || 0, 'null', 'nulls')}
                             {colProfile.whitespace_issues ? `, ${formatNumber(colProfile.whitespace_issues)} whitespace anomalies` : ''}
                             {colProfile.negatives ? `, ${formatNumber(colProfile.negatives)} negative values` : ''}.
@@ -404,35 +428,35 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
         {/* Right Column: Projected Impact & Reassurance (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
           {/* Projected Impact Panel */}
-          <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-sm)] p-5 space-y-4">
-            <div className="flex items-center justify-between pb-3 hairline-b">
-              <div className="flex items-center gap-1.5">
-                <Sliders className="w-4 h-4 text-[var(--accent)]" />
-                <h3 className="text-xs font-semibold text-[var(--text-primary)]">
+          <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-6 space-y-4">
+            <div className="flex items-center justify-between pb-3.5 hairline-b">
+              <div className="flex items-center gap-2">
+                <Sliders className="w-5 h-5 text-[var(--accent)]" />
+                <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
                   Projected Cleaning Impact
                 </h3>
               </div>
-              <span className="text-[11px] font-mono text-[var(--text-muted)]">
+              <span className="text-xs font-mono text-[var(--text-muted)]">
                 Derived from Profile
               </span>
             </div>
 
             {projectedImpact.length === 0 ? (
-              <p className="text-xs text-[var(--text-muted)] italic">
+              <p className="text-sm text-[var(--text-muted)] italic">
                 No active rules currently alter record counts or cell values.
               </p>
             ) : (
-              <ul className="space-y-2.5 text-xs">
+              <ul className="space-y-3 text-sm">
                 {projectedImpact.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-2.5">
+                  <li key={idx} className="flex items-start gap-3">
                     <span className="mt-0.5 shrink-0 text-[var(--status-ok)]">
-                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
+                      <Check className="w-4 h-4 stroke-[2.5]" />
                     </span>
                     <div className="space-y-0.5">
-                      <span className="font-medium text-[var(--text-primary)] block">
+                      <span className="font-semibold text-[var(--text-primary)] block">
                         {item.title}
                       </span>
-                      <span className="text-[var(--text-secondary)] block text-[11px] leading-relaxed">
+                      <span className="text-[var(--text-secondary)] block text-xs sm:text-sm leading-relaxed">
                         {item.detail}
                       </span>
                     </div>
@@ -454,7 +478,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
             subtitle="DuckDB in-process memory & threads"
             defaultOpen={false}
           >
-            <div className="space-y-2 pt-2 text-xs font-mono">
+            <div className="space-y-2 pt-2 text-sm font-mono">
               <div className="flex justify-between py-1 hairline-b border-[var(--border-subtle)]">
                 <span className="text-[var(--text-muted)]">Memory Allocation</span>
                 <span className="text-[var(--text-primary)] font-medium">4.0 GB Max</span>

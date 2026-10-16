@@ -6,14 +6,15 @@ import { MarkdownView } from '../components/ui/MarkdownView';
 import { SummaryStrip, type SummaryMetric } from '../components/ui/SummaryStrip';
 import { Tag } from '../components/ui/Tag';
 import { deriveColumnStatus, formatNumber, formatPercent, pluralize } from '../lib/format';
-import { ArrowRight, ChevronDown, ChevronRight, Filter, Search } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronRight, FileBarChart, Filter, Search } from 'lucide-react';
 
 interface ReportPageProps {
   jobData: JobDetailResponse | null;
   onProceedToApproval: () => void;
+  onGoToUpload?: () => void;
 }
 
-export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToApproval }) => {
+export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToApproval, onGoToUpload }) => {
   const profile = jobData?.profile;
 
   // Table state for 40+ columns
@@ -101,24 +102,48 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
     ];
   }, [profile, columnAnalysis.issuesCount]);
 
+  if (!jobData) {
+    return (
+      <div className="container-shell py-16 sm:py-24 max-w-2xl mx-auto text-center space-y-6">
+        <div className="w-14 h-14 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto hairline-border">
+          <FileBarChart className="w-7 h-7" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)]">
+            No Dataset Profiled Yet
+          </h2>
+          <p className="text-base text-[var(--text-secondary)] leading-relaxed max-w-lg mx-auto">
+            Upload a CSV file in Step 1 to generate an automated data quality profile,
+            statistical distributions, and anomaly analysis.
+          </p>
+        </div>
+        {onGoToUpload && (
+          <Button size="lg" variant="primary" onClick={onGoToUpload}>
+            Go to Upload (Step 1)
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div className="container-shell py-8 space-y-8">
+    <div className="container-shell py-8 sm:py-12 space-y-8">
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 hairline-b">
         <div>
-          <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
             Data Quality Assessment
           </h1>
-          <p className="text-xs text-[var(--text-secondary)] mt-1 max-w-2xl">
+          <p className="text-sm sm:text-base text-[var(--text-secondary)] mt-1.5 max-w-2xl leading-relaxed">
             {verdictText}
           </p>
         </div>
 
         <Button
           variant="primary"
-          size="md"
+          size="lg"
           onClick={onProceedToApproval}
-          rightIcon={<ArrowRight className="w-4 h-4" />}
+          rightIcon={<ArrowRight className="w-5 h-5" />}
         >
           Review Cleaning Plan
         </Button>
@@ -129,12 +154,12 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
 
       {/* Formatted AI Quality Report */}
       {jobData?.report_markdown && (
-        <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-sm)] p-6 space-y-3">
-          <div className="flex items-center justify-between pb-3 hairline-b">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+        <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-6 sm:p-8 space-y-4">
+          <div className="flex items-center justify-between pb-3.5 hairline-b">
+            <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
               AI Data Quality Report
             </h2>
-            <Tag variant="neutral">Generated from Statistical Profile</Tag>
+            <Tag variant="neutral" font="mono">Generated from Statistical Profile</Tag>
           </div>
 
           <MarkdownView content={jobData.report_markdown} />
@@ -142,11 +167,11 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
       )}
 
       {/* Column Inspector Table */}
-      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-sm)] overflow-hidden">
+      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
         {/* Table Controls (Search & Filter) */}
-        <div className="p-4 hairline-b flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[var(--bg-surface)]">
-          <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-[var(--text-primary)]">
+        <div className="p-4 sm:p-5 hairline-b flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 bg-[var(--bg-surface)]">
+          <div className="flex items-center gap-2.5">
+            <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
               Column Profiler Breakdown
             </h2>
             <Tag variant="neutral" font="mono">
@@ -157,13 +182,13 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
           <div className="flex items-center gap-3">
             {/* Search filter */}
             <div className="relative">
-              <Search className="w-3.5 h-3.5 text-[var(--text-muted)] absolute left-2.5 top-2.5" />
+              <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-2.5" />
               <input
                 type="text"
                 placeholder="Search column..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8 pr-3 py-1 text-xs font-sans rounded-[var(--radius-xs)] border hairline-border bg-[var(--bg-surface)] text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--accent)]"
+                className="pl-9 pr-3.5 py-1.5 text-sm font-sans rounded-[var(--radius-xs)] border hairline-border bg-[var(--bg-surface)] text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--accent)]"
               />
             </div>
 
@@ -172,7 +197,7 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
               size="sm"
               variant={filterIssuesOnly ? 'primary' : 'secondary'}
               onClick={() => setFilterIssuesOnly(!filterIssuesOnly)}
-              leftIcon={<Filter className="w-3 h-3" />}
+              leftIcon={<Filter className="w-3.5 h-3.5" />}
             >
               {filterIssuesOnly ? 'Showing Issues Only' : 'Issues Only'}
             </Button>
@@ -184,23 +209,23 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
           tabIndex={0}
           role="region"
           aria-label="Column profiler table"
-          className="overflow-x-auto max-h-[580px] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
+          className="overflow-x-auto max-h-[620px] focus:outline-none focus:ring-1 focus:ring-[var(--accent)]"
         >
-          <table className="w-full text-left border-collapse text-xs">
+          <table className="w-full text-left border-collapse text-sm">
             <thead className="sticky top-0 bg-[var(--bg-subtle)] hairline-b text-[var(--text-muted)] font-medium z-10 select-none">
               <tr>
-                <th className="py-2.5 px-4 font-medium w-8"></th>
-                <th className="py-2.5 px-4 font-medium">Column</th>
-                <th className="py-2.5 px-4 font-medium">Inferred Type</th>
-                <th className="py-2.5 px-4 font-medium">Missing / Nulls</th>
-                <th className="py-2.5 px-4 font-medium">Cardinality</th>
-                <th className="py-2.5 px-4 font-medium">Status & Anomalies</th>
+                <th className="py-3 px-4 font-semibold text-xs uppercase tracking-wider w-8"></th>
+                <th className="py-3 px-4 font-semibold text-xs uppercase tracking-wider">Column</th>
+                <th className="py-3 px-4 font-semibold text-xs uppercase tracking-wider">Inferred Type</th>
+                <th className="py-3 px-4 font-semibold text-xs uppercase tracking-wider">Missing / Nulls</th>
+                <th className="py-3 px-4 font-semibold text-xs uppercase tracking-wider">Cardinality</th>
+                <th className="py-3 px-4 font-semibold text-xs uppercase tracking-wider">Status & Anomalies</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[var(--border-hairline)]">
               {filteredColumns.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-8 text-center text-xs text-[var(--text-muted)]">
+                  <td colSpan={6} className="py-8 text-center text-sm text-[var(--text-muted)]">
                     No columns match the current filter.
                   </td>
                 </tr>
@@ -219,28 +244,28 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
                         onClick={() => toggleExpand(name)}
                         className="hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
                       >
-                        <td className="py-2.5 px-4 text-[var(--text-muted)]">
+                        <td className="py-3 px-4 text-[var(--text-muted)]">
                           {isExpanded ? (
-                            <ChevronDown className="w-3.5 h-3.5" />
+                            <ChevronDown className="w-4 h-4" />
                           ) : (
-                            <ChevronRight className="w-3.5 h-3.5" />
+                            <ChevronRight className="w-4 h-4" />
                           )}
                         </td>
-                        <td className="py-2.5 px-4 font-medium text-[var(--text-primary)] font-mono">
+                        <td className="py-3 px-4 font-semibold text-[var(--text-primary)] font-mono text-sm">
                           {name}
                         </td>
-                        <td className="py-2.5 px-4">
+                        <td className="py-3 px-4">
                           <Tag variant="neutral" font="mono">
                             {meta.inferred_type || 'string'}
                           </Tag>
                         </td>
-                        <td className="py-2.5 px-4 font-mono">
-                          <div className="flex items-center gap-2">
+                        <td className="py-3 px-4 font-mono text-sm">
+                          <div className="flex items-center gap-2.5">
                             <span>
                               {formatNumber(meta.nulls)} ({formatPercent(nullPct)})
                             </span>
                             {nullPct > 0 && (
-                              <div className="w-12 h-1 bg-[var(--border-hairline)] rounded-full overflow-hidden shrink-0">
+                              <div className="w-14 h-1.5 bg-[var(--border-hairline)] rounded-full overflow-hidden shrink-0">
                                 <div
                                   className="h-full bg-[var(--status-warn)]"
                                   style={{ width: `${Math.min(nullPct, 100)}%` }}
@@ -249,10 +274,10 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
                             )}
                           </div>
                         </td>
-                        <td className="py-2.5 px-4 font-mono">
+                        <td className="py-3 px-4 font-mono text-sm">
                           <span>{formatNumber(meta.distinct)}</span>
                           {meta.candidate_key && (
-                            <Tag variant="ok" className="ml-1.5" font="sans">
+                            <Tag variant="ok" className="ml-2" font="sans">
                               Primary Key
                             </Tag>
                           )}

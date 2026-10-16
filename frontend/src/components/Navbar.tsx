@@ -27,34 +27,43 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   return (
     <header className="w-full bg-[var(--bg-surface)] hairline-b sticky top-0 z-20">
-      <div className="container-shell h-14 flex items-center justify-between gap-4">
-        {/* Brand & File metadata */}
-        <div className="flex items-center gap-3 sm:gap-4 min-w-0">
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="w-2 h-2 rounded-[var(--radius-xs)] bg-[var(--accent)]" />
-            <span className="text-sm font-semibold tracking-tight text-[var(--text-primary)] font-sans">
+      <div className="header-shell flex items-center justify-between gap-4">
+        {/* Left cluster: Brand & File metadata */}
+        <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink">
+          <button
+            type="button"
+            onClick={() => onSelectStep(1)}
+            aria-label={`Go to ${APP_NAME} home`}
+            className="flex items-center gap-2.5 shrink-0 cursor-pointer select-none rounded-[var(--radius-xs)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 p-0.5 text-left"
+          >
+            <span className="w-2.5 h-2.5 rounded-[var(--radius-xs)] bg-[var(--accent)] shrink-0" />
+            <span className="text-base font-semibold tracking-tight text-[var(--text-primary)] font-sans">
               {APP_NAME}
             </span>
-          </div>
+          </button>
 
           {fileName && (
-            <div className="hidden md:flex items-center gap-2 text-xs text-[var(--text-muted)] hairline-l pl-3 truncate">
-              <span className="font-mono text-[var(--text-primary)] truncate max-w-[200px]" title={fileName}>
+            <div className="hidden sm:flex items-center gap-2 text-xs md:text-sm text-[var(--text-muted)] hairline-l pl-3 sm:pl-4 min-w-0">
+              <span
+                className="font-mono text-[var(--text-primary)] font-medium truncate max-w-[120px] md:max-w-[180px] lg:max-w-[260px]"
+                title={fileName}
+              >
                 {fileName}
               </span>
-              {fileSizeFormatted && <span>· {fileSizeFormatted}</span>}
-              {rowCountFormatted && <span>· {rowCountFormatted} rows</span>}
+              {fileSizeFormatted && <span className="shrink-0">· {fileSizeFormatted}</span>}
+              {rowCountFormatted && <span className="shrink-0 hidden md:inline">· {rowCountFormatted} rows</span>}
             </div>
           )}
         </div>
 
-        {/* Global Stepper */}
-        <Stepper
-          steps={STEPS}
-          currentStep={currentStep}
-          onSelectStep={onSelectStep}
-          className="shrink-0"
-        />
+        {/* Right cluster: Step tabs */}
+        <div className="shrink-0">
+          <Stepper
+            steps={STEPS}
+            currentStep={currentStep}
+            onSelectStep={onSelectStep}
+          />
+        </div>
       </div>
     </header>
   );

@@ -18,9 +18,9 @@ export const Button: React.FC<ButtonProps> = ({
   ...props
 }) => {
   const sizeClasses = {
-    sm: 'text-xs px-2.5 py-1.5 gap-1.5 h-7',
-    md: 'text-sm px-3.5 py-2 gap-2 h-9',
-    lg: 'text-base px-4 py-2.5 gap-2.5 h-11',
+    sm: 'text-xs sm:text-sm px-3 py-1.5 gap-1.5 h-8 font-medium',
+    md: 'text-sm sm:text-base px-4.5 py-2 gap-2 h-10 font-medium',
+    lg: 'text-base px-6 py-2.5 gap-2.5 h-12 font-semibold',
   }[size];
 
   const variantClasses = {

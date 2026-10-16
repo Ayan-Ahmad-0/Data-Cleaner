@@ -103,13 +103,13 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   };
 
   return (
-    <div className="container-shell py-12 max-w-2xl mx-auto space-y-6">
+    <div className="container-shell py-12 sm:py-16 max-w-3xl mx-auto space-y-8">
       {/* Title */}
-      <div className="text-left space-y-1">
-        <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
+      <div className="text-left space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
           Upload Raw Dataset
         </h1>
-        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+        <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
           Upload any messy CSV file (from a few kilobytes up to 10 GB). DuckDB will profile the data,
           identify quality anomalies, and draft a verified cleaning plan.
         </p>
@@ -136,7 +136,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        className={`bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-sm)] p-8 sm:p-12 text-center transition-all border-dashed ${
+        className={`bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-10 sm:p-14 text-center transition-all border-dashed ${
           dragActive
             ? 'border-[var(--accent)] bg-[var(--accent-subtle)]'
             : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
@@ -152,21 +152,21 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         />
 
         {uploading ? (
-          <div className="space-y-4 py-4">
-            <div className="w-10 h-10 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto">
-              <UploadCloud className="w-5 h-5 animate-pulse" />
+          <div className="space-y-5 py-4">
+            <div className="w-14 h-14 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto">
+              <UploadCloud className="w-7 h-7 animate-pulse" />
             </div>
 
-            <div className="space-y-1">
-              <span className="text-sm font-semibold text-[var(--text-primary)] block">
+            <div className="space-y-1.5">
+              <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
                 Uploading and staging dataset...
               </span>
-              <span className="text-xs text-[var(--text-muted)] font-mono block">
+              <span className="text-sm text-[var(--text-muted)] font-mono block">
                 {uploadProgressPct}% uploaded
               </span>
             </div>
 
-            <div className="w-48 mx-auto bg-[var(--bg-subtle)] h-1.5 rounded-full overflow-hidden hairline-border">
+            <div className="w-64 mx-auto bg-[var(--bg-subtle)] h-2 rounded-full overflow-hidden hairline-border">
               <div
                 className="bg-[var(--accent)] h-full transition-all duration-200"
                 style={{ width: `${uploadProgressPct}%` }}
@@ -174,16 +174,16 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
             </div>
           </div>
         ) : (
-          <div className="space-y-4">
-            <div className="w-10 h-10 rounded-full bg-[var(--bg-subtle)] text-[var(--text-muted)] flex items-center justify-center mx-auto">
-              <FileUp className="w-5 h-5" />
+          <div className="space-y-5">
+            <div className="w-14 h-14 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto">
+              <FileUp className="w-7 h-7" />
             </div>
 
-            <div className="space-y-1">
-              <span className="text-sm font-semibold text-[var(--text-primary)] block">
+            <div className="space-y-1.5">
+              <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
                 Drag and drop your CSV file here
               </span>
-              <span className="text-xs text-[var(--text-muted)] block">
+              <span className="text-sm text-[var(--text-muted)] block">
                 or click to browse your local computer
               </span>
             </div>
@@ -191,14 +191,14 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
             <div className="pt-2">
               <Button
                 variant="primary"
-                size="md"
+                size="lg"
                 onClick={() => fileInputRef.current?.click()}
               >
                 Select CSV File
               </Button>
             </div>
 
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-3 text-[11px] text-[var(--text-muted)] font-mono">
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs sm:text-sm text-[var(--text-muted)] font-mono">
               <Tag variant="neutral">Format: .csv</Tag>
               <span>·</span>
               <Tag variant="neutral">Max Size: 10 GB</Tag>
@@ -210,14 +210,14 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
       </div>
 
       {/* Privacy Option Card */}
-      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-sm)] p-4 flex items-start justify-between gap-4">
-        <div className="flex items-start gap-3">
-          <Shield className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
-          <div className="space-y-0.5">
-            <span className="text-xs font-semibold text-[var(--text-primary)] block">
+      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-5 sm:p-6 flex items-start justify-between gap-5">
+        <div className="flex items-start gap-3.5">
+          <Shield className="w-5 h-5 text-[var(--accent)] shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="text-sm sm:text-base font-semibold text-[var(--text-primary)] block">
               Privacy Mode (Zero Raw Data Transmission)
             </span>
-            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
               When enabled, sample data values and sensitive strings are withheld.
               The AI recipe generator receives only column names and statistical distributions.
             </p>

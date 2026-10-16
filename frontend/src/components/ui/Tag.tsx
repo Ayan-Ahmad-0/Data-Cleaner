@@ -30,7 +30,7 @@ export const Tag: React.FC<TagProps> = ({
 
   return (
     <span
-      className={`inline-flex items-center px-1.5 py-0.5 text-xs font-medium border rounded-[var(--radius-xs)] ${variantStyles} ${fontClass} ${className}`}
+      className={`inline-flex items-center px-2 py-0.5 text-xs sm:text-sm font-medium border rounded-[var(--radius-xs)] ${variantStyles} ${fontClass} ${className}`}
     >
       {children}
     </span>

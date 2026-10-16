@@ -51,19 +51,20 @@
   --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
-  /* Type Scale */
-  --text-xs: 11px;
-  --text-sm: 13px;
-  --text-base: 14px;
-  --text-md: 16px;
-  --text-lg: 18px;
-  --text-xl: 22px;
-  --text-2xl: 28px;
+  /* Type Scale - Comfortable Editorial Scale */
+  --text-xs: 12px;
+  --text-sm: 14px;
+  --text-base: 15px;
+  --text-md: 17px;
+  --text-lg: 20px;
+  --text-xl: 24px;
+  --text-2xl: 30px;
+  --text-3xl: 36px;
 
   /* Line Heights */
   --leading-tight: 1.25;
-  --leading-normal: 1.45;
-  --leading-relaxed: 1.6;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.65;
 
   /* Spacing Scale (4px base) */
   --space-0: 0px;
@@ -78,7 +79,11 @@
   --space-12: 48px;
 
   /* Layout Boundaries */
-  --max-content-width: 1160px;
+  --max-content-width: 1280px;
+
+  /* Header Dimensions & Insets */
+  --header-height: 60px;
+  --header-inset: 24px;
 
   /* Radii (Clean, 6px or less) */
   --radius-xs: 2px;
@@ -92,6 +97,18 @@
   /* Shadows (Zero drop shadows except subtle popover) */
   --shadow-none: none;
   --shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+@media (min-width: 1280px) {
+  :root {
+    --header-inset: 32px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --header-inset: 16px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

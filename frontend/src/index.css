@@ -80,3 +80,12 @@ html, body {
     padding-right: 16px;
   }
 }
+
+/* Full-Width Header Container (No max-width constraint) */
+.header-shell {
+  width: 100%;
+  height: var(--header-height);
+  padding-left: var(--header-inset);
+  padding-right: var(--header-inset);
+  box-sizing: border-box;
+}

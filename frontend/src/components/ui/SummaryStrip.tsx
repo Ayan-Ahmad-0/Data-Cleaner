@@ -26,15 +26,15 @@ export const SummaryStrip: React.FC<SummaryStripProps> = ({ metrics, className =
         }[metric.status || 'normal'];
 
         return (
-          <div key={idx} className="flex-1 min-w-[140px] px-4 py-3 sm:py-3.5">
-            <span className="text-xs text-[var(--text-muted)] block font-sans">
+          <div key={idx} className="flex-1 min-w-[150px] px-5 py-4">
+            <span className="text-sm font-medium text-[var(--text-muted)] block font-sans">
               {metric.label}
             </span>
-            <span className={`text-lg font-semibold font-mono block mt-0.5 ${valueColor}`}>
+            <span className={`text-xl sm:text-2xl font-semibold font-mono block mt-1 ${valueColor}`}>
               {metric.value}
             </span>
             {metric.subtext && (
-              <span className="text-[11px] text-[var(--text-muted)] block mt-0.5 leading-tight font-sans">
+              <span className="text-xs text-[var(--text-muted)] block mt-1 leading-tight font-sans">
                 {metric.subtext}
               </span>
             )}
