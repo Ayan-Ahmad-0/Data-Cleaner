@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-def get_gemini_callable(api_key: Optional[str] = None, model_name: str = "gemini-2.5-flash"):
+def get_gemini_callable(api_key: Optional[str] = None, model_name: str = "gemini-3-flash-preview"):
     """
     Returns a callable `(system_prompt: str, user_prompt: str) -> str`
     powered by the Google GenAI SDK.
@@ -23,15 +23,24 @@ def get_gemini_callable(api_key: Optional[str] = None, model_name: str = "gemini
         client = genai.Client(api_key=key)
 
         def gemini_call(system_prompt: str, user_prompt: str) -> str:
-            response = client.models.generate_content(
-                model=model_name,
-                contents=user_prompt,
-                config={
-                    "system_instruction": system_prompt,
-                    "response_mime_type": "application/json",
-                },
-            )
-            return response.text
+            # Try designated model, fall back if needed
+            candidate_models = [model_name, "gemini-3-flash-preview", "gemini-flash-latest"]
+            last_err = None
+            for m in candidate_models:
+                try:
+                    response = client.models.generate_content(
+                        model=m,
+                        contents=user_prompt,
+                        config={
+                            "system_instruction": system_prompt,
+                            "response_mime_type": "application/json",
+                        },
+                    )
+                    return response.text
+                except Exception as e:
+                    last_err = e
+                    continue
+            raise last_err
 
         return gemini_call
     except Exception as e:

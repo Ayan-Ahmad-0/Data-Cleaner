@@ -1,13 +1,22 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import type { JobDetailResponse } from '../lib/api';
 
 interface ApprovalPageProps {
+  jobData: JobDetailResponse | null;
   onStartCleaning: () => void;
 }
 
-export const ApprovalPage: React.FC<ApprovalPageProps> = ({ onStartCleaning }) => {
-  const [dayFirst, setDayFirst] = useState('day');
-  const [nullStrategy, setNullStrategy] = useState('fill_median');
-  const [dedupeKey, setDedupeKey] = useState('event_id');
+export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartCleaning }) => {
+  const [cleaningStarted, setCleaningStarted] = useState(false);
+  const plainEnglishRules = jobData?.recipe_plain_english || [];
+  const openQuestions = jobData?.open_questions || [];
+  const profile = jobData?.profile || {};
+  const fileMeta = profile?.file || {};
+
+  const handleApprove = () => {
+    setCleaningStarted(true);
+    onStartCleaning();
+  };
 
   return (
     <div className="max-w-5xl mx-auto py-8 px-6 space-y-6">
@@ -17,162 +26,92 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ onStartCleaning }) =
             Review & Approve Cleaning Recipe
           </h1>
           <p className="text-xs text-[var(--text-muted)] mt-0.5">
-            Rules are restricted to the verified macro library. Free-form SQL generation is prohibited.
+            Rules are restricted to the verified macro library. Free-form SQL generation is strictly prohibited.
           </p>
         </div>
         <button
-          onClick={onStartCleaning}
-          className="bg-[var(--ok)] hover:bg-green-700 text-white text-xs font-medium px-4 py-2 rounded-xs transition-colors flex items-center space-x-1.5 cursor-pointer"
+          onClick={handleApprove}
+          disabled={cleaningStarted}
+          className="bg-[var(--ok)] hover:bg-green-700 text-white text-xs font-medium px-4 py-2 rounded-xs transition-colors flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
         >
-          <span>Approve & Execute Clean</span>
-          <span className="mono text-[11px] opacity-80">(~45s)</span>
+          <span>{cleaningStarted ? 'Executing...' : 'Approve & Execute Clean'}</span>
+          <span className="mono text-[11px] opacity-80">(DuckDB CTE)</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column: Findings & Estimation */}
+        {/* Left Column: Summary & Execution Parameters */}
         <div className="space-y-4">
-          <div className="bg-[var(--surface)] hairline-border p-4 rounded-xs">
-            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] block mb-3">
-              Identified Issues (4)
+          <div className="bg-[var(--surface)] hairline-border p-4 rounded-xs text-xs space-y-2">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] block mb-1">
+              Engine Configuration
             </span>
-            <ul className="space-y-2.5 text-xs">
-              <li className="flex items-start justify-between">
-                <span className="font-medium text-[var(--text)]">timestamp</span>
-                <span className="text-[var(--warn)] mono">Ambiguous format</span>
-              </li>
-              <li className="flex items-start justify-between">
-                <span className="font-medium text-[var(--text)]">duplicates</span>
-                <span className="text-[var(--warn)] mono">2.5% (375k rows)</span>
-              </li>
-              <li className="flex items-start justify-between">
-                <span className="font-medium text-[var(--text)]">session_duration</span>
-                <span className="text-[var(--danger)] mono">18 negatives</span>
-              </li>
-              <li className="flex items-start justify-between">
-                <span className="font-medium text-[var(--text)]">platform</span>
-                <span className="text-[var(--text-muted)] mono">15k null tokens</span>
-              </li>
-            </ul>
-          </div>
-
-          <div className="bg-[var(--surface)] hairline-border p-4 rounded-xs text-xs space-y-1.5">
-            <span className="font-medium text-[var(--text)] block">Engine Execution Profile</span>
             <div className="flex justify-between text-[var(--text-muted)] mono">
-              <span>DuckDB Memory Limit:</span>
-              <span>4.0 GB</span>
+              <span>Target Records:</span>
+              <span className="text-[var(--text)] font-semibold">{fileMeta.rows ? fileMeta.rows.toLocaleString() : '—'}</span>
+            </div>
+            <div className="flex justify-between text-[var(--text-muted)] mono">
+              <span>Memory Limit:</span>
+              <span className="text-[var(--text)]">4.0 GB</span>
             </div>
             <div className="flex justify-between text-[var(--text-muted)] mono">
               <span>CPU Threads:</span>
-              <span>4 Cores</span>
+              <span className="text-[var(--text)]">4 Cores</span>
             </div>
             <div className="flex justify-between text-[var(--text-muted)] mono">
-              <span>Estimated Runtime:</span>
-              <span className="text-[var(--text)] font-medium">~45 seconds</span>
+              <span>Execution Engine:</span>
+              <span className="text-[var(--text)]">DuckDB Vectorized</span>
             </div>
           </div>
+
+          {openQuestions.length > 0 && (
+            <div className="bg-[var(--surface)] hairline-border border-l-2 border-l-[var(--warn)] p-4 rounded-xs text-xs space-y-3">
+              <span className="font-semibold text-[var(--warn)] uppercase tracking-wider text-[11px] block">
+                Required Confirmations ({openQuestions.length})
+              </span>
+              <div className="space-y-2">
+                {openQuestions.map((q, idx) => (
+                  <div key={idx} className="p-2 bg-amber-50/50 rounded-xs space-y-1">
+                    <p className="text-xs text-[var(--text)] font-medium">{q}</p>
+                    <div className="flex items-center space-x-3 text-[11px] text-[var(--text-muted)] mono pt-1">
+                      <label className="flex items-center space-x-1 cursor-pointer">
+                        <input type="radio" name={`confirm_${idx}`} defaultChecked className="text-[var(--accent)]" />
+                        <span>Accept Default</span>
+                      </label>
+                      <label className="flex items-center space-x-1 cursor-pointer">
+                        <input type="radio" name={`confirm_${idx}`} className="text-[var(--accent)]" />
+                        <span>Keep Unaltered</span>
+                      </label>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Right Column: Proposed Rules & Decision Inputs */}
-        <div className="md:col-span-2 space-y-4">
-          {/* Rule 1: Deduplication */}
-          <div className="bg-[var(--surface)] hairline-border p-4 rounded-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold mono text-[var(--text)]">
-                Macro: dedupe(keys, keep="latest")
+        {/* Right Column: Plain-English Cleaning Plan */}
+        <div className="md:col-span-2 space-y-3">
+          <div className="bg-[var(--surface)] hairline-border rounded-xs p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-[var(--border)] pb-3">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Compiled Cleaning Recipe ({plainEnglishRules.length} Steps)
               </span>
-              <span className="text-[11px] px-1.5 py-0.5 bg-green-50 text-[var(--ok)] rounded-xs mono">
-                Verified
+              <span className="text-[11px] mono text-[var(--ok)] bg-green-50 px-2 py-0.5 rounded-xs">
+                Schema Validated
               </span>
             </div>
-            <p className="text-xs text-[var(--text-muted)] mb-3">
-              Retain 1 unique row per identifier. Discard 375,000 exact duplicates.
-            </p>
-            <div className="text-xs space-y-1">
-              <label className="text-[var(--text)] font-medium block">Partition Key:</label>
-              <select
-                value={dedupeKey}
-                onChange={(e) => setDedupeKey(e.target.value)}
-                className="w-full bg-gray-50 border border-[var(--border)] rounded-xs p-1.5 mono text-xs"
-              >
-                <option value="event_id">event_id (Candidate Key · 97.5% distinct)</option>
-                <option value="all_columns">Entire Row (Exact match on all columns)</option>
-              </select>
-            </div>
-          </div>
 
-          {/* Rule 2: Timestamp Parsing with Required Confirmation */}
-          <div className="bg-[var(--surface)] hairline-border p-4 rounded-xs border-l-2 border-l-[var(--warn)]">
-            <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-semibold mono text-[var(--text)]">
-                Macro: parse_timestamp("timestamp")
-              </span>
-              <span className="text-[11px] px-1.5 py-0.5 bg-amber-50 text-[var(--warn)] rounded-xs font-medium">
-                Action Required
-              </span>
-            </div>
-            <p className="text-xs text-[var(--text-muted)] mb-3">
-              Values contain '/' separators where day and month are ambiguous (e.g. 05/06/2025). Please specify format precedence:
-            </p>
-            <div className="flex space-x-6 text-xs">
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="dayFirst"
-                  value="day"
-                  checked={dayFirst === 'day'}
-                  onChange={() => setDayFirst('day')}
-                  className="text-[var(--accent)]"
-                />
-                <span className="mono">Day first (DD/MM/YYYY)</span>
-              </label>
-              <label className="flex items-center space-x-2 cursor-pointer">
-                <input
-                  type="radio"
-                  name="dayFirst"
-                  value="month"
-                  checked={dayFirst === 'month'}
-                  onChange={() => setDayFirst('month')}
-                  className="text-[var(--accent)]"
-                />
-                <span className="mono">Month first (MM/DD/YYYY)</span>
-              </label>
-            </div>
-          </div>
-
-          {/* Rule 3: Numeric Outlier & Null Strategy */}
-          <div className="bg-[var(--surface)] hairline-border p-4 rounded-xs">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold mono text-[var(--text)]">
-                Macro: clip_outliers("session_duration_sec") & handle_nulls()
-              </span>
-              <span className="text-[11px] px-1.5 py-0.5 bg-green-50 text-[var(--ok)] rounded-xs mono">
-                Verified
-              </span>
-            </div>
-            <p className="text-xs text-[var(--text-muted)] mb-3">
-              Clamp or null negative values (&lt; 0), then apply chosen imputation strategy.
-            </p>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="text-[var(--text)] font-medium block mb-1">Null Strategy:</label>
-                <select
-                  value={nullStrategy}
-                  onChange={(e) => setNullStrategy(e.target.value)}
-                  className="w-full bg-gray-50 border border-[var(--border)] rounded-xs p-1.5 mono text-xs"
-                >
-                  <option value="fill_median">Fill with Median (1,800 sec)</option>
-                  <option value="fill_zero">Fill with Constant (0)</option>
-                  <option value="drop_row">Drop Rows with Invalid Values</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-[var(--text)] font-medium block mb-1">Negative Values:</label>
-                <div className="text-xs text-[var(--text-muted)] p-1.5 bg-gray-50 border border-[var(--border)] rounded-xs mono">
-                  Convert to NULL &rarr; Impute
-                </div>
-              </div>
-            </div>
+            <ol className="space-y-3 text-xs">
+              {plainEnglishRules.map((rule, idx) => (
+                <li key={idx} className="flex items-start space-x-3 p-2.5 rounded-xs bg-gray-50/40 hairline-border">
+                  <span className="w-5 h-5 rounded-full bg-[var(--surface)] hairline-border flex items-center justify-center text-[10px] mono font-semibold text-[var(--text-muted)] flex-shrink-0 mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <p className="text-[var(--text)] leading-relaxed font-sans">{rule}</p>
+                </li>
+              ))}
+            </ol>
           </div>
         </div>
       </div>

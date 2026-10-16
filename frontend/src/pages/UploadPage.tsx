@@ -1,24 +1,54 @@
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
+import { uploadDataset } from '../lib/api';
 
 interface UploadPageProps {
-  onUploadComplete: (file: { name: string; size: string; rowCount: string }) => void;
+  onUploadComplete: (jobData: { id: string; name: string; size: string; rowCount: string }) => void;
 }
 
 export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   const [dragActive, setDragActive] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleSimulatedUpload = () => {
+  const processFile = async (file: File) => {
+    if (!file.name.endsWith('.csv')) {
+      setError('Please select a valid CSV file.');
+      return;
+    }
+
+    setError(null);
     setUploading(true);
-    setTimeout(() => {
-      setUploading(false);
+
+    try {
+      const job = await uploadDataset(file, privacyMode);
+      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
       onUploadComplete({
-        name: 'events_2026.csv',
-        size: '1.05 GB',
-        rowCount: '15,000,000',
+        id: job.id,
+        name: file.name,
+        size: `${sizeMb} MB`,
+        rowCount: 'Pending Profile...',
       });
-    }, 1200);
+    } catch (err: any) {
+      setError(err.message || 'Error uploading file.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragActive(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      processFile(e.dataTransfer.files[0]);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      processFile(e.target.files[0]);
+    }
   };
 
   return (
@@ -32,10 +62,24 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         </p>
       </div>
 
+      {error && (
+        <div className="mb-4 p-3 bg-red-50 hairline-border border-red-200 text-xs text-[var(--danger)] rounded-xs">
+          {error}
+        </div>
+      )}
+
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        accept=".csv"
+        className="hidden"
+      />
+
       <div
         onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
         onDragLeave={() => setDragActive(false)}
-        onDrop={(e) => { e.preventDefault(); setDragActive(false); handleSimulatedUpload(); }}
+        onDrop={handleDrop}
         className={`bg-[var(--surface)] hairline-border rounded-xs p-10 text-center transition-all ${
           dragActive ? 'border-[var(--accent)] bg-blue-50/20' : ''
         }`}
@@ -48,7 +92,8 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
             <p className="text-sm font-medium text-[var(--text)]">
               Drag and drop your CSV file here, or{' '}
               <button
-                onClick={handleSimulatedUpload}
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
                 disabled={uploading}
                 className="text-[var(--accent)] hover:underline font-medium cursor-pointer"
               >
@@ -66,7 +111,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
                 <div className="bg-[var(--accent)] h-full w-2/3 animate-pulse"></div>
               </div>
               <p className="text-xs mono text-[var(--text-muted)]">
-                Staging file to local temporary storage...
+                Uploading and staging file in DuckDB engine...
               </p>
             </div>
           )}
