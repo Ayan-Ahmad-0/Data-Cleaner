@@ -1,5 +1,12 @@
 import React, { useRef, useState } from 'react';
 import { uploadDataset } from '../lib/api';
+import { MAX_FILE_SIZE_BYTES } from '../config';
+import { Button } from '../components/ui/Button';
+import { Callout } from '../components/ui/Callout';
+import { Tag } from '../components/ui/Tag';
+import { Toggle } from '../components/ui/Toggle';
+import { formatBytes } from '../lib/format';
+import { FileUp, Shield, UploadCloud } from 'lucide-react';
 
 interface UploadPageProps {
   onUploadComplete: (jobData: { id: string; name: string; size: string; rowCount: string }) => void;
@@ -9,133 +16,219 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   const [dragActive, setDragActive] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(false);
   const [uploading, setUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [uploadProgressPct, setUploadProgressPct] = useState<number>(0);
+  const [error, setError] = useState<{ message: string; recovery: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const processFile = async (file: File) => {
-    if (!file.name.endsWith('.csv')) {
-      setError('Please select a valid CSV file.');
+  const validateAndProcessFile = async (file: File) => {
+    // 1. Check file extension
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setError({
+        message: 'Invalid file format.',
+        recovery: 'Only CSV files (.csv) are supported. Please convert or export your data to CSV format.',
+      });
+      return;
+    }
+
+    // 2. Check empty file
+    if (file.size === 0) {
+      setError({
+        message: 'Empty file detected (0 bytes).',
+        recovery: 'The selected CSV file has no content. Please choose a dataset with rows.',
+      });
+      return;
+    }
+
+    // 3. Check max file size (10 GB)
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError({
+        message: `File exceeds maximum size limit (${formatBytes(file.size)}).`,
+        recovery: 'The cleaner supports files up to 10 GB on a single machine. Consider partitioning your CSV into smaller batches.',
+      });
       return;
     }
 
     setError(null);
     setUploading(true);
+    setUploadProgressPct(15);
 
     try {
+      // Simulate stepped progression for upload feedback
+      const progressTimer = setInterval(() => {
+        setUploadProgressPct((p) => (p < 85 ? p + 15 : p));
+      }, 200);
+
       const job = await uploadDataset(file, privacyMode);
-      const sizeMb = (file.size / (1024 * 1024)).toFixed(2);
+      clearInterval(progressTimer);
+      setUploadProgressPct(100);
+
       onUploadComplete({
         id: job.id,
         name: file.name,
-        size: `${sizeMb} MB`,
-        rowCount: 'Pending Profile...',
+        size: formatBytes(file.size),
+        rowCount: 'Profiling in progress...',
       });
     } catch (err: any) {
-      setError(err.message || 'Error uploading file.');
-    } finally {
+      setError({
+        message: err.message || 'Failed to upload dataset.',
+        recovery: 'Check that the backend server is running and accessible at http://localhost:8000.',
+      });
       setUploading(false);
+    }
+  };
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
     }
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      processFile(e.dataTransfer.files[0]);
+      validateAndProcessFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      processFile(e.target.files[0]);
+      validateAndProcessFile(e.target.files[0]);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-6">
-      <div className="mb-8">
-        <h1 className="text-xl font-semibold text-[var(--text)] tracking-tight">
+    <div className="container-shell py-12 max-w-2xl mx-auto space-y-6">
+      {/* Title */}
+      <div className="text-left space-y-1">
+        <h1 className="text-xl font-semibold text-[var(--text-primary)] tracking-tight">
           Upload Raw Dataset
         </h1>
-        <p className="text-sm text-[var(--text-muted)] mt-1">
-          Single-machine processing for 1–10 GB CSVs. The AI never reads raw data records; it reviews a concise statistical profile.
+        <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+          Upload any messy CSV file (from a few kilobytes up to 10 GB). DuckDB will profile the data,
+          identify quality anomalies, and draft a verified cleaning plan.
         </p>
       </div>
 
+      {/* Error Callout */}
       {error && (
-        <div className="mb-4 p-3 bg-red-50 hairline-border border-red-200 text-xs text-[var(--danger)] rounded-xs">
-          {error}
-        </div>
+        <Callout
+          variant="danger"
+          title={error.message}
+          action={
+            <Button size="sm" variant="secondary" onClick={() => setError(null)}>
+              Dismiss
+            </Button>
+          }
+        >
+          {error.recovery}
+        </Callout>
       )}
 
-      <input
-        type="file"
-        ref={fileInputRef}
-        onChange={handleFileChange}
-        accept=".csv"
-        className="hidden"
-      />
-
+      {/* Dropzone Container */}
       <div
-        onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-        onDragLeave={() => setDragActive(false)}
+        onDragEnter={handleDrag}
+        onDragLeave={handleDrag}
+        onDragOver={handleDrag}
         onDrop={handleDrop}
-        className={`bg-[var(--surface)] hairline-border rounded-xs p-10 text-center transition-all ${
-          dragActive ? 'border-[var(--accent)] bg-blue-50/20' : ''
+        className={`bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-sm)] p-8 sm:p-12 text-center transition-all border-dashed ${
+          dragActive
+            ? 'border-[var(--accent)] bg-[var(--accent-subtle)]'
+            : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
         }`}
       >
-        <div className="max-w-md mx-auto space-y-4">
-          <div className="w-10 h-10 mx-auto rounded-xs bg-gray-100 flex items-center justify-center text-[var(--text-muted)] mono text-sm">
-            CSV
-          </div>
-          <div>
-            <p className="text-sm font-medium text-[var(--text)]">
-              Drag and drop your CSV file here, or{' '}
-              <button
-                type="button"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="text-[var(--accent)] hover:underline font-medium cursor-pointer"
-              >
-                browse filesystem
-              </button>
-            </p>
-            <p className="text-xs text-[var(--text-muted)] mt-1">
-              Supports UTF-8 CSVs up to 10 GB. Converted automatically to partitioned Parquet text staging.
-            </p>
-          </div>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".csv"
+          onChange={handleFileChange}
+          className="hidden"
+          id="csv-file-input"
+        />
 
-          {uploading && (
-            <div className="pt-4 space-y-2">
-              <div className="w-full bg-gray-100 h-1.5 rounded-xs overflow-hidden">
-                <div className="bg-[var(--accent)] h-full w-2/3 animate-pulse"></div>
-              </div>
-              <p className="text-xs mono text-[var(--text-muted)]">
-                Uploading and staging file in DuckDB engine...
-              </p>
+        {uploading ? (
+          <div className="space-y-4 py-4">
+            <div className="w-10 h-10 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto">
+              <UploadCloud className="w-5 h-5 animate-pulse" />
             </div>
-          )}
-        </div>
+
+            <div className="space-y-1">
+              <span className="text-sm font-semibold text-[var(--text-primary)] block">
+                Uploading and staging dataset...
+              </span>
+              <span className="text-xs text-[var(--text-muted)] font-mono block">
+                {uploadProgressPct}% uploaded
+              </span>
+            </div>
+
+            <div className="w-48 mx-auto bg-[var(--bg-subtle)] h-1.5 rounded-full overflow-hidden hairline-border">
+              <div
+                className="bg-[var(--accent)] h-full transition-all duration-200"
+                style={{ width: `${uploadProgressPct}%` }}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <div className="w-10 h-10 rounded-full bg-[var(--bg-subtle)] text-[var(--text-muted)] flex items-center justify-center mx-auto">
+              <FileUp className="w-5 h-5" />
+            </div>
+
+            <div className="space-y-1">
+              <span className="text-sm font-semibold text-[var(--text-primary)] block">
+                Drag and drop your CSV file here
+              </span>
+              <span className="text-xs text-[var(--text-muted)] block">
+                or click to browse your local computer
+              </span>
+            </div>
+
+            <div className="pt-2">
+              <Button
+                variant="primary"
+                size="md"
+                onClick={() => fileInputRef.current?.click()}
+              >
+                Select CSV File
+              </Button>
+            </div>
+
+            <div className="flex flex-wrap items-center justify-center gap-2 pt-3 text-[11px] text-[var(--text-muted)] font-mono">
+              <Tag variant="neutral">Format: .csv</Tag>
+              <span>·</span>
+              <Tag variant="neutral">Max Size: 10 GB</Tag>
+              <span>·</span>
+              <Tag variant="neutral">Text Ingestion</Tag>
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="mt-6 flex items-center justify-between p-4 bg-[var(--surface)] hairline-border rounded-xs">
-        <div>
-          <span className="text-xs font-medium text-[var(--text)] block">
-            Privacy Mode
-          </span>
-          <span className="text-xs text-[var(--text-muted)]">
-            Disables sample values. The LLM only receives aggregated statistical metadata and column schemas.
-          </span>
+      {/* Privacy Option Card */}
+      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-sm)] p-4 flex items-start justify-between gap-4">
+        <div className="flex items-start gap-3">
+          <Shield className="w-4 h-4 text-[var(--accent)] shrink-0 mt-0.5" />
+          <div className="space-y-0.5">
+            <span className="text-xs font-semibold text-[var(--text-primary)] block">
+              Privacy Mode (Zero Raw Data Transmission)
+            </span>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed">
+              When enabled, sample data values and sensitive strings are withheld.
+              The AI recipe generator receives only column names and statistical distributions.
+            </p>
+          </div>
         </div>
-        <label className="relative inline-flex items-center cursor-pointer">
-          <input
-            type="checkbox"
-            checked={privacyMode}
-            onChange={(e) => setPrivacyMode(e.target.checked)}
-            className="sr-only peer"
-          />
-          <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[var(--accent)]"></div>
-        </label>
+
+        <Toggle
+          checked={privacyMode}
+          onChange={setPrivacyMode}
+          disabled={uploading}
+        />
       </div>
     </div>
   );

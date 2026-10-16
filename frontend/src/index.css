@@ -1,50 +1,82 @@
 @import "tailwindcss";
 
-:root {
-  /* Color palette - intentional, restrained, non-generic */
-  --bg: #FAFAF8;
-  --surface: #FFFFFF;
-  --text: #1B1B19;
-  --text-muted: #6B6A66;
-  --border: #E4E2DC;
-  --accent: #2B4C7E;
-  --accent-hover: #1E375C;
-  --ok: #2E7D4F;
-  --warn: #B45309;
-  --danger: #B42318;
+/* Self-hosted IBM Plex Fonts */
+@import "@fontsource/ibm-plex-sans/400.css";
+@import "@fontsource/ibm-plex-sans/500.css";
+@import "@fontsource/ibm-plex-sans/600.css";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/500.css";
+@import "@fontsource/ibm-plex-mono/600.css";
 
-  /* Typography */
-  --font-sans: "IBM Plex Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
-  --text-sm: 13px;
-  --text-base: 15px;
-  --text-lg: 18px;
+/* Centralized Design Tokens */
+@import "./tokens.css";
 
-  /* Shapes & spacing scale */
-  --radius: 4px;
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 16px;
-  --space-4: 24px;
-  --space-5: 40px;
-}
-
-body {
-  background-color: var(--bg);
-  color: var(--text);
+/* Base document defaults */
+html, body {
+  background-color: var(--bg-app);
+  color: var(--text-primary);
   font-family: var(--font-sans);
   font-size: var(--text-base);
+  line-height: var(--leading-normal);
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Hairline borders & utility classes */
-.hairline-border {
-  border: 1px solid var(--border);
+/* Global focus-visible styling (no outline on mouse click, clean ring on keyboard navigation) */
+:focus {
+  outline: none;
 }
 
-.mono {
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Typography Helpers */
+.font-sans {
+  font-family: var(--font-sans);
+}
+
+.font-mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
+}
+
+/* Common Surfaces & Borders */
+.hairline-border {
+  border: 1px solid var(--border-hairline);
+}
+
+.hairline-b {
+  border-bottom: 1px solid var(--border-hairline);
+}
+
+.hairline-t {
+  border-top: 1px solid var(--border-hairline);
+}
+
+.hairline-l {
+  border-left: 1px solid var(--border-hairline);
+}
+
+.hairline-r {
+  border-right: 1px solid var(--border-hairline);
+}
+
+/* Layout Container */
+.container-shell {
+  max-width: var(--max-content-width);
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 24px;
+  padding-right: 24px;
+}
+
+@media (max-width: 640px) {
+  .container-shell {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
 }

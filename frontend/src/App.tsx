@@ -6,6 +6,7 @@ import { ApprovalPage } from './pages/ApprovalPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { approveAndClean, getJobDetail, type JobDetailResponse } from './lib/api';
+import { formatNumber } from './lib/format';
 
 export function App() {
   const [currentStep, setCurrentStep] = useState<number>(1);
@@ -14,12 +15,12 @@ export function App() {
 
   const [fileMeta, setFileMeta] = useState<{
     name: string;
-    size: string;
-    rowCount: string;
+    sizeFormatted: string;
+    rowCountFormatted: string;
   }>({
     name: '',
-    size: '',
-    rowCount: '',
+    sizeFormatted: '',
+    rowCountFormatted: '',
   });
 
   // Polling job detail from FastAPI backend
@@ -35,11 +36,12 @@ export function App() {
         if (detail.profile?.file?.rows) {
           setFileMeta((prev) => ({
             ...prev,
-            rowCount: detail.profile.file.rows.toLocaleString(),
+            rowCountFormatted: formatNumber(detail.profile.file.rows),
           }));
         }
 
         const status = detail.job.status;
+        // Automatic stage transitions
         if (status === 'AWAITING_APPROVAL' && currentStep === 1) {
           setCurrentStep(2);
         } else if ((status === 'DONE' || status === 'DONE_WITH_WARNINGS') && currentStep === 4) {
@@ -48,7 +50,7 @@ export function App() {
       } catch (err) {
         console.error('Error polling job status:', err);
       }
-    }, 1500);
+    }, 1200);
 
     return () => clearInterval(interval);
   }, [jobId, currentStep]);
@@ -57,18 +59,23 @@ export function App() {
     setJobId(info.id);
     setFileMeta({
       name: info.name,
-      size: info.size,
-      rowCount: info.rowCount,
+      sizeFormatted: info.size,
+      rowCountFormatted: info.rowCount,
     });
     // Immediately fetch initial job details
-    getJobDetail(info.id).then(setJobData).catch(console.error);
-    setCurrentStep(2);
+    getJobDetail(info.id).then((detail) => {
+      setJobData(detail);
+      // If already profiled, move to report
+      if (detail.job.status === 'AWAITING_APPROVAL') {
+        setCurrentStep(2);
+      }
+    }).catch(console.error);
   };
 
-  const handleStartCleaning = async () => {
+  const handleStartCleaning = async (customRecipe?: any) => {
     if (!jobId) return;
     try {
-      await approveAndClean(jobId);
+      await approveAndClean(jobId, customRecipe);
       setCurrentStep(4);
     } catch (err) {
       console.error('Failed to trigger cleaning:', err);
@@ -78,18 +85,18 @@ export function App() {
   const handleRestart = () => {
     setJobId(null);
     setJobData(null);
-    setFileMeta({ name: '', size: '', rowCount: '' });
+    setFileMeta({ name: '', sizeFormatted: '', rowCountFormatted: '' });
     setCurrentStep(1);
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-[var(--bg)] text-[var(--text)]">
+    <div className="min-h-screen flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)] font-sans antialiased">
       <Navbar
         currentStep={currentStep}
         onSelectStep={(step) => setCurrentStep(step)}
         fileName={fileMeta.name}
-        fileSize={fileMeta.size}
-        rowCount={fileMeta.rowCount}
+        fileSizeFormatted={fileMeta.sizeFormatted}
+        rowCountFormatted={fileMeta.rowCountFormatted}
       />
 
       <main className="flex-1">
@@ -109,7 +116,7 @@ export function App() {
           />
         )}
         {currentStep === 4 && (
-          <ProgressPage jobData={jobData} />
+          <ProgressPage jobData={jobData} onCancel={handleRestart} />
         )}
         {currentStep === 5 && (
           <ResultsPage jobData={jobData} onRestart={handleRestart} />
