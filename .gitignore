@@ -1,0 +1,38 @@
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.ruff_cache/
+
+# Data & DuckDB
+data/
+raw/
+parquet/
+clean/
+reports/
+*.duckdb
+*.duckdb.wal
+*.parquet
+*.csv
+!tests/fixtures/*.csv
+!tests/fixtures/*.parquet
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+
+# IDE & OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+.env
+#project workflow
+info/
