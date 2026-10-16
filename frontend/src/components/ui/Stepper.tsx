@@ -19,22 +19,28 @@ export const Stepper: React.FC<StepperProps> = ({
   onSelectStep,
   className = '',
 }) => {
-  const currentStepItem = steps.find((s) => s.id === currentStep) || steps[0];
-
   return (
     <div className={`flex items-center shrink-0 p-0.5 ${className}`}>
-      {/* Below 640 px: Single compact status ("Step 2 of 5 · Profile & Report") */}
+      {/* Below 640 px: Compact interactive step picker ("Step 2 of 5 · Profile & Report") */}
       <div className="sm:hidden flex items-center gap-1.5 text-xs font-sans whitespace-nowrap">
-        <span className="font-mono text-[var(--accent)] font-semibold">
-          Step {currentStep} of {steps.length}
-        </span>
-        <span className="text-[var(--text-muted)]">·</span>
-        <span className="font-medium text-[var(--text-primary)]">
-          {currentStepItem.label}
-        </span>
+        <label htmlFor="mobile-step-select" className="sr-only">
+          Select Step
+        </label>
+        <select
+          id="mobile-step-select"
+          value={currentStep}
+          onChange={(e) => onSelectStep(Number(e.target.value))}
+          className="bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium rounded-[var(--radius-xs)] px-2.5 py-1 hairline-border cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--accent)] text-xs outline-none"
+        >
+          {steps.map((s) => (
+            <option key={s.id} value={s.id}>
+              Step {s.id} of {steps.length} · {s.label}
+            </option>
+          ))}
+        </select>
       </div>
 
-      {/* 640 px and up: Full Stepper bar with responsive labels */}
+      {/* 640 px and up: Full Stepper bar with freely clickable tabs */}
       <nav
         aria-label="Progress Stepper"
         className="hidden sm:flex items-center gap-1.5 lg:gap-2 xl:gap-2.5 p-0.5 flex-nowrap"
@@ -47,16 +53,14 @@ export const Stepper: React.FC<StepperProps> = ({
             <button
               key={step.id}
               type="button"
-              disabled={!isDone}
-              onClick={() => isDone && onSelectStep(step.id)}
+              onClick={() => onSelectStep(step.id)}
               aria-current={isCurrent ? 'step' : undefined}
-              aria-disabled={!isDone ? 'true' : undefined}
-              className={`group inline-flex items-center gap-1.5 lg:gap-2 px-2 py-1 lg:px-2.5 lg:py-1.5 xl:px-3.5 xl:py-1.5 rounded-[var(--radius-sm)] text-xs lg:text-xs xl:text-sm font-sans transition-all select-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 outline-none ${
+              className={`group inline-flex items-center gap-1.5 lg:gap-2 px-2 py-1 lg:px-2.5 lg:py-1.5 xl:px-3.5 xl:py-1.5 rounded-[var(--radius-sm)] text-xs lg:text-xs xl:text-sm font-sans transition-all select-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 outline-none cursor-pointer ${
                 isCurrent
-                  ? 'bg-[var(--accent-subtle)] text-[var(--accent-text)] font-semibold border hairline-border border-[var(--accent-border)] cursor-default'
+                  ? 'bg-[var(--accent-subtle)] text-[var(--accent-text)] font-semibold border hairline-border border-[var(--accent-border)]'
                   : isDone
-                  ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border hairline-border border-transparent cursor-pointer'
-                  : 'text-[var(--text-muted)] opacity-50 border hairline-border border-transparent cursor-default'
+                  ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border hairline-border border-transparent'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border hairline-border border-transparent'
               }`}
             >
               <span
@@ -65,7 +69,7 @@ export const Stepper: React.FC<StepperProps> = ({
                     ? 'bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border border-[var(--status-ok-border)] font-semibold'
                     : isCurrent
                     ? 'bg-[var(--accent)] text-white font-semibold'
-                    : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border-hairline)] font-normal'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border-hairline)] font-normal group-hover:border-[var(--border-strong)]'
                 }`}
               >
                 {isDone ? <Check className="w-3 h-3 stroke-[2.5]" /> : step.id}
