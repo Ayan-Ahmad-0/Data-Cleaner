@@ -154,11 +154,12 @@ class Verifier:
                 if rule.clip_outliers:
                     cfg = rule.clip_outliers
                     qcol = quote_ident(col)
+                    num_col = f"try_cast({qcol} AS DOUBLE)"
                     conds = []
                     if cfg.min is not None:
-                        conds.append(f"{qcol} < {cfg.min}")
+                        conds.append(f"{num_col} < {cfg.min}")
                     if cfg.max is not None:
-                        conds.append(f"{qcol} > {cfg.max}")
+                        conds.append(f"{num_col} > {cfg.max}")
                     if conds:
                         violation_cnt = conn.execute(
                             f"SELECT COUNT(*) FROM {view_name} WHERE {' OR '.join(conds)};"

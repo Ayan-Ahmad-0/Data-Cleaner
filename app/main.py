@@ -122,7 +122,12 @@ def download_artifact(job_id: str, format: str):
     else:
         raise HTTPException(status_code=400, detail="Invalid format. Use 'parquet', 'csv', or 'report'.")
 
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="Artifact not ready or not found.")
-
     return FileResponse(path=file_path, media_type=media_type, filename=filename)
+
+
+# Mount built frontend assets if present
+frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
+if frontend_dist.exists():
+    from fastapi.staticfiles import StaticFiles
+    app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+

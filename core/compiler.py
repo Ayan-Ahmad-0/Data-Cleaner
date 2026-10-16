@@ -88,22 +88,21 @@ class RecipeCompiler:
                 # Clip outliers
                 if rule.clip_outliers:
                     cfg = rule.clip_outliers
-                    macro = ClipOutliersMacro(min_val=cfg.min, max_val=cfg.max, action=cfg.action)
-                    # Embed previous expr
+                    num_expr = f"try_cast({expr} AS DOUBLE)"
                     if cfg.action == "null":
                         conds = []
                         if cfg.min is not None:
-                            conds.append(f"{expr} < {cfg.min}")
+                            conds.append(f"{num_expr} < {cfg.min}")
                         if cfg.max is not None:
-                            conds.append(f"{expr} > {cfg.max}")
+                            conds.append(f"{num_expr} > {cfg.max}")
                         or_cond = " OR ".join(conds)
                         expr = f"CASE WHEN {or_cond} THEN NULL ELSE {expr} END"
                     elif cfg.action == "clamp":
                         whens = []
                         if cfg.min is not None:
-                            whens.append(f"WHEN {expr} < {cfg.min} THEN {cfg.min}")
+                            whens.append(f"WHEN {num_expr} < {cfg.min} THEN {cfg.min}")
                         if cfg.max is not None:
-                            whens.append(f"WHEN {expr} > {cfg.max} THEN {cfg.max}")
+                            whens.append(f"WHEN {num_expr} > {cfg.max} THEN {cfg.max}")
                         expr = f"CASE {' '.join(whens)} ELSE {expr} END"
 
             norm_selects.append(f"        {expr} AS {quote_ident(col)}")
