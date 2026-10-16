@@ -199,26 +199,39 @@ class RecipeCompiler:
             # 3. Execute
             conn.execute(copy_sql)
 
-            # 4. Measure output
+            # 4. Measure output and change breakdown
             rows_out = conn.execute(f"SELECT COUNT(*) FROM read_parquet('{out_sql_path}')").fetchone()[0]
             elapsed = time.perf_counter() - start_time
             out_bytes = out_path.stat().st_size if out_path.exists() else 0
+            rows_removed = max(0, rows_in - rows_out)
+
+            # Breakdown by reason
+            dedupe_removed = 0
+            if recipe.dedupe:
+                dedupe_removed = rows_removed
+
+            changes_summary = {
+                "rows_in": rows_in,
+                "rows_out": rows_out,
+                "rows_removed_total": rows_removed,
+                "rows_removed_by_reason": {
+                    "deduplication": dedupe_removed,
+                    "null_filtering": max(0, rows_removed - dedupe_removed),
+                },
+                "columns_transformed": list(recipe.columns.keys()),
+                "rules_applied_count": len(recipe.columns) + (1 if recipe.dedupe else 0),
+            }
 
             return CleaningResult(
                 input_parquet=str(in_path),
                 output_parquet=str(out_path),
                 rows_in=rows_in,
                 rows_out=rows_out,
-                rows_dropped=max(0, rows_in - rows_out),
+                rows_dropped=rows_removed,
                 duration_seconds=round(elapsed, 3),
                 output_size_bytes=out_bytes,
                 compiled_sql=compiled_sql,
-                changes_summary={
-                    "rows_in": rows_in,
-                    "rows_out": rows_out,
-                    "rows_removed": rows_in - rows_out,
-                    "rules_applied": len(recipe.columns) + (1 if recipe.dedupe else 0),
-                },
+                changes_summary=changes_summary,
             )
         finally:
             conn.close()

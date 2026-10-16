@@ -239,9 +239,9 @@ class Profiler:
             )
 
         # 1. Null, distinct, whitespace, and null token counts
-        # Build token match expressions
+        str_val = f"try_cast({quoted} AS VARCHAR)"
         token_cases = ", ".join(
-            [f"SUM(CASE WHEN lower(trim({quoted})) = '{tok}' THEN 1 ELSE 0 END) AS tok_{i}"
+            [f"SUM(CASE WHEN lower(trim({str_val})) = '{tok}' THEN 1 ELSE 0 END) AS tok_{i}"
              for i, tok in enumerate(NULL_TOKENS)]
         )
 
@@ -249,7 +249,7 @@ class Profiler:
             SELECT
                 COUNT({quoted}) AS non_null_count,
                 COUNT(DISTINCT {quoted}) AS distinct_count,
-                SUM(CASE WHEN {quoted} IS NOT NULL AND length({quoted}) != length(trim({quoted})) THEN 1 ELSE 0 END) AS ws_issues,
+                SUM(CASE WHEN {quoted} IS NOT NULL AND length({str_val}) != length(trim({str_val})) THEN 1 ELSE 0 END) AS ws_issues,
                 {token_cases}
             FROM {view_name};
         """
@@ -284,7 +284,7 @@ class Profiler:
                 COUNT(try_cast({quoted} AS DOUBLE)) AS dbl_count,
                 COUNT(try_cast({quoted} AS BOOLEAN)) AS bool_count
             FROM {view_name}
-            WHERE {quoted} IS NOT NULL AND lower(trim({quoted})) NOT IN ({','.join(f"'{t}'" for t in NULL_TOKENS)});
+            WHERE {quoted} IS NOT NULL AND lower(trim({str_val})) NOT IN ({','.join(f"'{t}'" for t in NULL_TOKENS)});
         """
         type_res = conn.execute(type_test_query).fetchone()
         int_valid = type_res[0] or 0
@@ -413,7 +413,7 @@ class Profiler:
                 SELECT DISTINCT {quoted}
                 FROM {view_name}
                 WHERE {quoted} IS NOT NULL
-                  AND lower(trim({quoted})) NOT IN ({','.join(f"'{t}'" for t in NULL_TOKENS)})
+                  AND lower(trim({str_val})) NOT IN ({','.join(f"'{t}'" for t in NULL_TOKENS)})
                 LIMIT 5;
             """
             sample_rows = conn.execute(sample_q).fetchall()
