@@ -148,9 +148,12 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
       setConvertResult(res);
     } catch (err: any) {
       clearInterval(progressTimer);
+      const isNetworkErr = err?.message?.toLowerCase().includes('failed to fetch') || err?.name === 'TypeError';
       setError({
-        message: err.message || 'Conversion failed',
-        recovery: 'Verify input dataset validity or pick another target format like Parquet or CSV.',
+        message: isNetworkErr ? 'Server connection error (Failed to fetch)' : (err.message || 'Conversion failed'),
+        recovery: isNetworkErr
+          ? 'Check that the backend server is running and reachable on http://127.0.0.1:8000.'
+          : 'Verify input dataset validity or pick another target format like Parquet or CSV.',
       });
     } finally {
       clearInterval(progressTimer);
