@@ -9,7 +9,7 @@ interface CleanFlowLogoProps {
 
 export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
   size = 'md',
-  showTagline = false,
+  showTagline = true,
   className = '',
   iconOnly = false,
 }) => {
@@ -25,12 +25,6 @@ export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
     lg: 'text-3xl sm:text-4xl',
   }[size];
 
-  const taglineSizes = {
-    sm: 'text-[10px]',
-    md: 'text-xs',
-    lg: 'text-sm',
-  }[size];
-
   return (
     <div className={`flex items-center gap-2.5 sm:gap-3 select-none ${className}`}>
       {/* CleanFlow 4-petal geometric icon */}
@@ -41,16 +35,14 @@ export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
       />
 
       {!iconOnly && (
-        <div className="flex flex-col justify-center leading-none">
+        <div className="flex items-center gap-2.5 sm:gap-3.5 leading-none">
           <div className={`font-bold tracking-tight font-sans flex items-baseline ${textSizes}`}>
             <span className="text-[var(--text-primary)]">Clean</span>
             <span className="text-[var(--accent)]">Flow</span>
           </div>
           {showTagline && (
-            <span
-              className={`text-[var(--text-muted)] font-medium tracking-wide mt-1 whitespace-nowrap ${taglineSizes}`}
-            >
-              Transform &bull; Clean &bull; Prepare
+            <span className="hidden md:inline-flex items-center text-xs lg:text-sm font-normal text-[var(--text-muted)] tracking-normal pl-2.5 sm:pl-3.5 hairline-l whitespace-nowrap">
+              Transform &bull; Clean &bull; Prepare &bull; Visualize
             </span>
           )}
         </div>

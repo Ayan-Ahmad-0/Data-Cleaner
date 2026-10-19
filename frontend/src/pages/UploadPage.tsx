@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { uploadDataset } from '../lib/api';
-import { MAX_FILE_SIZE_BYTES, APP_NAME, APP_TAGLINE } from '../config';
+import { MAX_FILE_SIZE_BYTES } from '../config';
 import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
 import { Tag } from '../components/ui/Tag';
@@ -105,12 +105,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   return (
     <div className="container-shell py-12 sm:py-16 max-w-3xl mx-auto space-y-8">
       {/* Title */}
-      <div className="text-left space-y-3">
-        <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-[var(--radius-xs)] bg-[var(--accent-subtle)] border border-[var(--accent-border)] text-xs font-semibold text-[var(--accent-text)] tracking-wide">
-          <span>{APP_NAME}</span>
-          <span className="opacity-50">&bull;</span>
-          <span>{APP_TAGLINE}</span>
-        </div>
+      <div className="text-left space-y-2">
         <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
           Upload Raw Dataset
         </h1>
