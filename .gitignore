@@ -22,6 +22,7 @@ reports/
 *.csv
 !tests/fixtures/*.csv
 !tests/fixtures/*.parquet
+!tests/formats/fixtures/*
 
 # Node / Frontend
 frontend/node_modules/

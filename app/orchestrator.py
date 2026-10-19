@@ -3,7 +3,7 @@
 from __future__ import annotations
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import duckdb
@@ -186,7 +186,7 @@ class JobOrchestrator:
             job.status = JobStatus.DONE if v_result.status == "PASS" else JobStatus.DONE_WITH_WARNINGS
             job.current_stage = "Completed successfully" if job.status == JobStatus.DONE else "Completed with warnings"
             job.progress_pct = 100.0
-            job.completed_at = datetime.utcnow()
+            job.completed_at = datetime.now(timezone.utc)
 
         except Exception as e:
             logger.exception("Error during cleaning and verification: %s", e)

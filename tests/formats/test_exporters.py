@@ -42,7 +42,8 @@ def test_parquet_exporter(tmp_path):
     assert out_pq.exists()
 
     conn = duckdb.connect(":memory:")
-    count = conn.execute(f"SELECT COUNT(*) FROM read_parquet('{str(out_pq).replace('\\', '/')}')").fetchone()[0]
+    out_pq_sql = str(out_pq).replace("\\", "/")
+    count = conn.execute(f"SELECT COUNT(*) FROM read_parquet('{out_pq_sql}')").fetchone()[0]
     assert count == 2
     conn.close()
 

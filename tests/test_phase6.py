@@ -16,6 +16,7 @@ def clean_and_corrupt_pair(tmp_path: Path):
     out_parquet = tmp_path / "clean.parquet"
 
     conn = duckdb.connect(":memory:")
+    in_pq_sql = str(in_parquet).replace("\\", "/")
     conn.execute(f"""
         COPY (
             SELECT 'usr_1' AS id, '25' AS age, 'active' AS status
@@ -25,7 +26,7 @@ def clean_and_corrupt_pair(tmp_path: Path):
             SELECT 'usr_2' AS id, 'N/A' AS age, 'pending' AS status
             UNION ALL
             SELECT 'usr_3' AS id, '-10' AS age, 'active' AS status
-        ) TO '{str(in_parquet).replace("\\", "/")}' (FORMAT PARQUET);
+        ) TO '{in_pq_sql}' (FORMAT PARQUET);
     """)
     conn.close()
 
@@ -78,12 +79,13 @@ def test_verifier_passes_clean_run(clean_and_corrupt_pair, tmp_path: Path):
 def test_verifier_flags_warnings_on_violation(tmp_path: Path):
     out_parquet = tmp_path / "violation.parquet"
     conn = duckdb.connect(":memory:")
+    out_pq_sql = str(out_parquet).replace("\\", "/")
     conn.execute(f"""
         COPY (
             SELECT 'usr_1' AS id, 25 AS age
             UNION ALL
             SELECT 'usr_1' AS id, 30 AS age
-        ) TO '{str(out_parquet).replace("\\", "/")}' (FORMAT PARQUET);
+        ) TO '{out_pq_sql}' (FORMAT PARQUET);
     """)
     conn.close()
 

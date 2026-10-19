@@ -82,6 +82,7 @@ def test_compiler_execution_end_to_end(tmp_path: Path):
     out_parquet = tmp_path / "clean.parquet"
 
     conn = duckdb.connect(":memory:")
+    in_pq_sql = str(in_parquet).replace("\\", "/")
     conn.execute(f"""
         COPY (
             SELECT 'evt_1' AS event_id, '  alice  ' AS name, '25' AS age, '10/01/2025' AS signup_date
@@ -91,7 +92,7 @@ def test_compiler_execution_end_to_end(tmp_path: Path):
             SELECT 'evt_3' AS event_id, 'Charlie' AS name, '-15' AS age, '15/02/2025' AS signup_date
             UNION ALL
             SELECT 'evt_3' AS event_id, 'Charlie' AS name, '-15' AS age, '15/02/2025' AS signup_date
-        ) TO '{str(in_parquet).replace("\\", "/")}' (FORMAT PARQUET);
+        ) TO '{in_pq_sql}' (FORMAT PARQUET);
     """)
     conn.close()
 
@@ -122,9 +123,10 @@ def test_compiler_execution_end_to_end(tmp_path: Path):
     assert out_parquet.exists()
 
     # Query cleaned parquet to check column transformations
+    out_pq_sql = str(out_parquet).replace("\\", "/")
     check_conn = duckdb.connect(":memory:")
     rows = check_conn.execute(
-        f"SELECT event_id, name, age, signup_date FROM read_parquet('{str(out_parquet).replace('\\', '/')}') ORDER BY event_id"
+        f"SELECT event_id, name, age, signup_date FROM read_parquet('{out_pq_sql}') ORDER BY event_id"
     ).fetchall()
     check_conn.close()
 
