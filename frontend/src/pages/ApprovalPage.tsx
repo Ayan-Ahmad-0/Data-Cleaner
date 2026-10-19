@@ -6,7 +6,7 @@ import { Disclosure } from '../components/ui/Disclosure';
 import { Tag } from '../components/ui/Tag';
 import { Toggle } from '../components/ui/Toggle';
 import { cleanRuleSentence, formatNumber, pluralize } from '../lib/format';
-import { Check, CheckSquare, Sparkles, Sliders } from 'lucide-react';
+import { Check, CheckSquare, Sliders } from 'lucide-react';
 
 interface ApprovalPageProps {
   jobData: JobDetailResponse | null;
@@ -205,7 +205,6 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
           size="lg"
           disabled={!allQuestionsAnswered || cleaningTriggered}
           onClick={handleApprove}
-          leftIcon={<Sparkles className="w-5 h-5" />}
         >
           {cleaningTriggered
             ? 'Starting Cleaning...'
