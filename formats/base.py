@@ -51,6 +51,19 @@ class ExportError(FormatAdapterError):
     pass
 
 
+class UnsupportedConversionError(FormatAdapterError):
+    """Raised when a source-to-target format conversion pair is not allowed."""
+    def __init__(self, source_format: str, target_format: str, reason: str, suggestion: Optional[str] = None) -> None:
+        msg = f"Cannot convert '{source_format}' to '{target_format}': {reason}"
+        if suggestion:
+            msg += f" {suggestion}"
+        super().__init__(msg)
+        self.source_format = source_format
+        self.target_format = target_format
+        self.reason = reason
+        self.suggestion = suggestion
+
+
 # ==============================================================================
 # Conversion Report
 # ==============================================================================

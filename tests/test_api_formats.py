@@ -98,3 +98,34 @@ def test_end_to_end_ndjson_pipeline_and_multi_export():
     csv_res = client.get(f"/api/jobs/{job_id}/download/csv")
     assert csv_res.status_code == 200
     assert "Alice" in csv_res.text
+
+
+def test_convert_only_api_workflow_and_handoff():
+    ndjson_content = '{"id": 1, "product": "Widget", "price": 29.99}\n{"id": 2, "product": "Gadget", "price": 49.99}\n'
+    
+    # 1. Execute convert-only NDJSON -> CSV
+    res = client.post(
+        "/api/convert/execute",
+        files={"file": ("items.ndjson", io.BytesIO(ndjson_content.encode()), "application/x-ndjson")},
+        data={"target_format": "csv"},
+    )
+    assert res.status_code == 200
+    data = res.json()
+    convert_id = data["convert_id"]
+    result = data["result"]
+    assert result["rows"] == 2
+    assert result["target_format"] == "csv"
+
+    # 2. Download converted CSV
+    dl_res = client.get(f"/api/convert/download/{convert_id}")
+    assert dl_res.status_code == 200
+    assert "Widget" in dl_res.text
+    assert "price" in dl_res.text
+
+    # 3. Handoff to cleaning ("Clean this file too")
+    handoff_res = client.post(f"/api/convert/{convert_id}/handoff-to-clean")
+    assert handoff_res.status_code == 200
+    clean_job = handoff_res.json()
+    assert clean_job["status"] == "UPLOADED"
+    assert clean_job["filename"] == "items.ndjson"
+

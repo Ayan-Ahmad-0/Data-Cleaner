@@ -109,3 +109,85 @@ export async function approveAndClean(jobId: string, recipe?: any): Promise<void
 export function getDownloadUrl(jobId: string, format: string): string {
   return `${API_BASE}/api/jobs/${jobId}/download/${format}`;
 }
+
+export interface ConvertResultResponse {
+  convert_id: string;
+  result: {
+    output_files: string[];
+    output_filenames: string[];
+    source_format: string;
+    target_format: string;
+    rows: number;
+    columns: string[];
+    warnings: string[];
+    intermediate_parquet?: string;
+    elapsed_seconds: number;
+  };
+}
+
+export async function previewConvert(
+  file: File,
+  format?: string,
+  options?: Record<string, any>,
+): Promise<{ preview: any[]; report: any }> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (format) formData.append('format', format);
+  if (options) formData.append('options', JSON.stringify(options));
+
+  const res = await fetch(`${API_BASE}/api/convert`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Preview failed.');
+  }
+
+  return res.json();
+}
+
+export async function executeConvertOnly(
+  file: File,
+  targetFormat: string,
+  sourceFormat?: string,
+  sourceOptions?: Record<string, any>,
+  targetOptions?: Record<string, any>,
+): Promise<ConvertResultResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('target_format', targetFormat);
+  if (sourceFormat) formData.append('source_format', sourceFormat);
+  if (sourceOptions) formData.append('source_options', JSON.stringify(sourceOptions));
+  if (targetOptions) formData.append('target_options', JSON.stringify(targetOptions));
+
+  const res = await fetch(`${API_BASE}/api/convert/execute`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Conversion failed.');
+  }
+
+  return res.json();
+}
+
+export function getConvertDownloadUrl(convertId: string): string {
+  return `${API_BASE}/api/convert/download/${convertId}`;
+}
+
+export async function handoffToClean(convertId: string): Promise<JobMetadata> {
+  const res = await fetch(`${API_BASE}/api/convert/${convertId}/handoff-to-clean`, {
+    method: 'POST',
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Handoff to cleaning failed.');
+  }
+
+  return res.json();
+}

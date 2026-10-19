@@ -74,7 +74,7 @@ async def preview_and_convert(
     format: Optional[str] = Form(None),
     options: Optional[str] = Form(None),
 ):
-    """Preview or test conversion of an input dataset returning preview rows and ConversionReport."""
+    """Preview an input dataset returning preview rows and ConversionReport."""
     import tempfile
     suffix = Path(file.filename).suffix
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
@@ -102,6 +102,120 @@ async def preview_and_convert(
     finally:
         if tmp_path.exists():
             tmp_path.unlink()
+
+
+# Active convert-only jobs registry for downloads & handoff
+convert_jobs: Dict[str, Any] = {}
+
+
+@app.post("/api/convert/execute")
+async def execute_convert_only(
+    file: UploadFile = File(...),
+    target_format: str = Form(...),
+    source_format: Optional[str] = Form(None),
+    source_options: Optional[str] = Form(None),
+    target_options: Optional[str] = Form(None),
+):
+    """Execute Convert-Only mode: direct conversion between formats without profiling or cleaning."""
+    import uuid
+    import tempfile
+    from formats import convert_file
+
+    convert_id = f"conv_{uuid.uuid4().hex[:8]}"
+    work_dir = Path("data/convert_jobs").resolve() / convert_id
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    input_file_path = work_dir / file.filename
+    with open(input_file_path, "wb") as buf:
+        shutil.copyfileobj(file.file, buf)
+
+    parsed_src_opts = json.loads(source_options) if source_options else None
+    parsed_tgt_opts = json.loads(target_options) if target_options else None
+
+    try:
+        result = convert_file(
+            input_path=input_file_path,
+            target_format=target_format,
+            work_dir=work_dir,
+            source_format=source_format if source_format and source_format != "auto" else None,
+            source_options=parsed_src_opts,
+            target_options=parsed_tgt_opts,
+            keep_intermediate=True,  # keep for potential handoff to cleaning
+        )
+
+        convert_jobs[convert_id] = {
+            "id": convert_id,
+            "result": result,
+            "filename": file.filename,
+            "work_dir": work_dir,
+            "intermediate_parquet": result.intermediate_parquet,
+        }
+
+        return {
+            "convert_id": convert_id,
+            "result": result.to_dict(),
+        }
+    except Exception as e:
+        shutil.rmtree(work_dir, ignore_errors=True)
+        logger.exception("Convert-only execution failed: %s", e)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.get("/api/convert/download/{convert_id}")
+def download_converted_file(convert_id: str):
+    """Download converted output file(s). Zips if multiple parts were generated."""
+    job = convert_jobs.get(convert_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Convert job not found or expired.")
+
+    result: ConvertResult = job["result"]
+    output_files = result.output_files
+
+    if not output_files:
+        raise HTTPException(status_code=404, detail="No output files available.")
+
+    from formats import ExporterRegistry
+    if len(output_files) == 1:
+        fpath = output_files[0]
+        exporter = ExporterRegistry.get(result.target_format)
+        media_type = exporter.mime_type if exporter else "application/octet-stream"
+        return FileResponse(path=fpath, media_type=media_type, filename=fpath.name)
+    else:
+        # Multi-file output (e.g. split Excel) -> return ZIP
+        import zipfile
+        zip_path = job["work_dir"] / f"converted_{Path(job['filename']).stem}_{result.target_format}_parts.zip"
+        with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
+            for p in output_files:
+                zf.write(p, arcname=p.name)
+        return FileResponse(path=zip_path, media_type="application/zip", filename=zip_path.name)
+
+
+@app.post("/api/convert/{convert_id}/handoff-to-clean")
+def handoff_to_cleaning(convert_id: str, background_tasks: BackgroundTasks):
+    """Handoff converted intermediate Parquet directly to the cleaning pipeline without re-converting."""
+    job = convert_jobs.get(convert_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Convert job not found or expired.")
+
+    intermediate_pq = job.get("intermediate_parquet")
+    if not intermediate_pq or not Path(intermediate_pq).exists():
+        raise HTTPException(status_code=400, detail="Intermediate Parquet not available for handoff.")
+
+    # Create cleaning job
+    clean_job = orchestrator.create_job(
+        filename=job["filename"],
+        file_size=Path(intermediate_pq).stat().st_size,
+        format_id="parquet",
+    )
+
+    # Copy intermediate Parquet into orchestrator staged_parquet_path
+    target_staged_pq = storage.staged_parquet_path(clean_job.id)
+    shutil.copy2(intermediate_pq, target_staged_pq)
+
+    # Launch background profiling & AI drafting on staged parquet
+    background_tasks.add_task(orchestrator.run_profile_and_ai_draft, clean_job.id)
+
+    return clean_job
 
 
 @app.post("/api/jobs/upload", response_model=JobMetadata)
