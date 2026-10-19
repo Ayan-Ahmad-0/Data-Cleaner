@@ -11,6 +11,7 @@ import {
   type ConvertResultResponse,
 } from '../lib/api';
 import {
+  AlertTriangle,
   ArrowRight,
   CheckCircle2,
   Download,
@@ -357,17 +358,57 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                 </div>
               </div>
 
-              {/* Fidelity Warnings */}
+              {/* Fidelity & Schema Validation Notices */}
               {convertResult.result.warnings.length > 0 && (
-                <div className="bg-[var(--bg-subtle)] hairline-border rounded-[var(--radius-md)] p-4 space-y-2">
-                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] block">
-                    Fidelity & Schema Notices:
-                  </span>
-                  <ul className="text-xs sm:text-sm text-[var(--text-secondary)] space-y-1 list-disc pl-4">
-                    {convertResult.result.warnings.map((w, idx) => (
-                      <li key={idx}>{w}</li>
-                    ))}
-                  </ul>
+                <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
+                  <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                      Fidelity & Schema Notices
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)] font-mono">
+                      {convertResult.result.warnings.length} notices
+                    </span>
+                  </div>
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                      <thead>
+                        <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+                          <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[36%] sm:w-[32%]">
+                            Notice / Target
+                          </th>
+                          <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider">
+                            Details & Action Taken
+                          </th>
+                          <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[20%] sm:w-[18%]">
+                            Status
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[var(--border-hairline)]">
+                        {convertResult.result.warnings.map((w, idx) => (
+                          <tr key={idx} className="hover:bg-[var(--bg-hover)] transition-colors">
+                            <td className="py-3 px-4 align-top">
+                              <span className="font-semibold text-xs sm:text-sm text-[var(--text-primary)] block">
+                                Notice #{idx + 1}
+                              </span>
+                              <span className="font-mono text-xs text-[var(--text-muted)]">
+                                adapter: <span className="text-[var(--text-secondary)] font-medium">{convertResult.result.target_format}</span>
+                              </span>
+                            </td>
+                            <td className="py-3 px-4 align-top text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                              {w}
+                            </td>
+                            <td className="py-3 px-4 align-top text-right whitespace-nowrap">
+                              <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm">
+                                <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-warn)] shrink-0" />
+                                <span className="text-[var(--status-warn)] font-medium">Notice</span>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
 

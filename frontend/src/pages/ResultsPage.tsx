@@ -237,9 +237,9 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
         </div>
       )}
 
-      {/* Verification Tests (Failures First & Prominent) */}
-      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-6 space-y-4">
-        <div className="flex items-center justify-between pb-3.5 hairline-b">
+      {/* Automated Integrity Tests Table */}
+      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
+        <div className="p-4 sm:p-5 hairline-b flex items-center justify-between bg-[var(--bg-subtle)]">
           <div className="flex items-center gap-2.5">
             <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
               Automated Integrity Tests
@@ -249,61 +249,88 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
             </Tag>
           </div>
 
-          {sortedTests.length > 4 && (
+          {sortedTests.length > 6 && (
             <button
               type="button"
               onClick={() => setShowAllTests(!showAllTests)}
               className="text-sm text-[var(--accent)] hover:underline font-sans cursor-pointer font-medium"
             >
-              {showAllTests ? 'Show summary' : `View all ${sortedTests.length} tests`}
+              {showAllTests ? 'Show summary (first 6)' : `View all ${sortedTests.length} tests`}
             </button>
           )}
         </div>
 
-        <div className="space-y-2.5">
-          {sortedTests
-            .slice(0, showAllTests ? undefined : 6)
-            .map((test: any, idx: number) => {
-              const isPassed = test.passed;
-              return (
-                <div
-                  key={idx}
-                  className={`p-4 rounded-[var(--radius-sm)] border hairline-border flex items-start justify-between gap-3.5 text-sm ${
-                    isPassed
-                      ? 'bg-[var(--bg-surface)]'
-                      : 'bg-[var(--status-warn-bg)] border-[var(--status-warn-border)]'
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    {isPassed ? (
-                      <CheckCircle2 className="w-5 h-5 text-[var(--status-ok)] shrink-0 mt-0.5" />
-                    ) : (
-                      <AlertTriangle className="w-5 h-5 text-[var(--status-warn)] shrink-0 mt-0.5" />
-                    )}
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-sm">
+            <thead>
+              <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+                <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[35%] sm:w-[32%]">
+                  Test / Column
+                </th>
+                <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider">
+                  Result
+                </th>
+                <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[18%] sm:w-[15%]">
+                  Status
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border-hairline)]">
+              {sortedTests
+                .slice(0, showAllTests ? undefined : 6)
+                .map((test: any, idx: number) => {
+                  const isPassed = test.passed;
+                  return (
+                    <tr
+                      key={idx}
+                      className={`hover:bg-[var(--bg-hover)] transition-colors ${
+                        !isPassed ? 'bg-[var(--status-warn-bg)]/40' : ''
+                      }`}
+                    >
+                      {/* Test / Column */}
+                      <td className="py-3 px-4 align-top">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="font-mono text-xs sm:text-sm font-semibold text-[var(--text-primary)]">
+                            {test.test_name}
+                          </span>
+                          {test.column_name ? (
+                            <span className="font-mono text-xs text-[var(--text-muted)]">
+                              column: <span className="text-[var(--text-secondary)] font-medium">{test.column_name}</span>
+                            </span>
+                          ) : (
+                            <span className="text-xs text-[var(--text-muted)]">
+                              dataset-level assertion
+                            </span>
+                          )}
+                        </div>
+                      </td>
 
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold text-[var(--text-primary)] font-mono text-sm sm:text-base">
-                          {test.test_name}
-                        </span>
-                        {test.column_name && (
-                          <Tag variant="neutral" font="mono">
-                            {test.column_name}
-                          </Tag>
-                        )}
-                      </div>
-                      <p className="text-[var(--text-secondary)] text-xs sm:text-sm leading-relaxed">
+                      {/* Result */}
+                      <td className="py-3 px-4 align-top text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
                         {test.details}
-                      </p>
-                    </div>
-                  </div>
+                      </td>
 
-                  <Tag variant={isPassed ? 'ok' : 'warn'} font="mono">
-                    {isPassed ? 'PASS' : 'WARN'}
-                  </Tag>
-                </div>
-              );
-            })}
+                      {/* Status */}
+                      <td className="py-3 px-4 align-top text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm">
+                          {isPassed ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 text-[var(--status-ok)] shrink-0" />
+                              <span className="text-[var(--status-ok)]">Passed</span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertTriangle className="w-4 h-4 text-[var(--status-warn)] shrink-0" />
+                              <span className="text-[var(--status-warn)] font-semibold">Warning</span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+            </tbody>
+          </table>
         </div>
       </div>
 

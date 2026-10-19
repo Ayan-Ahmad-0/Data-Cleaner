@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import type { JobDetailResponse } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
-import { Check, Loader2, Clock } from 'lucide-react';
+import { CheckCircle2, Loader2, Clock } from 'lucide-react';
 
 interface ProgressPageProps {
   jobData: JobDetailResponse | null;
@@ -147,52 +147,98 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ jobData, onProceedTo
           </div>
         </div>
 
-        {/* Stage List */}
-        <div className="space-y-3.5 pt-2">
-          {STAGES.map((stg) => {
-            const stgStatus = getStageStatus(stg.id);
+        {/* Pipeline Execution Stages Table */}
+        <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
+          <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Pipeline Execution Plan
+            </span>
+            <span className="text-xs text-[var(--text-muted)] font-mono">
+              4 Vectorized Stages
+            </span>
+          </div>
 
-            return (
-              <div
-                key={stg.id}
-                className={`flex items-start gap-3.5 p-4 sm:p-5 rounded-[var(--radius-md)] border hairline-border transition-colors ${
-                  stgStatus === 'active'
-                    ? 'bg-[var(--accent-subtle)] border-[var(--accent-border)]'
-                    : stgStatus === 'done'
-                    ? 'bg-[var(--bg-surface)]'
-                    : 'bg-[var(--bg-subtle)] opacity-60'
-                }`}
-              >
-                <div className="mt-0.5 shrink-0">
-                  {stgStatus === 'done' ? (
-                    <span className="w-5 h-5 rounded-full bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] flex items-center justify-center">
-                      <Check className="w-3.5 h-3.5 stroke-[2.5]" />
-                    </span>
-                  ) : stgStatus === 'active' ? (
-                    <Loader2 className="w-5 h-5 text-[var(--accent)] animate-spin" />
-                  ) : (
-                    <span className="w-5 h-5 rounded-full bg-[var(--border-hairline)] block" />
-                  )}
-                </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-sm">
+              <thead>
+                <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+                  <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[36%] sm:w-[32%]">
+                    Stage / Step
+                  </th>
+                  <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider">
+                    Execution Details
+                  </th>
+                  <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[20%] sm:w-[18%]">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-hairline)]">
+                {STAGES.map((stg) => {
+                  const stgStatus = getStageStatus(stg.id);
+                  const isActive = stgStatus === 'active';
+                  const isDone = stgStatus === 'done';
 
-                <div className="flex-1 min-w-0">
-                  <span className="text-sm sm:text-base font-semibold text-[var(--text-primary)] block">
-                    {stg.name}
-                  </span>
-                  <span className="text-xs sm:text-sm text-[var(--text-secondary)] block mt-0.5">
-                    {stg.description}
-                  </span>
-                </div>
+                  return (
+                    <tr
+                      key={stg.id}
+                      className={`transition-colors ${
+                        isActive
+                          ? 'bg-[var(--accent-subtle)]/40 hover:bg-[var(--accent-subtle)]/60'
+                          : isDone
+                          ? 'hover:bg-[var(--bg-hover)]'
+                          : 'opacity-60 hover:bg-[var(--bg-hover)]'
+                      }`}
+                    >
+                      {/* Stage Name & Identifier */}
+                      <td className="py-3 px-4 align-top">
+                        <div className="flex flex-col gap-0.5">
+                          <span className={`text-xs sm:text-sm font-semibold ${isActive ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
+                            {stg.name}
+                          </span>
+                          <span className="font-mono text-xs text-[var(--text-muted)]">
+                            stage: <span className="text-[var(--text-secondary)] font-medium">{stg.id}</span>
+                          </span>
+                        </div>
+                      </td>
 
-                <Tag
-                  variant={stgStatus === 'done' ? 'ok' : stgStatus === 'active' ? 'accent' : 'neutral'}
-                  font="mono"
-                >
-                  {stgStatus.toUpperCase()}
-                </Tag>
-              </div>
-            );
-          })}
+                      {/* Description / Progress Context */}
+                      <td className="py-3 px-4 align-top text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                        <div>{stg.description}</div>
+                        {isActive && currentStageName && currentStageName !== stg.name && (
+                          <div className="text-xs text-[var(--accent)] mt-1 font-mono">
+                            ↳ {currentStageName}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Status */}
+                      <td className="py-3 px-4 align-top text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm">
+                          {isDone ? (
+                            <>
+                              <CheckCircle2 className="w-4 h-4 text-[var(--status-ok)] shrink-0" />
+                              <span className="text-[var(--status-ok)]">Passed</span>
+                            </>
+                          ) : isActive ? (
+                            <>
+                              <Loader2 className="w-4 h-4 text-[var(--accent)] animate-spin shrink-0" />
+                              <span className="text-[var(--accent)] font-semibold">Running</span>
+                            </>
+                          ) : (
+                            <>
+                              <span className="w-2 h-2 rounded-full bg-[var(--text-muted)] shrink-0 opacity-40 mr-1" />
+                              <span className="text-[var(--text-muted)]">Pending</span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* When completed, prominent View Results button */}

@@ -6,7 +6,7 @@ import { Disclosure } from '../components/ui/Disclosure';
 import { Tag } from '../components/ui/Tag';
 import { Toggle } from '../components/ui/Toggle';
 import { cleanRuleSentence, formatNumber, pluralize } from '../lib/format';
-import { Check, CheckSquare, Sliders } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CheckSquare, Sliders } from 'lucide-react';
 
 interface ApprovalPageProps {
   jobData: JobDetailResponse | null;
@@ -313,12 +313,12 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
             </span>
           </div>
 
-          <div className="space-y-3.5">
+          <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden divide-y divide-[var(--border-hairline)]">
             {/* Rule 1: Deduplication Rule */}
             {initialRecipe?.dedupe && (
               <div
-                className={`p-5 rounded-[var(--radius-md)] border hairline-border bg-[var(--bg-surface)] transition-all ${
-                  recipe?.dedupe ? '' : 'opacity-60 bg-[var(--bg-subtle)]'
+                className={`p-4 sm:p-5 transition-colors ${
+                  recipe?.dedupe ? 'hover:bg-[var(--bg-hover)]' : 'opacity-60 bg-[var(--bg-subtle)]'
                 }`}
               >
                 <div className="flex items-start justify-between gap-4">
@@ -368,8 +368,8 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                 return (
                   <div
                     key={colName}
-                    className={`p-5 rounded-[var(--radius-md)] border hairline-border bg-[var(--bg-surface)] transition-all ${
-                      isActive ? '' : 'opacity-60 bg-[var(--bg-subtle)]'
+                    className={`p-4 sm:p-5 transition-colors ${
+                      isActive ? 'hover:bg-[var(--bg-hover)]' : 'opacity-60 bg-[var(--bg-subtle)]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-4">
@@ -378,7 +378,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                           {ruleNumber}
                         </span>
 
-                        <div className="space-y-2.5 flex-1 min-w-0">
+                        <div className="space-y-2 flex-1 min-w-0">
                           {/* Column header & type */}
                           <div className="flex items-center gap-2.5">
                             <span className="font-semibold text-sm sm:text-base text-[var(--text-primary)]">
@@ -390,7 +390,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                           </div>
 
                           {/* Rule description */}
-                          <div className="space-y-2 text-sm text-[var(--text-secondary)]">
+                          <div className="space-y-1.5 text-sm text-[var(--text-secondary)]">
                             {activeRule.trim_and_normalize && (
                               <p>
                                 Trim whitespace and normalize empty placeholder tokens ('N/A', 'null', '-') to null.
@@ -427,7 +427,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                           </div>
 
                           {/* Diagnostic Reason */}
-                          <div className="text-xs sm:text-sm text-[var(--text-muted)] pt-1.5 hairline-t border-[var(--border-subtle)]">
+                          <div className="text-xs text-[var(--text-muted)] pt-1">
                             Why: Column contains {pluralize(colProfile.nulls || 0, 'null', 'nulls')}
                             {colProfile.whitespace_issues ? `, ${formatNumber(colProfile.whitespace_issues)} whitespace anomalies` : ''}
                             {colProfile.negatives ? `, ${formatNumber(colProfile.negatives)} negative values` : ''}.
@@ -449,12 +449,12 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
 
         {/* Right Column: Projected Impact & Reassurance (5 cols) */}
         <div className="lg:col-span-5 space-y-6">
-          {/* Projected Impact Panel */}
-          <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-6 space-y-4">
-            <div className="flex items-center justify-between pb-3.5 hairline-b">
+          {/* Projected Impact Table */}
+          <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
+            <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sliders className="w-5 h-5 text-[var(--accent)]" />
-                <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
+                <Sliders className="w-4 h-4 text-[var(--accent)]" />
+                <h3 className="text-sm sm:text-base font-semibold text-[var(--text-primary)]">
                   Projected Cleaning Impact
                 </h3>
               </div>
@@ -464,27 +464,56 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
             </div>
 
             {projectedImpact.length === 0 ? (
-              <p className="text-sm text-[var(--text-muted)] italic">
+              <div className="p-4 text-sm text-[var(--text-muted)] italic text-center">
                 No active rules currently alter record counts or cell values.
-              </p>
+              </div>
             ) : (
-              <ul className="space-y-3 text-sm">
-                {projectedImpact.map((item, idx) => (
-                  <li key={idx} className="flex items-start gap-3">
-                    <span className="mt-0.5 shrink-0 text-[var(--status-ok)]">
-                      <Check className="w-4 h-4 stroke-[2.5]" />
-                    </span>
-                    <div className="space-y-0.5">
-                      <span className="font-semibold text-[var(--text-primary)] block">
-                        {item.title}
-                      </span>
-                      <span className="text-[var(--text-secondary)] block text-xs sm:text-sm leading-relaxed">
-                        {item.detail}
-                      </span>
-                    </div>
-                  </li>
-                ))}
-              </ul>
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                  <thead>
+                    <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+                      <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[40%]">
+                        Rule / Target
+                      </th>
+                      <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider">
+                        Projected Action
+                      </th>
+                      <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[20%]">
+                        Status
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-hairline)]">
+                    {projectedImpact.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-[var(--bg-hover)] transition-colors">
+                        <td className="py-3 px-4 align-top">
+                          <span className="font-semibold text-xs sm:text-sm text-[var(--text-primary)] block">
+                            {item.title}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 align-top text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                          {item.detail}
+                        </td>
+                        <td className="py-3 px-4 align-top text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm">
+                            {item.severity === 'warn' ? (
+                              <>
+                                <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-warn)] shrink-0" />
+                                <span className="text-[var(--status-warn)] font-medium">Row Drop</span>
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok)] shrink-0" />
+                                <span className="text-[var(--status-ok)]">Active</span>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
