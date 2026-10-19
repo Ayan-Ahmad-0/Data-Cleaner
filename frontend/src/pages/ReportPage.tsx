@@ -284,9 +284,14 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
                         </td>
                         <td className="py-2.5 px-4">
                           {status.isClean ? (
-                            <Tag variant="ok">Clean</Tag>
+                            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 select-none">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                              <span>Clean</span>
+                            </div>
                           ) : (
-                            <Tag variant={status.severity}>{status.label}</Tag>
+                            <Tag variant={status.severity} dot font="sans">
+                              {status.label}
+                            </Tag>
                           )}
                         </td>
                       </tr>
