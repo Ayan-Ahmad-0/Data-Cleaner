@@ -89,3 +89,29 @@ html, body {
   padding-right: var(--header-inset);
   box-sizing: border-box;
 }
+
+/* Accessible, high-contrast Select and Option Dropdown styling */
+select {
+  color-scheme: light dark;
+}
+
+.dark select,
+[data-theme="dark"] select {
+  color-scheme: dark;
+}
+
+select option {
+  background-color: var(--bg-surface);
+  color: var(--text-primary);
+}
+
+.dark select option,
+[data-theme="dark"] select option {
+  background-color: #16181f;
+  color: #f4f4f6;
+}
+
+select option:disabled {
+  color: var(--text-muted);
+}
+

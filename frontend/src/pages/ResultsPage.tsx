@@ -3,7 +3,7 @@ import { getDownloadUrl, type JobDetailResponse } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
 import { formatNumber, formatPercent, pluralize } from '../lib/format';
-import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown } from 'lucide-react';
 
 interface ResultsPageProps {
   jobData: JobDetailResponse | null;
@@ -119,36 +119,47 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
         </div>
 
         {/* Multi-Format Download Control */}
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          <div className="flex items-center gap-2 bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-1.5">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Format Selector Dropdown */}
+          <div className="relative inline-flex items-center">
             <select
               value={selectedFormat}
               onChange={(e) => setSelectedFormat(e.target.value)}
-              className="bg-transparent text-sm font-medium text-[var(--text-primary)] px-2.5 py-1.5 outline-none cursor-pointer"
+              className="appearance-none bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-sm font-medium pl-3.5 pr-9 py-2.5 h-12 rounded-[var(--radius-sm)] hairline-border cursor-pointer transition-colors outline-none focus:border-[var(--accent)]"
             >
               {exportOptions.map((opt) => (
-                <option key={opt.format_id} value={opt.format_id} disabled={!opt.available}>
+                <option
+                  key={opt.format_id}
+                  value={opt.format_id}
+                  disabled={!opt.available}
+                  className="bg-[var(--bg-surface)] text-[var(--text-primary)] py-1.5"
+                >
                   {opt.name} {opt.is_source_format ? '(Same as uploaded)' : ''}
                 </option>
               ))}
             </select>
-
-            <a href={getDownloadUrl(jobId, selectedFormat)} download className="inline-block">
-              <Button
-                variant="primary"
-                size="md"
-                leftIcon={<Download className="w-4 h-4" />}
-              >
-                Download {isFlattened ? 'Flattened ' : ''}{activeOption?.extension || ''}
-              </Button>
-            </a>
+            <ChevronDown className="w-4 h-4 text-[var(--text-secondary)] absolute right-3 pointer-events-none" />
           </div>
 
+          {/* Primary Action Button */}
+          <a href={getDownloadUrl(jobId, selectedFormat)} download className="inline-block">
+            <Button
+              variant="primary"
+              size="lg"
+              leftIcon={<Download className="w-5 h-5" />}
+              className="whitespace-nowrap px-6 font-semibold"
+            >
+              Download {isFlattened ? 'Flattened ' : ''}{activeOption?.format_id ? activeOption.format_id.toUpperCase() : 'DATA'}
+            </Button>
+          </a>
+
+          {/* Audit JSON Report */}
           <a href={getDownloadUrl(jobId, 'report')} download className="inline-block">
             <Button
               variant="ghost"
-              size="md"
-              leftIcon={<FileText className="w-4 h-4" />}
+              size="lg"
+              leftIcon={<FileText className="w-5 h-5" />}
+              className="whitespace-nowrap"
             >
               Audit JSON
             </Button>

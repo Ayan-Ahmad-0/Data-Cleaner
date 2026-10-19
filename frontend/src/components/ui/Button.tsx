@@ -37,13 +37,13 @@ export const Button: React.FC<ButtonProps> = ({
   return (
     <button
       disabled={disabled}
-      className={`inline-flex items-center justify-center border hairline-border rounded-[var(--radius-sm)] transition-colors cursor-pointer select-none font-sans ${sizeClasses} ${variantClasses} ${
+      className={`inline-flex items-center justify-center border hairline-border rounded-[var(--radius-sm)] transition-colors cursor-pointer select-none font-sans whitespace-nowrap ${sizeClasses} ${variantClasses} ${
         disabled ? 'opacity-40 cursor-not-allowed pointer-events-none' : ''
       } ${className}`}
       {...props}
     >
       {leftIcon && <span className="inline-flex shrink-0">{leftIcon}</span>}
-      <span>{children}</span>
+      <span className="whitespace-nowrap">{children}</span>
       {rightIcon && <span className="inline-flex shrink-0">{rightIcon}</span>}
     </button>
   );
