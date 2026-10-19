@@ -117,6 +117,36 @@ export function App() {
       />
 
       <main className="flex-1">
+        {/* Centered Mode Switcher (Clean Data vs Convert Only) - visible when selecting mode or uploading */}
+        {currentStep === 1 && (
+          <div className="pt-8 sm:pt-10 pb-0 flex justify-center items-center">
+            <div className="inline-flex items-center bg-[var(--bg-subtle)] p-1.5 rounded-[var(--radius-md)] hairline-border shadow-xs">
+              <button
+                type="button"
+                onClick={() => setAppMode('clean')}
+                className={`px-5 py-2 text-sm sm:text-base font-semibold rounded-[var(--radius-sm)] transition-all cursor-pointer select-none ${
+                  appMode === 'clean'
+                    ? 'bg-[var(--accent)] text-white shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                }`}
+              >
+                Clean Data
+              </button>
+              <button
+                type="button"
+                onClick={() => setAppMode('convert')}
+                className={`px-5 py-2 text-sm sm:text-base font-semibold rounded-[var(--radius-sm)] transition-all cursor-pointer select-none ${
+                  appMode === 'convert'
+                    ? 'bg-[var(--accent)] text-white shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                }`}
+              >
+                Convert Only
+              </button>
+            </div>
+          </div>
+        )}
+
         {appMode === 'convert' ? (
           <ConvertPage onHandoffToClean={handleHandoffToClean} />
         ) : (

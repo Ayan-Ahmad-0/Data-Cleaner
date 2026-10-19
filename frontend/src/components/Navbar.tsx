@@ -48,34 +48,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             <CleanFlowLogo size="md" />
           </button>
 
-          {/* Mode Switcher Tabs */}
-          {onSelectMode && (
-            <div className="flex items-center bg-[var(--bg-subtle)] p-0.5 rounded-[var(--radius-sm)] hairline-border text-xs font-medium">
-              <button
-                type="button"
-                onClick={() => onSelectMode('clean')}
-                className={`px-2.5 py-1 rounded-[var(--radius-xs)] transition-colors cursor-pointer select-none ${
-                  appMode === 'clean'
-                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                Clean Data
-              </button>
-              <button
-                type="button"
-                onClick={() => onSelectMode('convert')}
-                className={`px-2.5 py-1 rounded-[var(--radius-xs)] transition-colors cursor-pointer select-none ${
-                  appMode === 'convert'
-                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-primary)]'
-                }`}
-              >
-                Convert Only
-              </button>
-            </div>
-          )}
-
           {fileName && appMode === 'clean' && (
             <div className="hidden sm:flex items-center gap-2 text-xs md:text-sm text-[var(--text-muted)] hairline-l pl-3 sm:pl-4 min-w-0">
               <span
