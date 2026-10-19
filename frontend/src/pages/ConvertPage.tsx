@@ -17,7 +17,9 @@ import {
   Download,
   FileText,
   FileUp,
+  Loader2,
   RefreshCw,
+  UploadCloud,
 } from 'lucide-react';
 
 interface ConvertPageProps {
@@ -53,6 +55,9 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
   // Target format & Conversion
   const [targetFormat, setTargetFormat] = useState<string>('parquet');
   const [converting, setConverting] = useState(false);
+  const [convertProgressPct, setConvertProgressPct] = useState<number>(0);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgressPct, setUploadProgressPct] = useState<number>(0);
   const [convertResult, setConvertResult] = useState<ConvertResultResponse | null>(null);
   const [error, setError] = useState<{ message: string; recovery: string } | null>(null);
 
@@ -62,6 +67,12 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
     setSelectedFile(file);
     setError(null);
     setConvertResult(null);
+    setUploading(true);
+    setUploadProgressPct(20);
+
+    const uploadTimer = setInterval(() => {
+      setUploadProgressPct((p) => (p < 85 ? p + 20 : p));
+    }, 200);
 
     try {
       const det = await detectFormat(file);
@@ -82,11 +93,17 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
         sheet: det.sheets?.[0],
         table: det.tables?.[0],
       });
+      clearInterval(uploadTimer);
+      setUploadProgressPct(100);
     } catch (err: any) {
+      clearInterval(uploadTimer);
       setError({
         message: err.message || 'Format detection failed',
         recovery: 'You can choose the format manually below.',
       });
+    } finally {
+      clearInterval(uploadTimer);
+      setUploading(false);
     }
   };
 
@@ -103,11 +120,21 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
   const handleExecuteConvert = async () => {
     if (!selectedFile) return;
     setConverting(true);
+    setConvertProgressPct(15);
     setError(null);
 
     const srcOpts: Record<string, any> = {};
     if (selectedSheet) srcOpts.sheet = selectedSheet;
     if (selectedTable) srcOpts.table = selectedTable;
+
+    const progressTimer = setInterval(() => {
+      setConvertProgressPct((prev) => {
+        if (prev < 40) return prev + 15;
+        if (prev < 75) return prev + 8;
+        if (prev < 92) return prev + 3;
+        return prev;
+      });
+    }, 250);
 
     try {
       const res = await executeConvertOnly(
@@ -116,13 +143,17 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
         overrideFormat || detectedFormat,
         Object.keys(srcOpts).length > 0 ? srcOpts : undefined,
       );
+      clearInterval(progressTimer);
+      setConvertProgressPct(100);
       setConvertResult(res);
     } catch (err: any) {
+      clearInterval(progressTimer);
       setError({
         message: err.message || 'Conversion failed',
         recovery: 'Verify input dataset validity or pick another target format like Parquet or CSV.',
       });
     } finally {
+      clearInterval(progressTimer);
       setConverting(false);
     }
   };
@@ -199,30 +230,54 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
             id="convert-file-input"
           />
 
-          <div className="space-y-5">
-            <div className="w-14 h-14 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto">
-              <FileUp className="w-7 h-7" />
-            </div>
+          {uploading ? (
+            <div className="space-y-5 py-4">
+              <div className="w-14 h-14 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto">
+                <UploadCloud className="w-7 h-7 animate-pulse" />
+              </div>
 
-            <div className="space-y-1.5">
-              <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
-                Drag and drop your dataset here to convert
-              </span>
-              <span className="text-sm text-[var(--text-muted)] block">
-                CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
-              </span>
-            </div>
+              <div className="space-y-1.5">
+                <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
+                  Reading dataset and detecting schema...
+                </span>
+                <span className="text-sm text-[var(--text-muted)] font-mono block">
+                  {uploadProgressPct}% analyzed
+                </span>
+              </div>
 
-            <div className="pt-2">
-              <Button
-                variant="primary"
-                size="lg"
-                onClick={() => fileInputRef.current?.click()}
-              >
-                Select File to Convert
-              </Button>
+              <div className="w-64 mx-auto bg-[var(--bg-subtle)] h-2 rounded-full overflow-hidden hairline-border">
+                <div
+                  className="bg-[var(--accent)] h-full transition-all duration-200"
+                  style={{ width: `${uploadProgressPct}%` }}
+                />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-5">
+              <div className="w-14 h-14 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto">
+                <FileUp className="w-7 h-7" />
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
+                  Drag and drop your dataset here to convert
+                </span>
+                <span className="text-sm text-[var(--text-muted)] block">
+                  CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
+                </span>
+              </div>
+
+              <div className="pt-2">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  Select File to Convert
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
         /* 2. File Selected, Preview, Options & Target Picker */
@@ -370,6 +425,35 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                 </table>
               </div>
 
+              {/* Active Conversion Progress Loading Bar */}
+              {converting && (
+                <div className="p-4 sm:p-5 hairline-t bg-[var(--bg-subtle)] space-y-3">
+                  <div className="flex items-center justify-between text-xs sm:text-sm">
+                    <div className="flex items-center gap-2.5">
+                      <Loader2 className="w-4 h-4 text-[var(--accent)] animate-spin shrink-0" />
+                      <span className="font-semibold text-[var(--text-primary)]">
+                        Converting {selectedFile.name} to {targetFormat.toUpperCase()}...
+                      </span>
+                    </div>
+                    <span className="font-mono text-xs font-semibold text-[var(--accent)]">
+                      {Math.round(convertProgressPct)}%
+                    </span>
+                  </div>
+
+                  <div className="w-full bg-[var(--bg-surface)] h-2.5 rounded-full overflow-hidden hairline-border">
+                    <div
+                      className="bg-[var(--accent)] h-full transition-all duration-200 ease-out"
+                      style={{ width: `${Math.max(convertProgressPct, 8)}%` }}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono pt-0.5">
+                    <span>Streaming Parquet memory buffers · DuckDB</span>
+                    <span>Zero-copy columnar export</span>
+                  </div>
+                </div>
+              )}
+
               {/* Action Button Footer */}
               <div className="p-4 hairline-t bg-[var(--bg-subtle)] flex items-center justify-between">
                 <span className="text-xs text-[var(--text-muted)] font-mono">
@@ -380,7 +464,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                   size="lg"
                   disabled={converting}
                   onClick={handleExecuteConvert}
-                  leftIcon={<ArrowRight className="w-5 h-5" />}
+                  leftIcon={converting ? <Loader2 className="w-5 h-5 animate-spin" /> : <ArrowRight className="w-5 h-5" />}
                 >
                   {converting ? 'Converting Dataset...' : `Convert to ${targetFormat.toUpperCase()}`}
                 </Button>
