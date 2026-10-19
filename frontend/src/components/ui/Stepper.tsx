@@ -55,20 +55,20 @@ export const Stepper: React.FC<StepperProps> = ({
               type="button"
               onClick={() => onSelectStep(step.id)}
               aria-current={isCurrent ? 'step' : undefined}
-              className={`group inline-flex items-center gap-1.5 lg:gap-2 px-2 py-1 lg:px-2.5 lg:py-1.5 xl:px-3.5 xl:py-1.5 rounded-[var(--radius-sm)] text-xs lg:text-xs xl:text-sm font-sans transition-all select-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 outline-none cursor-pointer ${
+              className={`group inline-flex items-center gap-1.5 lg:gap-2 px-2.5 py-1.5 lg:px-3 lg:py-1.5 xl:px-3.5 xl:py-1.5 rounded-[var(--radius-sm)] text-xs lg:text-xs xl:text-sm font-sans transition-all select-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 outline-none cursor-pointer border hairline-border ${
                 isCurrent
-                  ? 'bg-[var(--accent-subtle)] text-[var(--accent-text)] font-semibold border hairline-border border-[var(--accent-border)]'
+                  ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-transparent font-medium shadow-none'
                   : isDone
-                  ? 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border hairline-border border-transparent'
-                  : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] border hairline-border border-transparent'
+                  ? 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border-[var(--border-hairline)] font-medium'
+                  : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border-[var(--border-hairline)]'
               }`}
             >
               <span
                 className={`inline-flex items-center justify-center w-5 h-5 rounded-full text-xs font-mono shrink-0 transition-colors ${
-                  isDone
+                  isCurrent
+                    ? 'bg-white text-[var(--accent)] font-bold'
+                    : isDone
                     ? 'bg-[var(--status-ok-bg)] text-[var(--status-ok-text)] border border-[var(--status-ok-border)] font-semibold'
-                    : isCurrent
-                    ? 'bg-[var(--accent)] text-white font-semibold'
                     : 'bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border-hairline)] font-normal group-hover:border-[var(--border-strong)]'
                 }`}
               >
@@ -81,7 +81,7 @@ export const Stepper: React.FC<StepperProps> = ({
               */}
               <span
                 className={`whitespace-nowrap font-medium text-inherit ${
-                  isCurrent ? 'inline' : 'hidden lg:inline'
+                  isCurrent ? 'inline text-white font-semibold' : 'hidden lg:inline'
                 }`}
               >
                 {step.label}
