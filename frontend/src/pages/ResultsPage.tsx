@@ -142,27 +142,23 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
           </div>
 
           {/* Primary Action Button */}
-          <a href={getDownloadUrl(jobId, selectedFormat)} download className="inline-block">
-            <Button
-              variant="primary"
-              size="lg"
-              leftIcon={<Download className="w-5 h-5" />}
-              className="whitespace-nowrap px-6 font-semibold"
-            >
-              Download {isFlattened ? 'Flattened ' : ''}{activeOption?.format_id ? activeOption.format_id.toUpperCase() : 'DATA'}
-            </Button>
+          <a
+            href={getDownloadUrl(jobId, selectedFormat)}
+            download
+            className="inline-flex items-center justify-center border hairline-border rounded-[var(--radius-sm)] transition-colors cursor-pointer select-none font-sans whitespace-nowrap text-base px-6 py-2.5 gap-2.5 h-12 font-semibold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-transparent shadow-none"
+          >
+            <Download className="w-5 h-5 shrink-0" />
+            <span>Download {isFlattened ? 'Flattened ' : ''}{activeOption?.format_id ? activeOption.format_id.toUpperCase() : 'DATA'}</span>
           </a>
 
           {/* Audit JSON Report */}
-          <a href={getDownloadUrl(jobId, 'report')} download className="inline-block">
-            <Button
-              variant="ghost"
-              size="lg"
-              leftIcon={<FileText className="w-5 h-5" />}
-              className="whitespace-nowrap"
-            >
-              Audit JSON
-            </Button>
+          <a
+            href={getDownloadUrl(jobId, 'report')}
+            download
+            className="inline-flex items-center justify-center border hairline-border rounded-[var(--radius-sm)] transition-colors cursor-pointer select-none font-sans whitespace-nowrap text-base px-6 py-2.5 gap-2.5 h-12 font-semibold bg-transparent hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border-transparent"
+          >
+            <FileText className="w-5 h-5 shrink-0" />
+            <span>Audit JSON</span>
           </a>
         </div>
       </div>

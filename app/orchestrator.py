@@ -194,14 +194,32 @@ class JobOrchestrator:
             job.error = str(e)
 
     def export_dataset(self, job_id: str, format_id: str, options: Optional[Dict[str, Any]] = None) -> List[Path]:
-        """Export cleaned dataset into any supported format."""
+        """Export cleaned dataset into any supported format (reusing pre-generated artifacts when available)."""
         job = self.jobs.get(job_id)
         if not job:
             raise ValueError(f"Job {job_id} not found")
+
+        # Fast path 1: If CSV requested and cleaned.csv already generated in clean stage, return it immediately
+        if format_id.lower() == "csv":
+            clean_csv = self.storage.clean_csv_path(job_id)
+            if clean_csv.exists() and clean_csv.stat().st_size > 0:
+                return [clean_csv]
+
         clean_pq = self.storage.clean_parquet_path(job_id)
         if not clean_pq.exists():
             raise FileNotFoundError(f"Cleaned parquet not found for job {job_id}")
+
         export_dir = self.storage.job_dir(job_id) / "exports"
+
+        # Fast path 2: If exported file already exists in export_dir and has size, return it
+        from formats import ExporterRegistry
+        exporter = ExporterRegistry.get(format_id.lower())
+        if exporter:
+            base_name = clean_pq.stem.replace("cleaned_", "").replace(".parquet", "")
+            expected_file = export_dir / f"cleaned_{base_name}{exporter.extension}"
+            if expected_file.exists() and expected_file.stat().st_size > 0:
+                return [expected_file]
+
         return export_cleaned(clean_pq, export_dir, format_id=format_id, options=options)
 
     def get_job_detail(self, job_id: str) -> Optional[JobDetailResponse]:

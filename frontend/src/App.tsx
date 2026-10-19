@@ -119,7 +119,7 @@ export function App() {
       <main className="flex-1">
         {/* Centered Mode Switcher (Clean Data vs Convert Only) - visible when selecting mode or uploading */}
         {currentStep === 1 && (
-          <div className="pt-8 sm:pt-10 pb-0 flex justify-center items-center">
+          <div className="pt-3 sm:pt-4 pb-0 flex justify-center items-center">
             <div className="inline-flex items-center bg-[var(--bg-subtle)] p-1.5 rounded-[var(--radius-md)] hairline-border shadow-xs">
               <button
                 type="button"
@@ -171,6 +171,7 @@ export function App() {
             {currentStep === 4 && (
               <ProgressPage
                 jobData={jobData}
+                onProceedToResults={() => setCurrentStep(5)}
                 onCancel={handleRestart}
                 onGoToUpload={() => setCurrentStep(1)}
               />

@@ -6,6 +6,7 @@ import { Check, Loader2, Clock } from 'lucide-react';
 
 interface ProgressPageProps {
   jobData: JobDetailResponse | null;
+  onProceedToResults?: () => void;
   onCancel?: () => void;
   onGoToUpload?: () => void;
 }
@@ -23,7 +24,7 @@ const STAGES: PipelineStage[] = [
   { id: 'verify', name: 'Verification & Reconciliation', description: 'Validating output against recipe assertions' },
 ];
 
-export const ProgressPage: React.FC<ProgressPageProps> = ({ jobData, onCancel, onGoToUpload }) => {
+export const ProgressPage: React.FC<ProgressPageProps> = ({ jobData, onProceedToResults, onCancel, onGoToUpload }) => {
   const job = jobData?.job;
   const status = job?.status || 'RUNNING';
   const currentStageName = job?.current_stage || 'Processing dataset...';
@@ -193,6 +194,27 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({ jobData, onCancel, o
             );
           })}
         </div>
+
+        {/* When completed, prominent View Results button */}
+        {(status === 'DONE' || status === 'DONE_WITH_WARNINGS') && onProceedToResults && (
+          <div className="pt-4 flex items-center justify-between bg-[var(--bg-subtle)] p-4 rounded-[var(--radius-md)] hairline-border">
+            <div>
+              <span className="font-semibold text-[var(--text-primary)] block">
+                Cleaning and verification finished!
+              </span>
+              <span className="text-xs text-[var(--text-secondary)]">
+                Ready to review reconciliation metrics and download cleaned dataset.
+              </span>
+            </div>
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={onProceedToResults}
+            >
+              View Cleaning Results & Download
+            </Button>
+          </div>
+        )}
 
         {/* Reassurance note & Cancel option */}
         <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-[var(--text-muted)]">
