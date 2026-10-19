@@ -1,5 +1,7 @@
 import React from 'react';
 import { APP_NAME } from '../config';
+import { CleanFlowLogo } from './CleanFlowLogo';
+import { ThemeToggle } from './ThemeToggle';
 import { Stepper, type StepItem } from './ui/Stepper';
 
 interface NavbarProps {
@@ -34,12 +36,9 @@ export const Navbar: React.FC<NavbarProps> = ({
             type="button"
             onClick={() => onSelectStep(1)}
             aria-label={`Go to ${APP_NAME} home`}
-            className="flex items-center gap-2.5 shrink-0 cursor-pointer select-none rounded-[var(--radius-xs)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 p-0.5 text-left"
+            className="flex items-center shrink-0 cursor-pointer select-none rounded-[var(--radius-xs)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 p-1 text-left"
           >
-            <span className="w-2.5 h-2.5 rounded-[var(--radius-xs)] bg-[var(--accent)] shrink-0" />
-            <span className="text-base font-semibold tracking-tight text-[var(--text-primary)] font-sans">
-              {APP_NAME}
-            </span>
+            <CleanFlowLogo size="md" />
           </button>
 
           {fileName && (
@@ -56,13 +55,16 @@ export const Navbar: React.FC<NavbarProps> = ({
           )}
         </div>
 
-        {/* Right cluster: Step tabs */}
-        <div className="shrink-0">
+        {/* Right cluster: Step tabs & Theme toggle */}
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           <Stepper
             steps={STEPS}
             currentStep={currentStep}
             onSelectStep={onSelectStep}
           />
+          <div className="hairline-l pl-2 sm:pl-3 flex items-center">
+            <ThemeToggle />
+          </div>
         </div>
       </div>
     </header>

@@ -22,14 +22,14 @@
   --border-hairline: #E4E4E7;
   --border-subtle: #ECECEE;
   --border-strong: #A1A1AA;
-  --border-focus: #1D4ED8;     /* Accent ring */
+  --border-focus: #FD4233;     /* Accent ring */
 
-  /* Brand / Primary Accent (Deep Ink Blue) */
-  --accent: #1D4ED8;
-  --accent-hover: #1E40AF;
-  --accent-subtle: #EFF6FF;
-  --accent-border: #BFDBFE;
-  --accent-text: #1E40AF;
+  /* Brand / Primary Accent (CleanFlow Orange) */
+  --accent: #FD4233;
+  --accent-hover: #E53628;
+  --accent-subtle: #FFF5F4;
+  --accent-border: #FFC8C2;
+  --accent-text: #C92A1D;
 
   /* Semantic Status Colors (Used Strictly For Real Status) */
   --status-ok: #15803D;
@@ -82,7 +82,7 @@
   --max-content-width: 1280px;
 
   /* Header Dimensions & Insets */
-  --header-height: 60px;
+  --header-height: 66px;
   --header-inset: 24px;
 
   /* Radii (Clean, 6px or less) */
@@ -97,6 +97,64 @@
   /* Shadows (Zero drop shadows except subtle popover) */
   --shadow-none: none;
   --shadow-popover: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* ==========================================================================
+   Dark Theme Token Overrides
+   ========================================================================== */
+:root[data-theme="dark"],
+.dark {
+  color-scheme: dark;
+
+  /* Surface and Background Colors */
+  --bg-app: #090A0C;
+  --bg-surface: #121418;
+  --bg-subtle: #191B21;
+  --bg-hover: #22252E;
+  --bg-active: #2B2F3A;
+
+  /* Typography Colors */
+  --text-primary: #F4F4F6;
+  --text-secondary: #A6A9B4;
+  --text-muted: #747886;
+  --text-placeholder: #525664;
+  --text-inverse: #090A0C;
+
+  /* Borders & Dividers */
+  --border-hairline: #262933;
+  --border-subtle: #1D1F27;
+  --border-strong: #3D4252;
+  --border-focus: #FD4233;
+
+  /* Brand / Primary Accent (CleanFlow Orange) */
+  --accent: #FD4233;
+  --accent-hover: #FF5A4D;
+  --accent-subtle: rgba(253, 66, 51, 0.12);
+  --accent-border: rgba(253, 66, 51, 0.3);
+  --accent-text: #FF6657;
+
+  /* Semantic Status Colors */
+  --status-ok: #22C55E;
+  --status-ok-bg: rgba(34, 197, 94, 0.12);
+  --status-ok-border: rgba(34, 197, 94, 0.28);
+  --status-ok-text: #4ADE80;
+
+  --status-warn: #F59E0B;
+  --status-warn-bg: rgba(245, 158, 11, 0.12);
+  --status-warn-border: rgba(245, 158, 11, 0.28);
+  --status-warn-text: #FBBF24;
+
+  --status-danger: #EF4444;
+  --status-danger-bg: rgba(239, 68, 68, 0.12);
+  --status-danger-border: rgba(239, 68, 68, 0.28);
+  --status-danger-text: #F87171;
+
+  /* Dark Popover Shadow */
+  --shadow-popover: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
 }
 
 @media (min-width: 1280px) {

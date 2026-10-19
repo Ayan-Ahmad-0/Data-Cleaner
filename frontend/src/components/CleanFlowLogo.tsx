@@ -1,0 +1,60 @@
+import React from 'react';
+
+interface CleanFlowLogoProps {
+  size?: 'sm' | 'md' | 'lg';
+  showTagline?: boolean;
+  className?: string;
+  iconOnly?: boolean;
+}
+
+export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
+  size = 'md',
+  showTagline = false,
+  className = '',
+  iconOnly = false,
+}) => {
+  const iconDimensions = {
+    sm: 'w-7 h-7 sm:w-8 sm:h-8',
+    md: 'w-8.5 h-8.5 sm:w-9.5 sm:h-9.5',
+    lg: 'w-11 h-11 sm:w-12 sm:h-12',
+  }[size];
+
+  const textSizes = {
+    sm: 'text-xl sm:text-2xl',
+    md: 'text-2xl sm:text-[26px]',
+    lg: 'text-3xl sm:text-4xl',
+  }[size];
+
+  const taglineSizes = {
+    sm: 'text-[10px]',
+    md: 'text-xs',
+    lg: 'text-sm',
+  }[size];
+
+  return (
+    <div className={`flex items-center gap-2.5 sm:gap-3 select-none ${className}`}>
+      {/* CleanFlow 4-petal geometric icon */}
+      <img
+        src="/cleanflow-icon.png"
+        alt="CleanFlow"
+        className={`${iconDimensions} shrink-0 object-contain`}
+      />
+
+      {!iconOnly && (
+        <div className="flex flex-col justify-center leading-none">
+          <div className={`font-bold tracking-tight font-sans flex items-baseline ${textSizes}`}>
+            <span className="text-[var(--text-primary)]">Clean</span>
+            <span className="text-[var(--accent)]">Flow</span>
+          </div>
+          {showTagline && (
+            <span
+              className={`text-[var(--text-muted)] font-medium tracking-wide mt-1 whitespace-nowrap ${taglineSizes}`}
+            >
+              Transform &bull; Clean &bull; Prepare
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  );
+};
