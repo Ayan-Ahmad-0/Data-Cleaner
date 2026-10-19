@@ -6,7 +6,7 @@ import { Disclosure } from '../components/ui/Disclosure';
 import { Tag } from '../components/ui/Tag';
 import { Toggle } from '../components/ui/Toggle';
 import { cleanRuleSentence, formatNumber, pluralize } from '../lib/format';
-import { AlertTriangle, CheckCircle2, CheckSquare, Sliders } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, CheckSquare, Sliders } from 'lucide-react';
 
 interface ApprovalPageProps {
   jobData: JobDetailResponse | null;
@@ -291,30 +291,31 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                         </p>
                       </td>
 
-                      <td className="py-3.5 px-4 align-middle">
-                        <div className="flex flex-wrap items-center gap-2">
+                      <td className="py-4 px-4 align-middle">
+                        <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                           <button
                             type="button"
                             onClick={() => setQuestionAnswers((prev) => ({ ...prev, [idx]: 'standard' }))}
-                            className={`px-3 py-1.5 rounded-[var(--radius-xs)] border text-xs font-sans transition-colors cursor-pointer ${
+                            className={`inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-[var(--radius-sm)] border text-sm font-sans transition-all cursor-pointer select-none ${
                               choice === 'standard'
-                                ? 'bg-[var(--accent)] text-white border-transparent font-medium'
-                                : 'bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--border-hairline)] hover:bg-[var(--bg-hover)]'
+                                ? 'bg-[var(--accent)] text-white border-transparent font-semibold shadow-sm ring-2 ring-[var(--accent)]/30'
+                                : 'bg-[var(--bg-subtle)] text-[var(--text-primary)] border-[var(--border-strong)] hover:border-[var(--accent)] hover:bg-[var(--bg-hover)] font-medium'
                             }`}
                           >
-                            Accept Recommended Fix
+                            <Check className={`w-4 h-4 shrink-0 ${choice === 'standard' ? 'text-white' : 'text-[var(--text-muted)]'}`} />
+                            <span>Accept Recommended Fix</span>
                           </button>
 
                           <button
                             type="button"
                             onClick={() => setQuestionAnswers((prev) => ({ ...prev, [idx]: 'preserve' }))}
-                            className={`px-3 py-1.5 rounded-[var(--radius-xs)] border text-xs font-sans transition-colors cursor-pointer ${
+                            className={`inline-flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-[var(--radius-sm)] border text-sm font-sans transition-all cursor-pointer select-none ${
                               choice === 'preserve'
-                                ? 'bg-[var(--accent)] text-white border-transparent font-medium'
-                                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:bg-[var(--bg-hover)]'
+                                ? 'bg-[var(--accent)] text-white border-transparent font-semibold shadow-sm ring-2 ring-[var(--accent)]/30'
+                                : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] font-medium'
                             }`}
                           >
-                            Keep Token As-Is
+                            <span>Keep Token As-Is</span>
                           </button>
                         </div>
                       </td>
