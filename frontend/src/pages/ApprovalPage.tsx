@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import type { JobDetailResponse } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
@@ -26,6 +26,13 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
   const [recipe, setRecipe] = useState<any>(() => {
     return initialRecipe ? JSON.parse(JSON.stringify(initialRecipe)) : null;
   });
+
+  // Keep recipe updated when jobData finishes loading from the server
+  useEffect(() => {
+    if (jobData?.recipe) {
+      setRecipe(JSON.parse(JSON.stringify(jobData.recipe)));
+    }
+  }, [jobData?.recipe]);
 
   // Track answers to open questions: questionIndex -> answer
   const [questionAnswers, setQuestionAnswers] = useState<Record<number, string>>(() => {
@@ -203,26 +210,35 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
         <Button
           variant="primary"
           size="lg"
-          disabled={!allQuestionsAnswered || cleaningTriggered}
-          onClick={handleApprove}
+          disabled={cleaningTriggered}
+          onClick={() => {
+            if (!allQuestionsAnswered) {
+              const el = document.getElementById('human-confirmations-section');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+              return;
+            }
+            handleApprove();
+          }}
         >
           {cleaningTriggered
             ? 'Starting Cleaning...'
             : !allQuestionsAnswered
-            ? 'Answer Human Confirmations Below'
+            ? `Answer Human Confirmations Below (${initialOpenQuestions.length - Object.keys(questionAnswers).length} remaining)`
             : 'Approve & Start Cleaning'}
         </Button>
       </div>
 
       {/* 1. Open Questions Banner (if any questions required) */}
       {initialOpenQuestions.length > 0 && (
-        <div className="space-y-3.5">
+        <div id="human-confirmations-section" className="space-y-3.5 scroll-mt-24">
           <div className="flex items-center gap-2.5">
             <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
               Required Human Confirmations
             </h2>
             <Tag variant={allQuestionsAnswered ? 'ok' : 'warn'}>
-              {allQuestionsAnswered ? 'All answered' : `${initialOpenQuestions.length} pending`}
+              {allQuestionsAnswered ? 'All answered' : `${initialOpenQuestions.length - Object.keys(questionAnswers).length} pending`}
             </Tag>
           </div>
 
