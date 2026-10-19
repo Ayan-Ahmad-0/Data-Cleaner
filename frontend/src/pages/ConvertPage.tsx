@@ -291,43 +291,90 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
             </div>
           )}
 
-          {/* Target Format Grid */}
+          {/* Target Format Selection Table */}
           {!convertResult && (
-            <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-5 sm:p-6 space-y-4">
-              <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
-                Choose Target Format
-              </h2>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                {TARGET_FORMATS.map((tgt) => {
-                  const isSelected = targetFormat === tgt.id;
-                  return (
-                    <button
-                      key={tgt.id}
-                      type="button"
-                      onClick={() => setTargetFormat(tgt.id)}
-                      className={`text-left p-3.5 rounded-[var(--radius-sm)] transition-all cursor-pointer border ${
-                        isSelected
-                          ? 'border-[var(--accent)] bg-[var(--accent-subtle)]'
-                          : 'hairline-border bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)]'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between pb-1">
-                        <span className="text-sm font-semibold text-[var(--text-primary)]">
-                          {tgt.label}
-                        </span>
-                        {isSelected && <span className="w-2 h-2 rounded-full bg-[var(--accent)] shrink-0" />}
-                      </div>
-                      <span className="text-xs text-[var(--text-muted)] block leading-snug">
-                        {tgt.note}
-                      </span>
-                    </button>
-                  );
-                })}
+            <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
+              <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
+                <div>
+                  <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] block">
+                    Target Format Selection
+                  </span>
+                  <span className="text-xs text-[var(--text-secondary)] mt-0.5">
+                    Select the target serialization format for conversion
+                  </span>
+                </div>
+                <span className="text-xs font-mono text-[var(--text-muted)]">
+                  Active: <strong className="text-[var(--text-primary)] uppercase">{targetFormat}</strong>
+                </span>
               </div>
 
-              {/* Action Button */}
-              <div className="pt-2 flex items-center justify-end">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs sm:text-sm">
+                  <thead>
+                    <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+                      <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[32%] sm:w-[28%]">
+                        Target Format
+                      </th>
+                      <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider">
+                        Capabilities & Output Specification
+                      </th>
+                      <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[20%] sm:w-[16%]">
+                        Selection
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-[var(--border-hairline)]">
+                    {TARGET_FORMATS.map((tgt) => {
+                      const isSelected = targetFormat === tgt.id;
+                      return (
+                        <tr
+                          key={tgt.id}
+                          onClick={() => setTargetFormat(tgt.id)}
+                          className={`cursor-pointer transition-colors ${
+                            isSelected
+                              ? 'bg-[var(--accent-subtle)]/40 hover:bg-[var(--accent-subtle)]/60'
+                              : 'hover:bg-[var(--bg-hover)]'
+                          }`}
+                        >
+                          <td className="py-3 px-4 align-middle">
+                            <div className="flex flex-col gap-0.5">
+                              <span className={`font-semibold text-xs sm:text-sm ${isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-primary)]'}`}>
+                                {tgt.label}
+                              </span>
+                              <span className="font-mono text-xs text-[var(--text-muted)]">
+                                format: <span className="text-[var(--text-secondary)] font-medium">{tgt.id}</span>
+                              </span>
+                            </div>
+                          </td>
+
+                          <td className="py-3 px-4 align-middle text-xs sm:text-sm text-[var(--text-secondary)]">
+                            {tgt.note}
+                          </td>
+
+                          <td className="py-3 px-4 align-middle text-right whitespace-nowrap">
+                            <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm">
+                              {isSelected ? (
+                                <>
+                                  <CheckCircle2 className="w-4 h-4 text-[var(--status-ok)] shrink-0" />
+                                  <span className="text-[var(--status-ok)] font-semibold">Selected</span>
+                                </>
+                              ) : (
+                                <span className="text-[var(--text-muted)] hover:text-[var(--text-primary)]">Select</span>
+                              )}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Action Button Footer */}
+              <div className="p-4 hairline-t bg-[var(--bg-subtle)] flex items-center justify-between">
+                <span className="text-xs text-[var(--text-muted)] font-mono">
+                  Engine: In-process streaming DuckDB
+                </span>
                 <Button
                   variant="primary"
                   size="lg"

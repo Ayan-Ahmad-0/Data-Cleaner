@@ -6,7 +6,17 @@ import { MarkdownView } from '../components/ui/MarkdownView';
 import { SummaryStrip, type SummaryMetric } from '../components/ui/SummaryStrip';
 import { Tag } from '../components/ui/Tag';
 import { deriveColumnStatus, formatNumber, formatPercent, pluralize } from '../lib/format';
-import { ArrowRight, ChevronDown, ChevronRight, FileBarChart, Filter, Search } from 'lucide-react';
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowRight,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  FileBarChart,
+  Filter,
+  Search,
+} from 'lucide-react';
 
 interface ReportPageProps {
   jobData: JobDetailResponse | null;
@@ -319,16 +329,24 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
                           )}
                         </td>
                         <td className="py-2.5 px-4">
-                          {status.isClean ? (
-                            <div className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-600 dark:text-emerald-400 select-none">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
-                              <span>Clean</span>
-                            </div>
-                          ) : (
-                            <Tag variant={status.severity} dot font="sans">
-                              {status.label}
-                            </Tag>
-                          )}
+                          <div className="inline-flex items-center gap-1.5 text-xs font-medium select-none">
+                            {status.isClean ? (
+                              <>
+                                <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok)] shrink-0" />
+                                <span className="text-[var(--status-ok)]">Clean</span>
+                              </>
+                            ) : status.severity === 'danger' ? (
+                              <>
+                                <AlertCircle className="w-3.5 h-3.5 text-[var(--status-danger)] shrink-0" />
+                                <span className="text-[var(--status-danger)] font-semibold">{status.label}</span>
+                              </>
+                            ) : (
+                              <>
+                                <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-warn)] shrink-0" />
+                                <span className="text-[var(--status-warn)] font-medium">{status.label}</span>
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
 
@@ -346,7 +364,7 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
                                   <span className="text-[var(--status-ok-text)]">No issues detected in column.</span>
                                 ) : (
                                   <ul className="list-disc pl-4 space-y-0.5 text-[var(--text-secondary)]">
-                                    {status.issues.map((issue, idx) => (
+                                    {status.issues.map((issue: string, idx: number) => (
                                       <li key={idx}>{issue}</li>
                                     ))}
                                   </ul>
@@ -414,19 +432,33 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
         subtitle="DuckDB Parquet staging & profiler architecture"
         defaultOpen={false}
       >
-        <div className="space-y-2 pt-2 leading-relaxed">
-          <p>
-            Profiling is executed directly on an in-memory or ephemeral DuckDB instance. The raw CSV
-            is converted into text-only columnar Parquet with Zstandard compression to preserve raw
-            tokens without premature type inference.
-          </p>
-          <div className="flex flex-wrap gap-4 pt-1 font-mono text-[11px]">
-            <span>Engine: DuckDB Vectorized C++</span>
-            <span>·</span>
-            <span>Profile Size: &lt;100 KB JSON</span>
-            <span>·</span>
-            <span>Full-File Scan: Single Pass</span>
-          </div>
+        <div className="pt-2 overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs font-mono">
+            <thead>
+              <tr className="hairline-b text-[var(--text-muted)] font-medium">
+                <th className="py-1.5 px-3 uppercase tracking-wider">Engine Component</th>
+                <th className="py-1.5 px-3 uppercase tracking-wider">Architecture Detail</th>
+                <th className="py-1.5 px-3 uppercase tracking-wider text-right">Verification</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border-hairline)] text-[var(--text-secondary)]">
+              <tr>
+                <td className="py-2 px-3 text-[var(--text-muted)]">Core Profiler</td>
+                <td className="py-2 px-3 text-[var(--text-primary)] font-medium">DuckDB Vectorized C++ Engine</td>
+                <td className="py-2 px-3 text-right text-[var(--status-ok)]">Single Pass</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 text-[var(--text-muted)]">Staging Buffer</td>
+                <td className="py-2 px-3 text-[var(--text-primary)] font-medium">Text-only columnar Parquet (Zstandard)</td>
+                <td className="py-2 px-3 text-right text-[var(--status-ok)]">Lossless</td>
+              </tr>
+              <tr>
+                <td className="py-2 px-3 text-[var(--text-muted)]">Inference Strategy</td>
+                <td className="py-2 px-3 text-[var(--text-primary)] font-medium">Exact token frequency & null sentinel analysis</td>
+                <td className="py-2 px-3 text-right text-[var(--status-ok)]">Deterministic</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </Disclosure>
     </div>

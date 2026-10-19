@@ -6,7 +6,7 @@ import { Callout } from '../components/ui/Callout';
 import { Tag } from '../components/ui/Tag';
 import { Toggle } from '../components/ui/Toggle';
 import { formatBytes } from '../lib/format';
-import { FileUp, Shield, UploadCloud } from 'lucide-react';
+import { CheckCircle2, FileUp, Shield, UploadCloud } from 'lucide-react';
 
 interface UploadPageProps {
   onUploadComplete: (jobData: { id: string; name: string; size: string; rowCount: string }) => void;
@@ -215,26 +215,79 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         )}
       </div>
 
-      {/* Privacy Option Card */}
-      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-5 sm:p-6 flex items-start justify-between gap-5">
-        <div className="flex items-start gap-3.5">
-          <Shield className="w-5 h-5 text-[var(--accent)] shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <span className="text-sm sm:text-base font-semibold text-[var(--text-primary)] block">
-              Privacy Mode (Zero Raw Data Transmission)
-            </span>
-            <p className="text-sm text-[var(--text-secondary)] leading-relaxed">
-              When enabled, sample data values and sensitive strings are withheld.
-              The AI recipe generator receives only column names and statistical distributions.
-            </p>
-          </div>
+      {/* Ingestion & Engine Configuration Table */}
+      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
+        <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
+          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+            Ingestion & Privacy Configurations
+          </span>
+          <span className="text-xs text-[var(--text-muted)] font-mono">
+            Pipeline Settings
+          </span>
         </div>
 
-        <Toggle
-          checked={privacyMode}
-          onChange={setPrivacyMode}
-          disabled={uploading}
-        />
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+                <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[36%] sm:w-[32%]">
+                  Configuration / Feature
+                </th>
+                <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider">
+                  Description & Operational Scope
+                </th>
+                <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[20%] sm:w-[18%]">
+                  Setting
+                </th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border-hairline)]">
+              <tr className="hover:bg-[var(--bg-hover)] transition-colors">
+                <td className="py-3 px-4 align-middle">
+                  <div className="flex items-center gap-2">
+                    <Shield className="w-4 h-4 text-[var(--accent)] shrink-0" />
+                    <span className="font-semibold text-xs sm:text-sm text-[var(--text-primary)]">
+                      Privacy Mode
+                    </span>
+                  </div>
+                  <span className="font-mono text-xs text-[var(--text-muted)] block mt-0.5">
+                    scope: raw-value-redaction
+                  </span>
+                </td>
+                <td className="py-3 px-4 align-middle text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                  Sample data values and sensitive strings are withheld. The AI recipe generator receives only column names and statistical distributions.
+                </td>
+                <td className="py-3 px-4 align-middle text-right whitespace-nowrap">
+                  <Toggle
+                    checked={privacyMode}
+                    onChange={setPrivacyMode}
+                    disabled={uploading}
+                  />
+                </td>
+              </tr>
+
+              <tr className="hover:bg-[var(--bg-hover)] transition-colors">
+                <td className="py-3 px-4 align-middle">
+                  <span className="font-semibold text-xs sm:text-sm text-[var(--text-primary)] block">
+                    Execution Isolation
+                  </span>
+                  <span className="font-mono text-xs text-[var(--text-muted)] block mt-0.5">
+                    engine: duckdb-vectorized
+                  </span>
+                </td>
+                <td className="py-3 px-4 align-middle text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                  Processing runs in-process with memory spillover to disk. Zero external storage or database mutation.
+                </td>
+                <td className="py-3 px-4 align-middle text-right whitespace-nowrap">
+                  <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok)] shrink-0" />
+                    <span className="text-[var(--status-ok)]">Protected</span>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

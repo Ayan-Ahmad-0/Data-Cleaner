@@ -230,67 +230,115 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
         </Button>
       </div>
 
-      {/* 1. Open Questions Banner (if any questions required) */}
+      {/* 1. Required Human Confirmations Table */}
       {initialOpenQuestions.length > 0 && (
-        <div id="human-confirmations-section" className="space-y-3.5 scroll-mt-24">
-          <div className="flex items-center gap-2.5">
-            <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
-              Required Human Confirmations
-            </h2>
-            <Tag variant={allQuestionsAnswered ? 'ok' : 'neutral'} font="mono">
-              {allQuestionsAnswered ? 'All answered' : `${initialOpenQuestions.length - Object.keys(questionAnswers).length} pending`}
-            </Tag>
+        <div id="human-confirmations-section" className="scroll-mt-24 bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
+          <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Required Human Confirmations
+              </span>
+              <span className="text-xs font-mono text-[var(--text-muted)]">
+                {allQuestionsAnswered ? 'All confirmations answered' : `${initialOpenQuestions.length - Object.keys(questionAnswers).length} pending decisions`}
+              </span>
+            </div>
+            <div className="inline-flex items-center gap-1.5 text-xs font-medium">
+              {allQuestionsAnswered ? (
+                <>
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok)] shrink-0" />
+                  <span className="text-[var(--status-ok)]">All Confirmed</span>
+                </>
+              ) : (
+                <>
+                  <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-warn)] shrink-0" />
+                  <span className="text-[var(--status-warn)]">Action Required</span>
+                </>
+              )}
+            </div>
           </div>
 
-          <div className="space-y-3">
-            {initialOpenQuestions.map((q, idx) => {
-              const isAnswered = Boolean(questionAnswers[idx]);
-              return (
-                <div
-                  key={idx}
-                  className={`p-5 rounded-[var(--radius-md)] border hairline-border transition-colors bg-[var(--bg-surface)] ${
-                    isAnswered
-                      ? 'border-[var(--border-hairline)]'
-                      : 'border-[var(--border-strong)]'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3 mb-3.5">
-                    <p className="text-sm sm:text-base font-medium text-[var(--text-primary)] leading-relaxed">
-                      {cleanRuleSentence(q)}
-                    </p>
-                    <Tag variant={isAnswered ? 'ok' : 'neutral'} font="mono">
-                      {isAnswered ? 'Answered' : 'Pending Choice'}
-                    </Tag>
-                  </div>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs sm:text-sm">
+              <thead>
+                <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+                  <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[44%]">
+                    Ambiguity / Question
+                  </th>
+                  <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider">
+                    Resolution Choice
+                  </th>
+                  <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[18%]">
+                    Status
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[var(--border-hairline)]">
+                {initialOpenQuestions.map((q, idx) => {
+                  const isAnswered = Boolean(questionAnswers[idx]);
+                  const choice = questionAnswers[idx];
 
-                  <div className="flex flex-wrap items-center gap-2.5 text-sm">
-                    <button
-                      type="button"
-                      onClick={() => setQuestionAnswers((prev) => ({ ...prev, [idx]: 'standard' }))}
-                      className={`px-4 py-2 rounded-[var(--radius-sm)] border text-sm font-sans transition-colors cursor-pointer ${
-                        questionAnswers[idx] === 'standard'
-                          ? 'bg-[var(--accent)] text-white border-transparent font-medium'
-                          : 'bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--border-hairline)] hover:bg-[var(--bg-hover)]'
-                      }`}
+                  return (
+                    <tr
+                      key={idx}
+                      className="transition-colors hover:bg-[var(--bg-hover)]"
                     >
-                      Accept Recommended Fix
-                    </button>
+                      <td className="py-3.5 px-4 align-top">
+                        <span className="font-semibold text-xs text-[var(--text-muted)] uppercase tracking-wider block font-mono mb-1">
+                          Confirmation #{idx + 1}
+                        </span>
+                        <p className="text-xs sm:text-sm text-[var(--text-primary)] leading-relaxed font-medium">
+                          {cleanRuleSentence(q)}
+                        </p>
+                      </td>
 
-                    <button
-                      type="button"
-                      onClick={() => setQuestionAnswers((prev) => ({ ...prev, [idx]: 'preserve' }))}
-                      className={`px-4 py-2 rounded-[var(--radius-sm)] border text-sm font-sans transition-colors cursor-pointer ${
-                        questionAnswers[idx] === 'preserve'
-                          ? 'bg-[var(--accent)] text-white border-transparent font-medium'
-                          : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:bg-[var(--bg-hover)]'
-                      }`}
-                    >
-                      Keep Original Token As-Is
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+                      <td className="py-3.5 px-4 align-middle">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setQuestionAnswers((prev) => ({ ...prev, [idx]: 'standard' }))}
+                            className={`px-3 py-1.5 rounded-[var(--radius-xs)] border text-xs font-sans transition-colors cursor-pointer ${
+                              choice === 'standard'
+                                ? 'bg-[var(--accent)] text-white border-transparent font-medium'
+                                : 'bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--border-hairline)] hover:bg-[var(--bg-hover)]'
+                            }`}
+                          >
+                            Accept Recommended Fix
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setQuestionAnswers((prev) => ({ ...prev, [idx]: 'preserve' }))}
+                            className={`px-3 py-1.5 rounded-[var(--radius-xs)] border text-xs font-sans transition-colors cursor-pointer ${
+                              choice === 'preserve'
+                                ? 'bg-[var(--accent)] text-white border-transparent font-medium'
+                                : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:bg-[var(--bg-hover)]'
+                            }`}
+                          >
+                            Keep Token As-Is
+                          </button>
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 align-middle text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm">
+                          {isAnswered ? (
+                            <>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok)] shrink-0" />
+                              <span className="text-[var(--status-ok)]">Confirmed</span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-warn)] shrink-0" />
+                              <span className="text-[var(--status-warn)] font-medium">Pending</span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -314,6 +362,14 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
           </div>
 
           <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden divide-y divide-[var(--border-hairline)]">
+            <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                Active Transformation Pipeline Rules
+              </span>
+              <span className="text-xs text-[var(--text-muted)] font-mono">
+                {recipe ? (Object.keys(recipe.columns || {}).length + (recipe.dedupe ? 1 : 0)) : 0} configured
+              </span>
+            </div>
             {/* Rule 1: Deduplication Rule */}
             {initialRecipe?.dedupe && (
               <div
@@ -529,25 +585,40 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
             subtitle="DuckDB in-process memory & threads"
             defaultOpen={false}
           >
-            <div className="space-y-2 pt-2 text-sm font-mono">
-              <div className="flex justify-between py-1 hairline-b border-[var(--border-subtle)]">
-                <span className="text-[var(--text-muted)]">Memory Allocation</span>
-                <span className="text-[var(--text-primary)] font-medium">4.0 GB Max</span>
-              </div>
-              <div className="flex justify-between py-1 hairline-b border-[var(--border-subtle)]">
-                <span className="text-[var(--text-muted)]">Worker Threads</span>
-                <span className="text-[var(--text-primary)] font-medium">4 Cores (SIMD)</span>
-              </div>
-              <div className="flex justify-between py-1 hairline-b border-[var(--border-subtle)]">
-                <span className="text-[var(--text-muted)]">Target Dataset Size</span>
-                <span className="text-[var(--text-primary)] font-medium">
-                  {fileMeta.rows ? `${formatNumber(fileMeta.rows)} records` : '—'}
-                </span>
-              </div>
-              <div className="flex justify-between py-1">
-                <span className="text-[var(--text-muted)]">Pipeline Isolation</span>
-                <span className="text-[var(--text-primary)] font-medium">Single Vectorized CTE</span>
-              </div>
+            <div className="pt-2 overflow-x-auto">
+              <table className="w-full text-left border-collapse text-xs font-mono">
+                <thead>
+                  <tr className="hairline-b text-[var(--text-muted)] font-medium">
+                    <th className="py-1.5 px-3 uppercase tracking-wider">Parameter</th>
+                    <th className="py-1.5 px-3 uppercase tracking-wider">Configured Value</th>
+                    <th className="py-1.5 px-3 uppercase tracking-wider text-right">Engine Mode</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[var(--border-hairline)] text-[var(--text-secondary)]">
+                  <tr>
+                    <td className="py-2 px-3 text-[var(--text-muted)]">Memory Allocation</td>
+                    <td className="py-2 px-3 text-[var(--text-primary)] font-medium">4.0 GB Max</td>
+                    <td className="py-2 px-3 text-right">Spill-to-Disk</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 text-[var(--text-muted)]">Worker Threads</td>
+                    <td className="py-2 px-3 text-[var(--text-primary)] font-medium">4 Cores</td>
+                    <td className="py-2 px-3 text-right">SIMD Vectorized</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 text-[var(--text-muted)]">Target Dataset Size</td>
+                    <td className="py-2 px-3 text-[var(--text-primary)] font-medium">
+                      {fileMeta.rows ? `${formatNumber(fileMeta.rows)} records` : '—'}
+                    </td>
+                    <td className="py-2 px-3 text-right">Streaming</td>
+                  </tr>
+                  <tr>
+                    <td className="py-2 px-3 text-[var(--text-muted)]">Pipeline Isolation</td>
+                    <td className="py-2 px-3 text-[var(--text-primary)] font-medium">Single CTE Chain</td>
+                    <td className="py-2 px-3 text-right">Zero-Copy</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </Disclosure>
         </div>

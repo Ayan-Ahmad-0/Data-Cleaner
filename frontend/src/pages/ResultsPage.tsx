@@ -163,21 +163,49 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
         </div>
       </div>
 
-      {/* Note or warnings about format conversion / splitting */}
+      {/* Export Format Properties & Notices Table */}
       {(activeOption?.note || (conversionReport?.warnings && conversionReport.warnings.length > 0)) && (
-        <div className="bg-[var(--bg-subtle)] hairline-border rounded-[var(--radius-md)] p-3.5 sm:p-4 text-xs sm:text-sm text-[var(--text-secondary)] space-y-1">
-          {activeOption?.note && (
-            <div className="flex items-center gap-2 text-[var(--text-primary)] font-medium">
-              <span>Export note:</span>
-              <span>{activeOption.note}</span>
-            </div>
-          )}
-          {conversionReport?.warnings && conversionReport.warnings.map((w: string, idx: number) => (
-            <div key={idx} className="flex items-center gap-1.5 text-[var(--text-muted)]">
-              <span>·</span>
-              <span>{w}</span>
-            </div>
-          ))}
+        <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
+          <div className="p-3 px-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+              Export Adapter Notices & Limitations
+            </span>
+            <span className="text-xs font-mono text-[var(--text-muted)]">
+              Format: {activeOption?.format_id?.toUpperCase()}
+            </span>
+          </div>
+          <table className="w-full text-left border-collapse text-xs sm:text-sm">
+            <thead>
+              <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+                <th className="py-2 px-4 font-semibold text-xs uppercase tracking-wider w-[32%]">Property</th>
+                <th className="py-2 px-4 font-semibold text-xs uppercase tracking-wider">Notice / Detail</th>
+                <th className="py-2 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[18%]">Status</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[var(--border-hairline)]">
+              {activeOption?.note && (
+                <tr className="hover:bg-[var(--bg-hover)]">
+                  <td className="py-2.5 px-4 font-semibold text-[var(--text-primary)]">Export Specification</td>
+                  <td className="py-2.5 px-4 text-[var(--text-secondary)]">{activeOption.note}</td>
+                  <td className="py-2.5 px-4 text-right">
+                    <span className="text-[var(--text-muted)] font-medium">Configured</span>
+                  </td>
+                </tr>
+              )}
+              {conversionReport?.warnings && conversionReport.warnings.map((w: string, idx: number) => (
+                <tr key={idx} className="hover:bg-[var(--bg-hover)]">
+                  <td className="py-2.5 px-4 font-semibold text-[var(--text-primary)]">Fidelity Notice #{idx + 1}</td>
+                  <td className="py-2.5 px-4 text-[var(--text-secondary)]">{w}</td>
+                  <td className="py-2.5 px-4 text-right whitespace-nowrap">
+                    <div className="inline-flex items-center gap-1 text-[var(--status-warn)] font-medium">
+                      <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                      <span>Notice</span>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       )}
 
