@@ -6,6 +6,7 @@ import { Stepper, type StepItem } from './ui/Stepper';
 
 interface NavbarProps {
   currentStep: number;
+  maxAllowedStep?: number;
   onSelectStep: (step: number) => void;
   appMode?: 'clean' | 'convert';
   onSelectMode?: (mode: 'clean' | 'convert') => void;
@@ -24,6 +25,7 @@ const STEPS: StepItem[] = [
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentStep,
+  maxAllowedStep,
   onSelectStep,
   appMode = 'clean',
   onSelectMode,
@@ -68,6 +70,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             <Stepper
               steps={STEPS}
               currentStep={currentStep}
+              maxAllowedStep={maxAllowedStep}
               onSelectStep={onSelectStep}
             />
           )}

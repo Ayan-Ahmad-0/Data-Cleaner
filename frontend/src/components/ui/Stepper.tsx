@@ -9,6 +9,7 @@ export interface StepItem {
 export interface StepperProps {
   steps: StepItem[];
   currentStep: number;
+  maxAllowedStep?: number;
   onSelectStep: (step: number) => void;
   className?: string;
 }
@@ -16,12 +17,13 @@ export interface StepperProps {
 export const Stepper: React.FC<StepperProps> = ({
   steps,
   currentStep,
+  maxAllowedStep = 5,
   onSelectStep,
   className = '',
 }) => {
   return (
     <div className={`flex items-center shrink-0 p-0.5 ${className}`}>
-      {/* Below 640 px: Compact interactive step picker ("Step 2 of 5 · Profile & Report") */}
+      {/* Below 640 px: Compact interactive step picker */}
       <div className="sm:hidden flex items-center gap-1.5 text-xs font-sans whitespace-nowrap">
         <label htmlFor="mobile-step-select" className="sr-only">
           Select Step
@@ -33,14 +35,14 @@ export const Stepper: React.FC<StepperProps> = ({
           className="bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium rounded-[var(--radius-xs)] px-2.5 py-1 hairline-border cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--accent)] text-xs outline-none"
         >
           {steps.map((s) => (
-            <option key={s.id} value={s.id}>
-              Step {s.id} of {steps.length} · {s.label}
+            <option key={s.id} value={s.id} disabled={s.id > maxAllowedStep}>
+              Step {s.id} of {steps.length} · {s.label} {s.id > maxAllowedStep ? '(Locked)' : ''}
             </option>
           ))}
         </select>
       </div>
 
-      {/* 640 px and up: Full Stepper bar with freely clickable tabs */}
+      {/* 640 px and up: Full Stepper bar with gated tabs */}
       <nav
         aria-label="Progress Stepper"
         className="hidden sm:flex items-center gap-1.5 lg:gap-2 xl:gap-2.5 p-0.5 flex-nowrap"
@@ -48,19 +50,25 @@ export const Stepper: React.FC<StepperProps> = ({
         {steps.map((step) => {
           const isDone = step.id < currentStep;
           const isCurrent = step.id === currentStep;
+          const isLocked = step.id > maxAllowedStep;
 
           return (
             <button
               key={step.id}
               type="button"
-              onClick={() => onSelectStep(step.id)}
+              disabled={isLocked}
+              onClick={() => {
+                if (!isLocked) onSelectStep(step.id);
+              }}
               aria-current={isCurrent ? 'step' : undefined}
-              className={`group inline-flex items-center gap-1.5 lg:gap-2 px-2.5 py-1.5 lg:px-3 lg:py-1.5 xl:px-3.5 xl:py-1.5 rounded-[var(--radius-sm)] text-xs lg:text-xs xl:text-sm font-sans transition-all select-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 outline-none cursor-pointer border hairline-border ${
-                isCurrent
-                  ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-transparent font-medium shadow-none'
+              className={`group inline-flex items-center gap-1.5 lg:gap-2 px-2.5 py-1.5 lg:px-3 lg:py-1.5 xl:px-3.5 xl:py-1.5 rounded-[var(--radius-sm)] text-xs lg:text-xs xl:text-sm font-sans transition-all select-none outline-none border hairline-border ${
+                isLocked
+                  ? 'opacity-40 cursor-not-allowed bg-[var(--bg-subtle)] text-[var(--text-placeholder)] border-[var(--border-hairline)]'
+                  : isCurrent
+                  ? 'bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-transparent font-medium shadow-none cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--accent)]'
                   : isDone
-                  ? 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border-[var(--border-hairline)] font-medium'
-                  : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border-[var(--border-hairline)]'
+                  ? 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border-[var(--border-hairline)] font-medium cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--accent)]'
+                  : 'bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border-[var(--border-hairline)] cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--accent)]'
               }`}
             >
               <span

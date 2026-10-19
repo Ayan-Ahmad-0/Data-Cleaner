@@ -237,7 +237,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
             <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
               Required Human Confirmations
             </h2>
-            <Tag variant={allQuestionsAnswered ? 'ok' : 'warn'}>
+            <Tag variant={allQuestionsAnswered ? 'ok' : 'neutral'} font="mono">
               {allQuestionsAnswered ? 'All answered' : `${initialOpenQuestions.length - Object.keys(questionAnswers).length} pending`}
             </Tag>
           </div>
@@ -248,13 +248,20 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
               return (
                 <div
                   key={idx}
-                  className={`p-5 rounded-[var(--radius-md)] border hairline-border transition-colors ${
-                    isAnswered ? 'bg-[var(--bg-surface)]' : 'bg-[var(--status-warn-bg)] border-[var(--status-warn-border)]'
+                  className={`p-5 rounded-[var(--radius-md)] border hairline-border transition-colors bg-[var(--bg-surface)] ${
+                    isAnswered
+                      ? 'border-[var(--border-hairline)]'
+                      : 'border-[var(--border-strong)]'
                   }`}
                 >
-                  <p className="text-sm sm:text-base font-medium text-[var(--text-primary)] leading-relaxed mb-3.5">
-                    {cleanRuleSentence(q)}
-                  </p>
+                  <div className="flex items-start justify-between gap-3 mb-3.5">
+                    <p className="text-sm sm:text-base font-medium text-[var(--text-primary)] leading-relaxed">
+                      {cleanRuleSentence(q)}
+                    </p>
+                    <Tag variant={isAnswered ? 'ok' : 'neutral'} font="mono">
+                      {isAnswered ? 'Answered' : 'Pending Choice'}
+                    </Tag>
+                  </div>
 
                   <div className="flex flex-wrap items-center gap-2.5 text-sm">
                     <button

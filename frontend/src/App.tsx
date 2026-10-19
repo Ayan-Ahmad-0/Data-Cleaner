@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Navbar } from './components/Navbar';
 import { UploadPage } from './pages/UploadPage';
 import { ReportPage } from './pages/ReportPage';
@@ -104,13 +104,30 @@ export function App() {
     }).catch(console.error);
   };
 
+  // Determine max step the user is allowed to navigate to
+  const maxAllowedStep = useMemo(() => {
+    if (!jobId) return 1;
+    const status = jobData?.job?.status;
+    if (status === 'DONE' || status === 'DONE_WITH_WARNINGS') return 5;
+    if (status === 'CLEANING' || status === 'VERIFYING') return 4;
+    // Before cleaning is approved/started, user cannot go past Step 3 (Approval)
+    return 3;
+  }, [jobId, jobData?.job?.status]);
+
+  const handleSelectStep = (step: number) => {
+    if (step <= maxAllowedStep) {
+      setCurrentStep(step);
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[var(--bg-app)] text-[var(--text-primary)] font-sans antialiased">
       <Navbar
         appMode={appMode}
         onSelectMode={(mode) => setAppMode(mode)}
         currentStep={currentStep}
-        onSelectStep={(step) => setCurrentStep(step)}
+        maxAllowedStep={maxAllowedStep}
+        onSelectStep={handleSelectStep}
         fileName={fileMeta.name}
         fileSizeFormatted={fileMeta.sizeFormatted}
         rowCountFormatted={fileMeta.rowCountFormatted}
