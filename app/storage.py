@@ -18,10 +18,13 @@ class JobStorage:
         d.mkdir(parents=True, exist_ok=True)
         return d
 
-    def raw_csv_path(self, job_id: str, filename: str = "input.csv") -> Path:
+    def raw_file_path(self, job_id: str, filename: str) -> Path:
         p = self.job_dir(job_id) / "raw"
         p.mkdir(parents=True, exist_ok=True)
         return p / filename
+
+    def raw_csv_path(self, job_id: str, filename: str = "input.csv") -> Path:
+        return self.raw_file_path(job_id, filename)
 
     def staged_parquet_path(self, job_id: str) -> Path:
         p = self.job_dir(job_id) / "parquet"
@@ -37,6 +40,11 @@ class JobStorage:
         p = self.job_dir(job_id) / "clean"
         p.mkdir(parents=True, exist_ok=True)
         return p / "cleaned.csv"
+
+    def clean_export_path(self, job_id: str, filename: str) -> Path:
+        p = self.job_dir(job_id) / "exports"
+        p.mkdir(parents=True, exist_ok=True)
+        return p / filename
 
     def verification_json_path(self, job_id: str) -> Path:
         p = self.job_dir(job_id) / "reports"

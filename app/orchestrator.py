@@ -5,7 +5,7 @@ import json
 import logging
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 import duckdb
 
 from app.models import JobDetailResponse, JobMetadata, JobStatus
@@ -18,6 +18,12 @@ from core.profiler import Profiler
 from core.recipe_schema import Recipe
 from core.validator import RecipeValidator
 from core.verifier import Verifier
+from formats import (
+    convert_to_parquet,
+    detect_format,
+    export_cleaned,
+    list_export_options,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,13 +40,22 @@ class JobOrchestrator:
         self.job_plain_english: Dict[str, list[str]] = {}
         self.job_questions: Dict[str, list[str]] = {}
         self.job_verifications: Dict[str, Dict[str, Any]] = {}
+        self.job_adapter_options: Dict[str, Dict[str, Any]] = {}
+        self.job_conversion_reports: Dict[str, Dict[str, Any]] = {}
 
         self.converter = Converter()
         self.profiler = Profiler()
         self.compiler = RecipeCompiler()
         self.verifier = Verifier()
 
-    def create_job(self, filename: str, file_size: int, privacy_mode: bool = False) -> JobMetadata:
+    def create_job(
+        self,
+        filename: str,
+        file_size: int,
+        privacy_mode: bool = False,
+        format_id: Optional[str] = None,
+        adapter_options: Optional[Dict[str, Any]] = None,
+    ) -> JobMetadata:
         import uuid
         job_id = f"job_{uuid.uuid4().hex[:8]}"
         job = JobMetadata(
@@ -48,36 +63,54 @@ class JobOrchestrator:
             filename=filename,
             file_size_bytes=file_size,
             privacy_mode=privacy_mode,
+            detected_format=format_id,
             status=JobStatus.UPLOADED,
             progress_pct=10.0,
             current_stage="File Uploaded",
         )
         self.jobs[job_id] = job
+        if adapter_options:
+            self.job_adapter_options[job_id] = adapter_options
         return job
 
     def run_profile_and_ai_draft(self, job_id: str) -> None:
-        """Stage 1: Convert CSV, single-pass profile, and generate AI recipe."""
+        """Stage 1: Convert raw dataset to canonical Parquet, single-pass profile, and generate AI recipe."""
         job = self.jobs.get(job_id)
         if not job:
             return
 
         try:
-            # 1. Convert CSV to text Parquet
+            # 1. Convert to text Parquet staging
             job.status = JobStatus.CONVERTING
-            job.current_stage = "Converting CSV to Parquet staging"
+            job.current_stage = "Converting input dataset to canonical Parquet staging"
             job.progress_pct = 25.0
 
-            raw_csv = self.storage.raw_csv_path(job_id, job.filename)
+            raw_file = self.storage.raw_file_path(job_id, job.filename)
             staged_pq = self.storage.staged_parquet_path(job_id)
-            conv_res = self.converter.convert(raw_csv, staged_pq)
-            job.row_count = conv_res.row_count
+
+            # Auto-detect format if not explicitly specified
+            if not job.detected_format:
+                det_fmt, confidence = detect_format(raw_file)
+                job.detected_format = det_fmt
+                job.detected_confidence = confidence
+
+            # Convert to canonical Parquet
+            conv_res = convert_to_parquet(
+                raw_file,
+                staged_pq,
+                format_id=job.detected_format if job.detected_format != "unknown" else None,
+                options=self.job_adapter_options.get(job_id),
+            )
+            job.row_count = conv_res.rows
+            job.conversion_report = conv_res.to_dict()
+            self.job_conversion_reports[job_id] = conv_res.to_dict()
 
             # 2. Single-pass Profiling
             job.status = JobStatus.PROFILING
             job.current_stage = "Computing statistical profile and data anomalies"
             job.progress_pct = 50.0
 
-            profile = self.profiler.profile_parquet(staged_pq, source_csv_path=raw_csv)
+            profile = self.profiler.profile_parquet(staged_pq, source_csv_path=raw_file)
             p_dict = profile.to_dict()
             self.job_profiles[job_id] = p_dict
 
@@ -130,7 +163,7 @@ class JobOrchestrator:
             clean_pq = self.storage.clean_parquet_path(job_id)
             clean_res = self.compiler.execute_clean(recipe, staged_pq, clean_pq)
 
-            # Export cleaned CSV for universal download
+            # Export default cleaned CSV for backwards compatibility
             clean_csv = self.storage.clean_csv_path(job_id)
             clean_pq_sql = str(clean_pq).replace("\\", "/")
             clean_csv_sql = str(clean_csv).replace("\\", "/")
@@ -160,6 +193,17 @@ class JobOrchestrator:
             job.status = JobStatus.FAILED
             job.error = str(e)
 
+    def export_dataset(self, job_id: str, format_id: str, options: Optional[Dict[str, Any]] = None) -> List[Path]:
+        """Export cleaned dataset into any supported format."""
+        job = self.jobs.get(job_id)
+        if not job:
+            raise ValueError(f"Job {job_id} not found")
+        clean_pq = self.storage.clean_parquet_path(job_id)
+        if not clean_pq.exists():
+            raise FileNotFoundError(f"Cleaned parquet not found for job {job_id}")
+        export_dir = self.storage.job_dir(job_id) / "exports"
+        return export_cleaned(clean_pq, export_dir, format_id=format_id, options=options)
+
     def get_job_detail(self, job_id: str) -> Optional[JobDetailResponse]:
         job = self.jobs.get(job_id)
         if not job:
@@ -167,12 +211,19 @@ class JobOrchestrator:
 
         recipe_dict = self.job_recipes[job_id].model_dump() if job_id in self.job_recipes else None
         download_urls = {}
+        export_opts = []
+
         if job.status in (JobStatus.DONE, JobStatus.DONE_WITH_WARNINGS):
             download_urls = {
                 "parquet": f"/api/jobs/{job_id}/download/parquet",
                 "csv": f"/api/jobs/{job_id}/download/csv",
+                "tsv": f"/api/jobs/{job_id}/download/tsv",
+                "ndjson": f"/api/jobs/{job_id}/download/ndjson",
+                "json": f"/api/jobs/{job_id}/download/json",
+                "xlsx": f"/api/jobs/{job_id}/download/xlsx",
                 "report": f"/api/jobs/{job_id}/download/report",
             }
+            export_opts = list_export_options(job.detected_format or "csv", job.row_count)
 
         return JobDetailResponse(
             job=job,
@@ -182,5 +233,7 @@ class JobOrchestrator:
             recipe_plain_english=self.job_plain_english.get(job_id, []),
             open_questions=self.job_questions.get(job_id, []),
             verification=self.job_verifications.get(job_id),
+            conversion_report=self.job_conversion_reports.get(job_id),
+            export_options=export_opts,
             download_urls=download_urls,
         )

@@ -35,6 +35,9 @@ class JobMetadata(BaseModel):
     file_size_bytes: int = 0
     row_count: int = 0
     privacy_mode: bool = False
+    detected_format: Optional[str] = None
+    detected_confidence: Optional[float] = None
+    conversion_report: Optional[Dict[str, Any]] = None
     error: Optional[str] = None
 
 
@@ -46,4 +49,6 @@ class JobDetailResponse(BaseModel):
     recipe_plain_english: List[str] = Field(default_factory=list)
     open_questions: List[str] = Field(default_factory=list)
     verification: Optional[Dict[str, Any]] = None
+    conversion_report: Optional[Dict[str, Any]] = None
+    export_options: List[Dict[str, Any]] = Field(default_factory=list)
     download_urls: Dict[str, str] = Field(default_factory=dict)

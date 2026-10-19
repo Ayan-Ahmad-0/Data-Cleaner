@@ -1,0 +1,3 @@
+{"id": 1, "name": "Alice", "tags": ["admin", "staff"]}
+{"id": 2, "name": "Bob", "missing_field": 42}
+{"id": 3, "name": "Charlie", "tags": ["user"]}

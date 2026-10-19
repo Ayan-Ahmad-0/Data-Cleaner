@@ -21,11 +21,14 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const validateAndProcessFile = async (file: File) => {
+    const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
+    const supportedExts = ['.csv', '.tsv', '.parquet', '.json', '.ndjson', '.jsonl', '.xlsx', '.db', '.sqlite'];
+
     // 1. Check file extension
-    if (!file.name.toLowerCase().endsWith('.csv')) {
+    if (!supportedExts.includes(ext)) {
       setError({
-        message: 'Invalid file format.',
-        recovery: 'Only CSV files (.csv) are supported. Please convert or export your data to CSV format.',
+        message: 'Unsupported file format.',
+        recovery: `File extension '${ext}' is not supported. CleanFlow supports CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), and SQLite (.db).`,
       });
       return;
     }
@@ -34,7 +37,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
     if (file.size === 0) {
       setError({
         message: 'Empty file detected (0 bytes).',
-        recovery: 'The selected CSV file has no content. Please choose a dataset with rows.',
+        recovery: 'The selected file has no content. Please choose a dataset with rows.',
       });
       return;
     }
@@ -43,7 +46,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
     if (file.size > MAX_FILE_SIZE_BYTES) {
       setError({
         message: `File exceeds maximum size limit (${formatBytes(file.size)}).`,
-        recovery: 'The cleaner supports files up to 10 GB on a single machine. Consider partitioning your CSV into smaller batches.',
+        recovery: 'The cleaner supports files up to 10 GB on a single machine. Consider partitioning your file into smaller batches.',
       });
       return;
     }
@@ -110,8 +113,8 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
           Upload Raw Dataset
         </h1>
         <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-          Upload any messy CSV file (from a few kilobytes up to 10 GB). DuckDB will profile the data,
-          identify quality anomalies, and draft a verified cleaning plan.
+          Upload any dataset in CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) format.
+          DuckDB will standardize it into canonical columnar format, profile the data, identify quality anomalies, and draft a verified cleaning recipe.
         </p>
       </div>
 
@@ -145,10 +148,10 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".csv"
+          accept=".csv,.tsv,.parquet,.json,.ndjson,.jsonl,.xlsx,.db,.sqlite"
           onChange={handleFileChange}
           className="hidden"
-          id="csv-file-input"
+          id="dataset-file-input"
         />
 
         {uploading ? (
@@ -159,7 +162,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
 
             <div className="space-y-1.5">
               <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
-                Uploading and staging dataset...
+                Uploading, detecting format, and staging dataset...
               </span>
               <span className="text-sm text-[var(--text-muted)] font-mono block">
                 {uploadProgressPct}% uploaded
@@ -181,7 +184,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
 
             <div className="space-y-1.5">
               <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
-                Drag and drop your CSV file here
+                Drag and drop your data file here
               </span>
               <span className="text-sm text-[var(--text-muted)] block">
                 or click to browse your local computer
@@ -194,16 +197,16 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
                 size="lg"
                 onClick={() => fileInputRef.current?.click()}
               >
-                Select CSV File
+                Select Dataset File
               </Button>
             </div>
 
             <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs sm:text-sm text-[var(--text-muted)] font-mono">
-              <Tag variant="neutral">Format: .csv</Tag>
+              <Tag variant="neutral">CSV · TSV · Parquet · JSON · Excel · SQLite</Tag>
               <span>·</span>
               <Tag variant="neutral">Max Size: 10 GB</Tag>
               <span>·</span>
-              <Tag variant="neutral">Text Ingestion</Tag>
+              <Tag variant="neutral">Auto-detection</Tag>
             </div>
           </div>
         )}

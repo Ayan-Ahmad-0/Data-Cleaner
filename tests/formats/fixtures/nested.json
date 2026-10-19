@@ -1,0 +1,24 @@
+[
+  {
+    "id": 101,
+    "user": {
+      "name": "David",
+      "address": {
+        "city": "Boston",
+        "zip": "02101"
+      }
+    },
+    "status": "active"
+  },
+  {
+    "id": 102,
+    "user": {
+      "name": "Eve",
+      "address": {
+        "city": "Austin",
+        "zip": "73301"
+      }
+    },
+    "status": "pending"
+  }
+]
