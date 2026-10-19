@@ -65,12 +65,15 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
       clearInterval(progressTimer);
       setUploadProgressPct(100);
 
-      onUploadComplete({
-        id: job.id,
-        name: file.name,
-        size: formatBytes(file.size),
-        rowCount: 'Profiling in progress...',
-      });
+      // Smooth transition: give brief visual feedback at 100% before automatically navigating to Step 2
+      setTimeout(() => {
+        onUploadComplete({
+          id: job.id,
+          name: file.name,
+          size: formatBytes(file.size),
+          rowCount: 'Profiling in progress...',
+        });
+      }, 400);
     } catch (err: any) {
       setError({
         message: err.message || 'Failed to upload dataset.',

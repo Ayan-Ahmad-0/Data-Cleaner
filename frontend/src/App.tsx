@@ -62,13 +62,12 @@ export function App() {
       sizeFormatted: info.size,
       rowCountFormatted: info.rowCount,
     });
+    // Automatically transition to Step 2 (Profile & Report) upon upload completion
+    setCurrentStep(2);
+
     // Immediately fetch initial job details
     getJobDetail(info.id).then((detail) => {
       setJobData(detail);
-      // If already profiled, move to report
-      if (detail.job.status === 'AWAITING_APPROVAL') {
-        setCurrentStep(2);
-      }
     }).catch(console.error);
   };
 

@@ -113,7 +113,7 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
             No Dataset Profiled Yet
           </h2>
           <p className="text-base text-[var(--text-secondary)] leading-relaxed max-w-lg mx-auto">
-            Upload a CSV file in Step 1 to generate an automated data quality profile,
+            Upload a file in Step 1 to generate an automated data quality profile,
             statistical distributions, and anomaly analysis.
           </p>
         </div>
@@ -122,6 +122,42 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
             Go to Upload (Step 1)
           </Button>
         )}
+      </div>
+    );
+  }
+
+  // Active Profiling & AI Drafting state while DuckDB scans the dataset
+  if (!profile && jobData?.job?.status !== 'FAILED') {
+    return (
+      <div className="container-shell py-16 sm:py-24 max-w-2xl mx-auto text-center space-y-6">
+        <div className="w-16 h-16 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto">
+          <FileBarChart className="w-8 h-8 animate-pulse" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
+            Profiling Dataset & Analyzing Anomalies
+          </h2>
+          <p className="text-base text-[var(--text-secondary)] leading-relaxed max-w-lg mx-auto">
+            {jobData?.job?.current_stage || 'DuckDB single-pass statistical profiling in progress...'}
+          </p>
+        </div>
+
+        <div className="w-72 mx-auto bg-[var(--bg-subtle)] h-2 rounded-full overflow-hidden hairline-border">
+          <div
+            className="bg-[var(--accent)] h-full transition-all duration-300"
+            style={{ width: `${jobData?.job?.progress_pct || 40}%` }}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs sm:text-sm text-[var(--text-muted)] font-mono">
+          <Tag variant="neutral">Status: {jobData?.job?.status || 'PROFILING'}</Tag>
+          {jobData?.job?.filename && (
+            <>
+              <span>·</span>
+              <Tag variant="neutral">{jobData.job.filename}</Tag>
+            </>
+          )}
+        </div>
       </div>
     );
   }
