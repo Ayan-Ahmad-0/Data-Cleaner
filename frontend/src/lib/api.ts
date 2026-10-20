@@ -191,3 +191,73 @@ export async function handoffToClean(convertId: string): Promise<JobMetadata> {
 
   return res.json();
 }
+
+export interface ExploreColumnInfo {
+  name: string;
+  type: string;
+  sample_values?: any[];
+}
+
+export interface ExploreSchemaResponse {
+  table: string;
+  row_count: number;
+  columns: ExploreColumnInfo[];
+  tables_available: string[];
+}
+
+export interface ExploreQueryResult {
+  columns: { name: string; type: string }[];
+  rows: any[][];
+  row_count_returned: number;
+  truncated: boolean;
+  elapsed_seconds: number;
+  warnings: string[];
+}
+
+export async function getExploreSchema(jobId: string): Promise<ExploreSchemaResponse> {
+  const res = await fetch(`${API_BASE}/api/explore/${jobId}/schema`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to load dataset schema.');
+  }
+  return res.json();
+}
+
+export async function executeExploreQuery(
+  jobId: string,
+  sql: string,
+  rowLimit?: number,
+): Promise<ExploreQueryResult> {
+  const res = await fetch(`${API_BASE}/api/explore/${jobId}/query`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql, row_limit: rowLimit }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Query execution failed.');
+  }
+  return res.json();
+}
+
+export async function exportExploreQuery(jobId: string, sql: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/explore/${jobId}/export`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ sql }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Export failed.');
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `query_export_${jobId.slice(0, 8)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  window.URL.revokeObjectURL(url);
+  document.body.removeChild(a);
+}
+

@@ -19,8 +19,10 @@ import {
   FileUp,
   Loader2,
   RefreshCw,
+  Terminal,
   UploadCloud,
 } from 'lucide-react';
+import { SqlQueryBox } from '../components/explore/SqlQueryBox';
 
 interface ConvertPageProps {
   onHandoffToClean: (jobId: string, filename: string) => void;
@@ -59,6 +61,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
   const [uploading, setUploading] = useState(false);
   const [uploadProgressPct, setUploadProgressPct] = useState<number>(0);
   const [convertResult, setConvertResult] = useState<ConvertResultResponse | null>(null);
+  const [showExplore, setShowExplore] = useState<boolean>(false);
   const [error, setError] = useState<{ message: string; recovery: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -568,6 +571,15 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                   <Button
                     variant="secondary"
                     size="lg"
+                    leftIcon={<Terminal className="w-5 h-5" />}
+                    onClick={() => setShowExplore(!showExplore)}
+                  >
+                    {showExplore ? 'Hide SQL Box' : 'Explore Data (SQL)'}
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="lg"
                     onClick={() => onHandoffToClean(convertResult.convert_id, selectedFile.name)}
                     rightIcon={<ArrowRight className="w-4 h-4" />}
                   >
@@ -575,6 +587,16 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                   </Button>
                 </div>
               </div>
+
+              {/* Conditional SQL Query Box for converted dataset */}
+              {showExplore && (
+                <div className="pt-4 hairline-t">
+                  <SqlQueryBox
+                    jobId={convertResult.convert_id}
+                    datasetName={selectedFile?.name || 'converted dataset'}
+                  />
+                </div>
+              )}
 
               {/* Privacy Line */}
               <p className="text-xs text-[var(--text-muted)] text-center pt-2">

@@ -3,7 +3,8 @@ import { getDownloadUrl, type JobDetailResponse } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
 import { formatNumber, formatPercent, pluralize } from '../lib/format';
-import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal } from 'lucide-react';
+import { SqlQueryBox } from '../components/explore/SqlQueryBox';
 
 interface ResultsPageProps {
   jobData: JobDetailResponse | null;
@@ -12,6 +13,7 @@ interface ResultsPageProps {
 }
 
 export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, onGoToUpload }) => {
+  const [activeTab, setActiveTab] = useState<'summary' | 'explore'>('summary');
   const verification = jobData?.verification;
   const comparison = verification?.comparison;
   const jobId = jobData?.job?.id || '';
@@ -151,6 +153,16 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
             <span>Download {isFlattened ? 'Flattened ' : ''}{activeOption?.format_id ? activeOption.format_id.toUpperCase() : 'DATA'}</span>
           </a>
 
+          {/* Explore in SQL Action */}
+          <Button
+            size="md"
+            variant={activeTab === 'explore' ? 'primary' : 'secondary'}
+            onClick={() => setActiveTab(activeTab === 'explore' ? 'summary' : 'explore')}
+            leftIcon={<Terminal className="w-4 h-4" />}
+          >
+            {activeTab === 'explore' ? 'Quality Summary' : 'Explore Data (SQL)'}
+          </Button>
+
           {/* Audit JSON Report */}
           <a
             href={getDownloadUrl(jobId, 'report')}
@@ -163,6 +175,40 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
         </div>
       </div>
 
+      {/* Primary Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b hairline-b border-[var(--border-hairline)] pb-0">
+        <button
+          type="button"
+          onClick={() => setActiveTab('summary')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'summary'
+              ? 'border-[var(--accent)] text-[var(--accent)]'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <FileCheck className="w-4 h-4" />
+          <span>Verification & Quality Summary</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('explore')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+            activeTab === 'explore'
+              ? 'border-[var(--accent)] text-[var(--accent)]'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <Terminal className="w-4 h-4" />
+          <span>Explore Data (SQL)</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded hairline-border bg-[var(--bg-subtle)]">DuckDB</span>
+        </button>
+      </div>
+
+      {activeTab === 'explore' ? (
+        <SqlQueryBox jobId={jobId} datasetName={jobData.job.filename} />
+      ) : (
+        <>
       {/* Export Format Properties & Notices Table */}
       {(activeOption?.note || (conversionReport?.warnings && conversionReport.warnings.length > 0)) && (
         <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
@@ -361,6 +407,8 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
           </table>
         </div>
       </div>
+      </>
+      )}
 
       {/* Clean Another File Card */}
       <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-5">

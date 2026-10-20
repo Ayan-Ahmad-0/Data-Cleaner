@@ -374,6 +374,112 @@ def download_artifact(job_id: str, format: str):
         raise HTTPException(status_code=500, detail=f"Export error: {e}")
 
 
+# =========================================================================
+# Explore Data (Read-Only Sandboxed SQL Query Box) Endpoints
+# =========================================================================
+
+from pydantic import BaseModel, Field
+from explore import (
+    DataNotFoundError,
+    ExploreError,
+    QueryNotAllowedError,
+    QuerySyntaxError,
+    QueryTimeoutError,
+    QueryTooLargeError,
+    ServerBusyError,
+    export_query,
+    get_schema,
+    run_query,
+)
+
+
+class ExploreQueryRequest(BaseModel):
+    sql: str = Field(..., description="Read-only SELECT query")
+    row_limit: Optional[int] = Field(None, description="Maximum number of rows to return (capped at 10,000)")
+
+
+class ExploreExportRequest(BaseModel):
+    sql: str = Field(..., description="Query to export to CSV")
+
+
+@app.get("/api/explore/{job_id}/schema")
+def get_explore_schema(job_id: str):
+    """Retrieve schema, column types, row counts, and sample values for the dataset."""
+    try:
+        schema = get_schema(job_id=job_id, storage=storage)
+        return {
+            "table": schema.table,
+            "row_count": schema.row_count,
+            "columns": [{"name": c.name, "type": c.type, "sample_values": c.sample_values} for c in schema.columns],
+            "tables_available": schema.tables_available,
+        }
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except (QueryNotAllowedError, QuerySyntaxError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to get explore schema for job %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail="Failed to retrieve dataset schema.")
+
+
+@app.post("/api/explore/{job_id}/query")
+def execute_explore_query(job_id: str, payload: ExploreQueryRequest):
+    """Execute a validated, read-only SQL query on the job's Parquet dataset."""
+    try:
+        result = run_query(
+            job_id=job_id,
+            sql=payload.sql,
+            row_limit=payload.row_limit,
+            storage=storage,
+        )
+        return {
+            "columns": [{"name": c.name, "type": c.type} for c in result.columns],
+            "rows": result.rows,
+            "row_count_returned": result.row_count_returned,
+            "truncated": result.truncated,
+            "elapsed_seconds": result.elapsed_seconds,
+            "warnings": result.warnings,
+        }
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except (QueryNotAllowedError, QuerySyntaxError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except QueryTimeoutError as e:
+        raise HTTPException(status_code=408, detail=str(e))
+    except ServerBusyError as e:
+        raise HTTPException(status_code=429, detail=str(e))
+    except QueryTooLargeError as e:
+        raise HTTPException(status_code=413, detail=str(e))
+    except Exception as e:
+        logger.exception("Explore query failed for job %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/explore/{job_id}/export")
+def export_explore_query(job_id: str, payload: ExploreExportRequest):
+    """Export the full result of a SQL query to a downloadable CSV file."""
+    try:
+        csv_path = export_query(job_id=job_id, sql=payload.sql, storage=storage)
+        return FileResponse(
+            path=csv_path,
+            media_type="text/csv",
+            filename=f"query_result_{job_id[:8]}.csv",
+        )
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except (QueryNotAllowedError, QuerySyntaxError) as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except QueryTimeoutError as e:
+        raise HTTPException(status_code=408, detail=str(e))
+    except ServerBusyError as e:
+        raise HTTPException(status_code=429, detail=str(e))
+    except QueryTooLargeError as e:
+        raise HTTPException(status_code=413, detail=str(e))
+    except Exception as e:
+        logger.exception("Explore export failed for job %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Mount built frontend assets if present
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
