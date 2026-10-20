@@ -114,25 +114,40 @@ class JobOrchestrator:
             p_dict = profile.to_dict()
             self.job_profiles[job_id] = p_dict
 
-            # 3. AI Recipe & Report Generation (Gemini with safe fallback)
-            job.status = JobStatus.DRAFTING_RECIPE
-            job.current_stage = "Drafting plain-English quality report and cleaning recipe with AI"
-            job.progress_pct = 75.0
+            # 3. Fast baseline recipe generation (< 1ms)
+            from core.ai.fallback import MinimalSafeRecipeGenerator
+            base_recipe, base_report, base_questions = MinimalSafeRecipeGenerator.generate(p_dict)
+            self.job_recipes[job_id] = base_recipe
+            self.job_reports[job_id] = base_report
+            self.job_plain_english[job_id] = RecipeValidator.render_plain_english(base_recipe)
+            self.job_questions[job_id] = base_questions
 
-            gemini_fn = get_gemini_callable()
-            ai_gen = AIRecipeGenerator(llm_client=gemini_fn, privacy_mode=job.privacy_mode)
-            ai_res = ai_gen.generate_report_and_recipe(p_dict)
-
-            self.job_reports[job_id] = ai_res.report_markdown
-            self.job_recipes[job_id] = ai_res.recipe
-            self.job_plain_english[job_id] = ai_res.recipe_plain_english
-            self.job_questions[job_id] = ai_res.open_questions
-
-            # Ready for human review
+            # Ready for human review immediately (zero-wait approval loading)
             job.status = JobStatus.AWAITING_APPROVAL
             job.current_stage = "Awaiting user approval of cleaning plan"
             job.progress_pct = 100.0
             job.error = None
+
+            # Asynchronous background AI enhancement (never blocks user review)
+            gemini_fn = get_gemini_callable()
+            if gemini_fn:
+                import threading
+
+                def _bg_enhance():
+                    try:
+                        ai_gen = AIRecipeGenerator(llm_client=gemini_fn, privacy_mode=job.privacy_mode)
+                        ai_res = ai_gen.generate_report_and_recipe(p_dict)
+                        current_job = self.jobs.get(job_id)
+                        if current_job and current_job.status == JobStatus.AWAITING_APPROVAL:
+                            self.job_reports[job_id] = ai_res.report_markdown
+                            self.job_recipes[job_id] = ai_res.recipe
+                            self.job_plain_english[job_id] = ai_res.recipe_plain_english
+                            if ai_res.open_questions:
+                                self.job_questions[job_id] = ai_res.open_questions
+                    except Exception as ai_err:
+                        logger.debug("Background AI enhancement bypassed: %s", ai_err)
+
+                threading.Thread(target=_bg_enhance, daemon=True).start()
 
         except Exception as e:
             logger.exception("Error during profile and AI drafting: %s", e)

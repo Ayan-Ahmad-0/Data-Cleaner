@@ -55,7 +55,7 @@ export function App() {
       } catch (err) {
         console.error('Error polling job status:', err);
       }
-    }, 1200);
+    }, 600);
 
     return () => clearInterval(interval);
   }, [jobId, currentStep]);
