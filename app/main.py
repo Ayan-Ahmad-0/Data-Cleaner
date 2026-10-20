@@ -403,10 +403,10 @@ class ExploreExportRequest(BaseModel):
 
 
 @app.get("/api/explore/{job_id}/schema")
-def get_explore_schema(job_id: str):
+def get_explore_schema(job_id: str, table: str = "data"):
     """Retrieve schema, column types, row counts, and sample values for the dataset."""
     try:
-        schema = get_schema(job_id=job_id, storage=storage)
+        schema = get_schema(job_id=job_id, storage=storage, table=table)
         return {
             "table": schema.table,
             "row_count": schema.row_count,

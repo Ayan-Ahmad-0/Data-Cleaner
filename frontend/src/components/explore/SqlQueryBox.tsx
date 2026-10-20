@@ -68,13 +68,33 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const timerIntervalRef = useRef<any>(null);
 
-  // Load schema on mount
+  const getTableLabel = (t: string): string => {
+    if (t === 'original') return 'Original Data';
+    if (t === 'data') return 'Cleaned Data';
+    return t;
+  };
+
+  const handleTableChange = (t: string) => {
+    setActiveTable(t);
+    setSql((prev) => {
+      const trimmed = prev.trim();
+      if (
+        trimmed === 'SELECT * FROM data LIMIT 100;' ||
+        trimmed === 'SELECT * FROM original LIMIT 100;'
+      ) {
+        return `SELECT * FROM ${t} LIMIT 100;`;
+      }
+      return prev;
+    });
+  };
+
+  // Load schema on mount or activeTable change
   useEffect(() => {
     let isMounted = true;
     setSchemaLoading(true);
     setError(null);
 
-    getExploreSchema(jobId)
+    getExploreSchema(jobId, activeTable)
       .then((data) => {
         if (!isMounted) return;
         setSchema(data);
@@ -89,7 +109,7 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
     return () => {
       isMounted = false;
     };
-  }, [jobId]);
+  }, [jobId, activeTable]);
 
   // Persist history
   const addHistoryItem = (item: QueryHistoryItem) => {
@@ -240,14 +260,14 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
                     <button
                       key={t}
                       type="button"
-                      onClick={() => setActiveTable(t)}
-                      className={`px-2 py-0.5 text-xs font-mono font-medium first:rounded-l-md last:rounded-r-md hairline-border ${
+                      onClick={() => handleTableChange(t)}
+                      className={`px-2.5 py-1 text-xs font-medium first:rounded-l-md last:rounded-r-md hairline-border transition-colors cursor-pointer ${
                         activeTable === t
-                          ? 'bg-[var(--accent)] text-white'
+                          ? 'bg-[var(--accent)] text-white font-semibold shadow-xs'
                           : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                       }`}
                     >
-                      {t}
+                      {getTableLabel(t)}
                     </button>
                   ))}
                 </div>
@@ -302,7 +322,7 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
             <div className="flex items-center justify-between text-xs text-[var(--text-secondary)]">
               <span className="font-semibold uppercase tracking-wider flex items-center gap-1.5">
                 <Database className="w-3.5 h-3.5 text-[var(--accent)]" />
-                Table: <span className="font-mono text-[var(--text-primary)]">{activeTable}</span>
+                Table: <span className="font-mono text-[var(--text-primary)]">{getTableLabel(activeTable)}</span>
               </span>
               <span className="font-mono">
                 {schema ? `${schema.row_count.toLocaleString()} rows` : '...'}

@@ -142,6 +142,7 @@ def get_schema(
     user_id: str = "anonymous",
     limits: Optional[QueryLimits] = None,
     storage: Optional[JobStorage] = None,
+    table: str = "data",
 ) -> SchemaInfo:
     """Retrieve schema metadata, column types, row counts, and sample values for the dataset."""
     lim = limits or QueryLimits()
@@ -149,16 +150,27 @@ def get_schema(
 
     con = create_sandboxed_connection(clean_pq, limits=lim, original_parquet_path=orig_pq)
     try:
+        tables_avail = ["data"]
+        if orig_pq and orig_pq.exists():
+            tables_avail.append("original")
+
+        target_table = "data"
+        if table in ("data", "original"):
+            if table == "original" and "original" in tables_avail:
+                target_table = "original"
+            else:
+                target_table = "data"
+
         # Fast metadata row count
-        count_row = con.execute("SELECT count(*) FROM data").fetchone()
+        count_row = con.execute(f"SELECT count(*) FROM {target_table}").fetchone()
         row_count = int(count_row[0]) if count_row else 0
 
         # Column names and types via DESCRIBE
-        desc_rows = con.execute("DESCRIBE data").fetchall()
+        desc_rows = con.execute(f"DESCRIBE {target_table}").fetchall()
         columns_meta: List[ColumnInfo] = []
 
         # Get sample values (first 3 rows)
-        sample_rows = con.execute("SELECT * FROM data LIMIT 3").fetchall()
+        sample_rows = con.execute(f"SELECT * FROM {target_table} LIMIT 3").fetchall()
 
         for col_idx, row in enumerate(desc_rows):
             col_name = str(row[0])
@@ -172,12 +184,8 @@ def get_schema(
                 ColumnInfo(name=col_name, type=col_type, sample_values=samples[:3])
             )
 
-        tables_avail = ["data"]
-        if orig_pq and orig_pq.exists():
-            tables_avail.append("original")
-
         return SchemaInfo(
-            table="data",
+            table=target_table,
             row_count=row_count,
             columns=columns_meta,
             tables_available=tables_avail,

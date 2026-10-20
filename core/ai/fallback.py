@@ -3,6 +3,7 @@
 from __future__ import annotations
 from typing import Any, Dict, List, Tuple
 from core.recipe_schema import (
+    CastTypeConfig,
     ClipOutliersConfig,
     ColumnRule,
     DedupeConfig,
@@ -92,8 +93,12 @@ class MinimalSafeRecipeGenerator:
                         f"Day/Month Order in `{col_name}`: Values parse as both DD/MM and MM/DD. Please confirm precedence."
                     )
 
-            # Numeric negatives and outliers
+            # Numeric negatives, outliers, and casting
             if meta.get("inferred_type") in ("integer", "double"):
+                target_type = "double" if meta.get("inferred_type") == "double" or meta.get("decimals") else "bigint"
+                rule.cast_type = CastTypeConfig(type=target_type)
+                has_rule = True
+
                 negs = meta.get("negatives", 0)
                 if negs > 0:
                     rule.clip_outliers = ClipOutliersConfig(
@@ -102,7 +107,6 @@ class MinimalSafeRecipeGenerator:
                         action="null",
                     )
                     rule.handle_nulls = HandleNullsConfig(strategy="fill_median")
-                    has_rule = True
                     findings.append(
                         f"- **`{col_name}`**: Detected {negs:,} unexpected negative values (&lt; 0)."
                     )

@@ -214,8 +214,11 @@ export interface ExploreQueryResult {
   warnings: string[];
 }
 
-export async function getExploreSchema(jobId: string): Promise<ExploreSchemaResponse> {
-  const res = await fetch(`${API_BASE}/api/explore/${jobId}/schema`);
+export async function getExploreSchema(jobId: string, table?: string): Promise<ExploreSchemaResponse> {
+  const url = table
+    ? `${API_BASE}/api/explore/${jobId}/schema?table=${encodeURIComponent(table)}`
+    : `${API_BASE}/api/explore/${jobId}/schema`;
+  const res = await fetch(url);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to load dataset schema.');

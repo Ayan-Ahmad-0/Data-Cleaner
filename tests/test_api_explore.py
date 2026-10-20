@@ -46,6 +46,11 @@ def test_api_get_explore_schema(test_client):
     assert "city" in col_names
     assert "population" in col_names
 
+    # Test querying with explicit table query parameter
+    resp_table = client.get(f"/api/explore/{job_id}/schema?table=data")
+    assert resp_table.status_code == 200
+    assert resp_table.json()["table"] == "data"
+
 
 def test_api_execute_explore_query(test_client):
     """Verify POST /api/explore/{job_id}/query executes and returns rows and metadata."""
