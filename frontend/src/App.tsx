@@ -48,6 +48,9 @@ export function App() {
           setCurrentStep(2);
         } else if ((status === 'DONE' || status === 'DONE_WITH_WARNINGS') && currentStep === 4) {
           setCurrentStep(5);
+        } else if (status === 'AWAITING_APPROVAL' && currentStep === 4) {
+          // Progress must be linear: if approvals are pending, redirect to Step 3 (Approval)
+          setCurrentStep(3);
         }
       } catch (err) {
         console.error('Error polling job status:', err);

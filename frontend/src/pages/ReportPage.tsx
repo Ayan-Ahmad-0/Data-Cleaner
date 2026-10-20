@@ -15,6 +15,7 @@ import {
   ChevronRight,
   FileBarChart,
   Filter,
+  Loader2,
   Search,
 } from 'lucide-react';
 
@@ -189,9 +190,15 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
           variant="primary"
           size="lg"
           onClick={onProceedToApproval}
-          rightIcon={<ArrowRight className="w-5 h-5" />}
+          rightIcon={
+            !jobData?.recipe ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ArrowRight className="w-5 h-5" />
+            )
+          }
         >
-          Review Cleaning Plan
+          {!jobData?.recipe ? 'Drafting Recipe & Confirmations...' : 'Review Cleaning Plan (Step 3)'}
         </Button>
       </div>
 
@@ -461,6 +468,33 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
           </table>
         </div>
       </Disclosure>
+
+      {/* Bottom Step Progression Banner */}
+      <div className="pt-6 hairline-t flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--bg-surface)] p-6 rounded-[var(--radius-md)] hairline-border">
+        <div>
+          <span className="font-semibold text-[var(--text-primary)] block text-base sm:text-lg">
+            Finished Reviewing Assessment?
+          </span>
+          <span className="text-xs sm:text-sm text-[var(--text-secondary)]">
+            Proceed to Step 3 to review transformation rules, resolve ambiguities, and approve execution.
+          </span>
+        </div>
+
+        <Button
+          variant="primary"
+          size="lg"
+          onClick={onProceedToApproval}
+          rightIcon={
+            !jobData?.recipe ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <ArrowRight className="w-5 h-5" />
+            )
+          }
+        >
+          {!jobData?.recipe ? 'Drafting Recipe & Confirmations...' : 'Review Cleaning Plan (Step 3)'}
+        </Button>
+      </div>
     </div>
   );
 };

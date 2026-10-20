@@ -6,7 +6,7 @@ import { Disclosure } from '../components/ui/Disclosure';
 import { Tag } from '../components/ui/Tag';
 import { Toggle } from '../components/ui/Toggle';
 import { cleanRuleSentence, formatNumber, pluralize } from '../lib/format';
-import { AlertTriangle, Check, CheckCircle2, CheckSquare, Sliders } from 'lucide-react';
+import { AlertTriangle, Check, CheckCircle2, CheckSquare, Loader2, Sliders } from 'lucide-react';
 
 interface ApprovalPageProps {
   jobData: JobDetailResponse | null;
@@ -41,12 +41,12 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
 
   const [cleaningTriggered, setCleaningTriggered] = useState(false);
 
-  // Check if all questions have been addressed
+  // Check if all questions have been addressed and recipe exists
   const allQuestionsAnswered = useMemo(() => {
     const questions = jobData?.open_questions || [];
-    if (questions.length === 0) return true;
+    if (questions.length === 0) return Boolean(recipe);
     return questions.every((_, idx) => Boolean(questionAnswers[idx]));
-  }, [jobData?.open_questions, questionAnswers]);
+  }, [jobData?.open_questions, questionAnswers, recipe]);
 
   // Projected impact computed strictly from real profile metrics
   const projectedImpact = useMemo(() => {
@@ -188,6 +188,49 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
     );
   }
 
+  // Active Compiling / Drafting state
+  const isCompilingRecipe =
+    !recipe &&
+    (jobData?.job?.status === 'CONVERTING' ||
+      jobData?.job?.status === 'PROFILING' ||
+      jobData?.job?.status === 'DRAFTING_RECIPE');
+
+  if (isCompilingRecipe) {
+    return (
+      <div className="container-shell py-16 sm:py-24 max-w-2xl mx-auto text-center space-y-6">
+        <div className="w-16 h-16 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto">
+          <Loader2 className="w-8 h-8 animate-spin" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
+            Drafting Cleaning Plan & Human Confirmations
+          </h2>
+          <p className="text-base text-[var(--text-secondary)] leading-relaxed max-w-lg mx-auto">
+            {jobData?.job?.current_stage ||
+              'DuckDB profiler and AI engine are analyzing dataset anomalies and drafting confirmation choices...'}
+          </p>
+        </div>
+
+        <div className="w-72 mx-auto bg-[var(--bg-subtle)] h-2 rounded-full overflow-hidden hairline-border">
+          <div
+            className="bg-[var(--accent)] h-full transition-all duration-300"
+            style={{ width: `${jobData?.job?.progress_pct || 75}%` }}
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs sm:text-sm text-[var(--text-muted)] font-mono">
+          <Tag variant="neutral">Status: {jobData?.job?.status || 'PROFILING'}</Tag>
+          {jobData?.job?.filename && (
+            <>
+              <span>·</span>
+              <Tag variant="neutral">{jobData.job.filename}</Tag>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container-shell py-8 sm:py-12 space-y-8">
       {/* Editorial Header */}
@@ -210,7 +253,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
         <Button
           variant="primary"
           size="lg"
-          disabled={cleaningTriggered}
+          disabled={cleaningTriggered || !allQuestionsAnswered || !recipe}
           onClick={() => {
             if (!allQuestionsAnswered) {
               const el = document.getElementById('human-confirmations-section');
@@ -225,8 +268,8 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
           {cleaningTriggered
             ? 'Starting Cleaning...'
             : !allQuestionsAnswered
-            ? `Answer Human Confirmations Below (${initialOpenQuestions.length - Object.keys(questionAnswers).length} remaining)`
-            : 'Approve & Start Cleaning'}
+            ? `Answer Human Confirmations (${initialOpenQuestions.length - Object.keys(questionAnswers).length} remaining)`
+            : 'Approve & Start Cleaning (Step 4)'}
         </Button>
       </div>
 
@@ -623,6 +666,42 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
             </div>
           </Disclosure>
         </div>
+      </div>
+
+      {/* Bottom Approval Action Bar */}
+      <div className="pt-6 hairline-t flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--bg-surface)] p-6 rounded-[var(--radius-md)] hairline-border">
+        <div>
+          <span className="font-semibold text-[var(--text-primary)] block text-base sm:text-lg">
+            Ready to Clean Dataset?
+          </span>
+          <span className="text-xs sm:text-sm text-[var(--text-secondary)]">
+            {!allQuestionsAnswered
+              ? `Please answer the ${initialOpenQuestions.length - Object.keys(questionAnswers).length} confirmation decisions above before proceeding to execution.`
+              : 'All confirmations resolved. Execute deterministic cleaning pipeline in Step 4.'}
+          </span>
+        </div>
+
+        <Button
+          variant="primary"
+          size="lg"
+          disabled={cleaningTriggered || !allQuestionsAnswered || !recipe}
+          onClick={() => {
+            if (!allQuestionsAnswered) {
+              const el = document.getElementById('human-confirmations-section');
+              if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }
+              return;
+            }
+            handleApprove();
+          }}
+        >
+          {cleaningTriggered
+            ? 'Starting Cleaning...'
+            : !allQuestionsAnswered
+            ? `Answer Confirmations (${initialOpenQuestions.length - Object.keys(questionAnswers).length} remaining)`
+            : 'Approve & Start Cleaning (Step 4)'}
+        </Button>
       </div>
     </div>
   );
