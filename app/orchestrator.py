@@ -132,10 +132,12 @@ class JobOrchestrator:
             job.status = JobStatus.AWAITING_APPROVAL
             job.current_stage = "Awaiting user approval of cleaning plan"
             job.progress_pct = 100.0
+            job.error = None
 
         except Exception as e:
             logger.exception("Error during profile and AI drafting: %s", e)
             job.status = JobStatus.FAILED
+            job.current_stage = f"Profiling failed: {e}"
             job.error = str(e)
 
     def execute_cleaning_and_verification(self, job_id: str, approved_recipe_dict: Optional[Dict[str, Any]] = None) -> None:
@@ -145,21 +147,41 @@ class JobOrchestrator:
             return
 
         try:
+            job.error = None
+            staged_pq = self.storage.staged_parquet_path(job_id)
+            raw_file = self.storage.raw_file_path(job_id, job.filename)
+
             # 1. Update recipe if edited by user
             if approved_recipe_dict:
                 profile_dict = self.job_profiles.get(job_id)
+                if not profile_dict and staged_pq.exists():
+                    p = self.profiler.profile_parquet(staged_pq, source_csv_path=raw_file if raw_file.exists() else None)
+                    profile_dict = p.to_dict()
+                    self.job_profiles[job_id] = profile_dict
                 recipe = RecipeValidator.validate_recipe(approved_recipe_dict, profile_dict)
                 self.job_recipes[job_id] = recipe
                 self.job_plain_english[job_id] = RecipeValidator.render_plain_english(recipe)
             else:
-                recipe = self.job_recipes[job_id]
+                recipe = self.job_recipes.get(job_id)
+                if not recipe:
+                    profile_dict = self.job_profiles.get(job_id)
+                    if not profile_dict and staged_pq.exists():
+                        p = self.profiler.profile_parquet(staged_pq, source_csv_path=raw_file if raw_file.exists() else None)
+                        profile_dict = p.to_dict()
+                        self.job_profiles[job_id] = profile_dict
+                    if profile_dict:
+                        from core.ai.fallback import MinimalSafeRecipeGenerator
+                        recipe, _, _ = MinimalSafeRecipeGenerator.generate(profile_dict)
+                        self.job_recipes[job_id] = recipe
+                        self.job_plain_english[job_id] = RecipeValidator.render_plain_english(recipe)
+                    else:
+                        raise ValueError(f"No profile or recipe available for job {job_id}")
 
             # 2. Execute Cleaning
             job.status = JobStatus.CLEANING
             job.current_stage = "Executing DuckDB macro CTE compilation"
             job.progress_pct = 40.0
 
-            staged_pq = self.storage.staged_parquet_path(job_id)
             clean_pq = self.storage.clean_parquet_path(job_id)
             clean_res = self.compiler.execute_clean(recipe, staged_pq, clean_pq)
 
@@ -176,7 +198,15 @@ class JobOrchestrator:
             job.current_stage = "Running reconciliation and verification tests"
             job.progress_pct = 80.0
 
-            before_profile = self.job_profiles[job_id]
+            before_profile = self.job_profiles.get(job_id)
+            if not before_profile:
+                if staged_pq.exists():
+                    p = self.profiler.profile_parquet(staged_pq, source_csv_path=raw_file if raw_file.exists() else None)
+                    before_profile = p.to_dict()
+                    self.job_profiles[job_id] = before_profile
+                else:
+                    raise FileNotFoundError(f"Staged parquet not found for verification of job {job_id}")
+
             v_json_path = self.storage.verification_json_path(job_id)
             v_result = self.verifier.verify(clean_pq, before_profile, recipe, output_verification_json=v_json_path)
 
@@ -187,10 +217,12 @@ class JobOrchestrator:
             job.current_stage = "Completed successfully" if job.status == JobStatus.DONE else "Completed with warnings"
             job.progress_pct = 100.0
             job.completed_at = datetime.now(timezone.utc)
+            job.error = None
 
         except Exception as e:
             logger.exception("Error during cleaning and verification: %s", e)
             job.status = JobStatus.FAILED
+            job.current_stage = f"Cleaning failed: {e}"
             job.error = str(e)
 
     def export_dataset(self, job_id: str, format_id: str, options: Optional[Dict[str, Any]] = None) -> List[Path]:

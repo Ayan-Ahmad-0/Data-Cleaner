@@ -109,7 +109,7 @@ export function App() {
     if (!jobId) return 1;
     const status = jobData?.job?.status;
     if (status === 'DONE' || status === 'DONE_WITH_WARNINGS') return 5;
-    if (status === 'CLEANING' || status === 'VERIFYING') return 4;
+    if (status === 'CLEANING' || status === 'VERIFYING' || status === 'FAILED') return 4;
     // Before cleaning is approved/started, user cannot go past Step 3 (Approval)
     return 3;
   }, [jobId, jobData?.job?.status]);
@@ -189,6 +189,8 @@ export function App() {
               <ProgressPage
                 jobData={jobData}
                 onProceedToResults={() => setCurrentStep(5)}
+                onGoToApproval={() => setCurrentStep(3)}
+                onRetry={() => handleStartCleaning(jobData?.recipe)}
                 onCancel={handleRestart}
                 onGoToUpload={() => setCurrentStep(1)}
               />
