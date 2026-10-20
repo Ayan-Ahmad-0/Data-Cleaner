@@ -1,5 +1,4 @@
-# One-Click AI Data Cleaner Vectorized Pipeline
-
+# One-Click AI Data Cleaner
 Vectorized multi-format profiling, cleaning, and exploration pipeline powered by DuckDB, sqlglot, and Google Gemini. Ingests 1 to 10 GB datasets, extracts single-pass statistical profiles without full table scans, parameterizes deterministic SQL transformation macros, and verifies output with automated reconciliation tests.
 
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.1+-FFF000?style=flat&logo=duckdb&logoColor=black)
@@ -40,9 +39,7 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX) → Streaming Stager → Parquet Bu
 | SQL Exploration | Sandboxed read-only interactive exploration | DuckDB In-Memory View | DuckDB memory session |
 | Export | Multi-format delivery of cleaned dataset | Parquet, CSV, JSON, NDJSON, XLSX | Local disk / API download |
 
-### Architecture Diagram
-<!-- Add: images/architecture_pipeline.png -->
-![Architecture Pipeline](images/architecture_pipeline.png)
+
 
 ### Tech Stack
 - **Execution Engine**: DuckDB 1.1+ (in-process vectorized SQL, multi-threaded aggregation, zero network overhead)
@@ -54,18 +51,6 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX) → Streaming Stager → Parquet Bu
 
 ---
 
-## Interactive Interface
-
-<!-- Add: images/demo_approval_screen.png -->
-![Interactive Review Screen](images/demo_approval_screen.png)
-
-<!-- Add: images/demo_sql_explorer.png -->
-![Sandboxed SQL Explorer](images/demo_sql_explorer.png)
-
-<!-- Add: images/demo_results_screen.png -->
-![Verification Results Screen](images/demo_results_screen.png)
-
----
 
 ## Pipeline Flow
 
@@ -110,8 +95,6 @@ The evaluation suite benchmarks detection recall, precision, and latency across 
 | Reviews | 50,000 | 8,910 | 97.3% | 98.0% | 0.12s | 416,666 rows/s |
 | Web Events (1 GB Scale) | 15,000,000 | 2,850,000 | 97.9% | 98.6% | 11.38s | 1,318,565 rows/s |
 
-<!-- Add: images/evaluation_metrics.png -->
-![Evaluation Metrics](images/evaluation_metrics.png)
 
 The most instructive failure mode occurred during timestamp parsing when mixed European (`%d/%m/%Y`) and US (`%m/%d/%Y`) date tokens coincided in the same column. When day tokens did not exceed 12, ambiguous dates could be incorrectly parsed. The engine diagnoses this ambiguity during profiling and injects an explicit human confirmation prompt into the review screen rather than silently guessing.
 
