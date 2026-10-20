@@ -73,7 +73,8 @@ def create_sandboxed_connection(
         allowed_paths.append(Path(allow_write_path).resolve().as_posix())
 
     # Format paths list as DuckDB single-quoted list literal
-    paths_sql = "[" + ", ".join(f"'{p.replace('\'', '\'\'')}'" for p in allowed_paths) + "]"
+    formatted_paths = ["'" + p.replace("'", "''") + "'" for p in allowed_paths]
+    paths_sql = "[" + ", ".join(formatted_paths) + "]"
     con.execute(f"SET allowed_paths = {paths_sql}")
     con.execute("SET enable_external_access = false")
 
