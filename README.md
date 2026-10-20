@@ -1,6 +1,6 @@
 # One-Click AI Data Cleaner Vectorized Pipeline
 
-Vectorized CSV profiling and cleaning pipeline powered by DuckDB and Google Gemini. Ingests 1 to 10 GB datasets, extracts statistical profiles without full scans, parameterizes deterministic SQL transformation macros, and verifies output with automated reconciliation tests.
+Vectorized multi-format profiling, cleaning, and exploration pipeline powered by DuckDB, sqlglot, and Google Gemini. Ingests 1 to 10 GB datasets, extracts single-pass statistical profiles without full table scans, parameterizes deterministic SQL transformation macros, and verifies output with automated reconciliation tests.
 
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.1+-FFF000?style=flat&logo=duckdb&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=flat&logo=python&logoColor=white)
@@ -8,16 +8,18 @@ Vectorized CSV profiling and cleaning pipeline powered by DuckDB and Google Gemi
 ![React](https://img.shields.io/badge/React-19.0+-61DAFB?style=flat&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript&logoColor=white)
 ![Google Gemini](https://img.shields.io/badge/Google%20Gemini-Flash%20Preview-4285F4?style=flat&logo=google&logoColor=white)
+![sqlglot](https://img.shields.io/badge/sqlglot-30.0+-ED8B00?style=flat&logo=sqlite&logoColor=white)
 
 ---
 
 ## Overview
 
-1. **Ingest** raw CSV files into zstandard-compressed columnar Parquet with all-varchar text staging, avoiding data loss from speculative type inference.
+1. **Ingest** raw CSV, Parquet, JSON, NDJSON, and Excel files into zstandard-compressed columnar Parquet with all-varchar text staging, avoiding data loss from speculative type inference.
 2. **Profile** candidate keys, null token distributions, whitespace anomalies, and timestamp formats in a single DuckDB aggregation pass, emitting profiles smaller than 100 KB.
 3. **Draft** structured cleaning recipes using Gemini LLM or heuristic offline safe fallbacks constrained strictly to a fixed macro menu without raw SQL generation.
 4. **Compile** parameterized recipes into unified vectorized Common Table Expression (CTE) SQL chains executed entirely in-process by DuckDB at over 1,300,000 rows per second.
 5. **Verify** cleaned datasets through post-execution re-profiling, constraint assertions, and exact row-level reconciliation deltas.
+6. **Explore** raw and cleaned datasets interactively using an in-browser DuckDB SQL console guarded by sqlglot AST sandboxing and strict query resource caps.
 
 Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s. Deployed locally via Docker Compose and FastAPI.
 
@@ -25,16 +27,18 @@ Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) con
 
 ## Architecture
 
-CSV files enter via FastAPI streaming upload → staged to Parquet → analyzed by DuckDB Profiler → metadata prompt passed to Gemini LLM → strict Pydantic v2 validation → DuckDB CTE Engine compiles and executes clean transform → Verifier audits output integrity.
+Raw Files (CSV, Parquet, JSON, NDJSON, XLSX) → Streaming Stager → Parquet Buffer → DuckDB Profiler (<100 KB metadata) → Gemini / Local Fallback → Pydantic Validator → DuckDB CTE Engine → Verifier → Sandboxed SQL Explorer
 
 | Stage | Purpose | Format | Storage |
 |---|---|---|---|
 | Ingestion | Staging raw input without type coercion | Parquet (ZSTD, all-varchar) | Local disk (`data/jobs/{id}/staged.parquet`) |
+| Multi-Format Adapter | Format detection, flattening, and conversion | In-memory Arrow tables | Temporary memory buffers |
 | Profiling | Single-pass statistical and defect extraction | JSON (`profile.json`, <100 KB) | Memory / Job Storage |
 | AI Drafting | Parameterizing macro menu and quality report | Pydantic Recipe Schema | Memory / Job Storage |
 | CTE Compilation | Vectorized data cleaning and type transformation | DuckDB CTE SQL Query | In-process execution |
 | Verification | Automated assertion checks and row reconciliation | JSON (`verification.json`) | Job Storage |
-| Export | Delivery of cleaned analytical dataset | Parquet (ZSTD) and CSV | Local disk / API download |
+| SQL Exploration | Sandboxed read-only interactive exploration | DuckDB In-Memory View | DuckDB memory session |
+| Export | Multi-format delivery of cleaned dataset | Parquet, CSV, JSON, NDJSON, XLSX | Local disk / API download |
 
 ### Architecture Diagram
 <!-- Add: images/architecture_pipeline.png -->
@@ -42,10 +46,11 @@ CSV files enter via FastAPI streaming upload → staged to Parquet → analyzed 
 
 ### Tech Stack
 - **Execution Engine**: DuckDB 1.1+ (in-process vectorized SQL, multi-threaded aggregation, zero network overhead)
-- **Backend API**: FastAPI 0.111+, Uvicorn, Python 3.11 - 3.13
+- **SQL Security & AST**: sqlglot 30.0+ (strict read-only SELECT validation, forbidden statement AST denial)
+- **Backend API**: FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13
 - **Schema & Validation**: Pydantic v2 (strict allowlist models, `extra="forbid"`)
 - **AI Reasoning**: Google GenAI SDK (`gemini-3-flash-preview` / `gemini-2.5-flash`), with deterministic fallback
-- **Frontend UI**: React 19, TypeScript, Tailwind CSS, Vite (5-stage guided workflow)
+- **Frontend UI**: React 19, TypeScript 5.0+, Tailwind CSS, Vite (5-step linear guided workflow)
 
 ---
 
@@ -53,6 +58,9 @@ CSV files enter via FastAPI streaming upload → staged to Parquet → analyzed 
 
 <!-- Add: images/demo_approval_screen.png -->
 ![Interactive Review Screen](images/demo_approval_screen.png)
+
+<!-- Add: images/demo_sql_explorer.png -->
+![Sandboxed SQL Explorer](images/demo_sql_explorer.png)
 
 <!-- Add: images/demo_results_screen.png -->
 ![Verification Results Screen](images/demo_results_screen.png)
@@ -62,10 +70,10 @@ CSV files enter via FastAPI streaming upload → staged to Parquet → analyzed 
 ## Pipeline Flow
 
 ```
-Input CSV (1 - 10 GB)
+Input (CSV, Parquet, JSON, NDJSON, XLSX)
 │
 ▼
-[core/converter.py] ──────────────────────────► (data/jobs/{id}/raw.parquet)
+[formats/convert.py] ─────────────────────────► (data/jobs/{id}/raw.parquet)
 │
 ▼
 [core/profiler.py] ───────────────────────────► (profile.json < 100 KB)
@@ -74,18 +82,20 @@ Input CSV (1 - 10 GB)
 [core/ai/generator.py] ◄── [Gemini LLM] ──────► (recipe.json + report.md)
 │
 ▼
-[core/validator.py] ──────────────────────────► Plain English Approval Screen
+[core/validator.py] ──────────────────────────► Linear Confirmation Review
 │
 ▼
 [core/compiler.py] ───────────────────────────► DuckDB Vectorized CTE
 │
 ▼
 [core/verifier.py] ───────────────────────────► (data/jobs/{id}/cleaned.parquet)
-                                                (data/jobs/{id}/cleaned.csv)
-                                                (verification.json)
+│                                               (data/jobs/{id}/cleaned.csv)
+│                                               (verification.json)
+▼
+[explore/service.py] ◄── [sqlglot AST Sandbox] ─► In-Browser SQL Explorer (Cleaned Data / Original Data)
 ```
 
-Each stage is completely deterministic and re-runnable from its stored Parquet snapshot without re-processing raw CSV inputs.
+Each stage is completely deterministic and re-runnable from its stored Parquet snapshot without re-processing raw input files.
 
 ---
 
@@ -117,6 +127,7 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 | `cleaned.parquet` | Final analytical dataset with concrete DuckDB types (TIMESTAMP, DOUBLE, BIGINT, VARCHAR) and duplicate rows pruned |
 | `cleaned.csv` | Exported standard CSV representation for downstream spreadsheet or BI tool ingestion |
 | `verification.json` | Audit record containing before/after row delta counts, duplicate reconciliation, and assertion status |
+| `export.*` | On-demand format exports generated in Parquet, CSV, JSON, NDJSON, or Excel formats |
 
 ---
 
@@ -124,6 +135,8 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 
 - **Vectorized In-Process Execution** — DuckDB executes all CTE operations in SIMD-accelerated C++ kernels directly against columnar Parquet buffers, eliminating JVM or network socket overhead.
 - **Strict Macro Allowlist** — The AI generator has no access to raw SQL generation. It selects and parameterizes macros from a closed schema (`trim_and_normalize`, `cast_type`, `clip_outliers`, `handle_nulls`, `parse_timestamp`, `dedupe`).
+- **AST Sandboxed SQL Exploration** — All interactive SQL queries are parsed through `sqlglot` prior to execution. DDL, DML, file system calls, and external table references are denied at parse time before reaching the query engine.
+- **Strict Query Resource Caps** — Interactive SQL queries enforce a 5.0-second execution timeout, a 10,000-row return limit, a 100 MB export ceiling, and a 2-worker concurrency guard.
 - **SQL Injection Prevention** — All column identifiers and parameters passed into SQL generation are sanitized using `quote_ident()` with double-quote escaping.
 - **Privacy Mode Masking** — When privacy mode is enabled, sample data values and categorical token lists are stripped from LLM prompts; only statistical distributions and column names are transmitted.
 - **Deterministic Offline Fallback** — If Gemini API rate limits, network interruptions, or quota exhaustion occurs, the pipeline falls back to an offline rule-based recipe generator without pipeline stoppage.
@@ -158,6 +171,21 @@ data-cleaner/
 │   ├── recipe_schema.py        # Pydantic v2 strict schema models for recipes
 │   ├── validator.py            # Schema validation and plain-English translation
 │   └── verifier.py             # Automated post-clean assertions and reconciliation
+├── explore/                    # Sandboxed in-browser DuckDB exploration engine
+│   ├── errors.py               # Exploration-specific exception hierarchy
+│   ├── limits.py               # Query execution timeout and concurrency controls
+│   ├── sandbox.py              # Secure DuckDB connection factory and filesystem locks
+│   ├── service.py              # Sandboxed query execution and schema inspection
+│   └── validate.py             # sqlglot AST parsing and read-only SELECT validation
+├── formats/                    # Multi-format ingestion and export subsystem
+│   ├── adapters/               # Readers for CSV, Parquet, JSON, NDJSON, and Excel
+│   ├── exporters/              # Writers for CSV, Parquet, JSON, NDJSON, and Excel
+│   ├── base.py                 # Format adapter interface contracts
+│   ├── convert.py              # Format conversion pipeline and staging manager
+│   ├── detect.py               # Magic byte and structural format sniffing
+│   ├── fidelity.py             # Format capability matrices and precision checks
+│   ├── flatten.py              # Recursive JSON object and list schema flattener
+│   └── registry.py             # Adapter registry for automatic format resolution
 ├── docs/                       # Technical documentation and evaluation logs
 │   ├── adr-001-duckdb-vs-dbt.md# Architecture Decision Record for DuckDB CTEs
 │   ├── evaluation_design.md    # Metrics definition and defect taxonomy
@@ -168,15 +196,15 @@ data-cleaner/
 │   ├── run_experiments.py      # Baseline experimental runner
 │   └── scorer.py               # Precision, recall, and F1 calculation engine
 ├── frontend/                   # React 19 + TypeScript + Vite web interface
-│   ├── src/                    # UI screens (Upload, Report, Approval, Progress, Results)
+│   ├── src/                    # UI screens (Upload, Report, Approval, Progress, Results, Explore)
 │   ├── package.json            # Node dependency declarations
 │   └── vite.config.ts          # Vite build configuration with proxy support
-├── tests/                      # Pytest test suite (15 unit and integration tests)
-├── .github/workflows/ci.yml    # CI test and build workflow
+├── tests/                      # Pytest test suite (139 unit and integration tests)
+├── .github/workflows/ci.yml    # GitHub Actions multi-version CI workflow (Python 3.11/3.12, Node 20)
 ├── demo.py                     # Autonomous end-to-end CLI demonstration runner
 ├── docker-compose.yml          # Containerized multi-stage service deployment
 ├── Dockerfile                  # Multi-stage production container build
-├── requirements.txt            # Python dependencies
+├── requirements.txt            # Python backend dependencies
 └── README.md                   # System documentation
 ```
 
@@ -200,7 +228,7 @@ DUCKDB_THREADS=4
 
 - **Connection Secrets** — No external database connection strings are required; DuckDB runs in-process with ephemeral or file-backed storage.
 - **Deployment Keys** — If `GEMINI_API_KEY` is not provided, the pipeline operates in offline deterministic heuristic mode without failure.
-- **Memory Quirks** — On memory-constrained systems (e.g. 8 GB RAM total), adjust `DUCKDB_MEMORY_LIMIT=2GB` to prevent OS swapping during multi-GB CSV conversions.
+- **Memory Quirks** — On memory-constrained systems (e.g. 8 GB RAM total), adjust `DUCKDB_MEMORY_LIMIT=2GB` to prevent OS swapping during multi-GB dataset conversions.
 
 ---
 
@@ -256,9 +284,12 @@ docker compose up --build
 
 ## Challenges Solved
 
-- **Type Inference Sampling Bias** — Symptom: Ingesting dirty CSVs directly into standard typed SQL engines failed on row 50,000 due to unexpected string tokens in numeric columns. Diagnosis: DuckDB's automatic CSV sniffer uses sample rows that may miss corruptions occurring deeper in large files. Fix: Implemented two-stage ingestion where CSVs are initially converted to Parquet with `all_varchar=true`, deferring type casting to compiled CTE stages after complete statistical profiling.
+- **Type Inference Sampling Bias** — Symptom: Ingesting dirty CSVs directly into standard typed SQL engines failed on row 50,000 due to unexpected string tokens in numeric columns. Diagnosis: DuckDB's automatic CSV sniffer uses sample rows that miss corruptions occurring deeper in large files. Fix: Implemented two-stage ingestion where CSVs are initially converted to Parquet with `all_varchar=true`, deferring type casting to compiled CTE stages after complete statistical profiling.
+- **Python 3.11 f-String Backslash Syntax Restriction** — Symptom: GitHub Actions CI failed with `SyntaxError: f-string expression part cannot include a backslash` during test collection on Python 3.11 runners. Diagnosis: Python 3.11 does not permit backslashes inside f-string expression braces (`{p.replace('\'', '\'\'')}`). Fix: Refactored string escaping in `explore/sandbox.py` to use explicit string concatenation prior to list joining.
 - **SQL Dialect Title-Casing Absence** — Symptom: Recipe execution failed with `Catalog Error: Scalar Function with name initcap does not exist`. Diagnosis: DuckDB SQL does not implement PostgreSQL's `initcap()` function. Fix: Implemented composite SQL expression `(upper(substr(col, 1, 1)) || lower(substr(col, 2)))` inside string normalization macros.
 - **Profiler String Functions on Typed Data** — Symptom: Verification failed with `Binder Error: No function matches length(DOUBLE)`. Diagnosis: Columns already transformed into numeric or date types in verification passes were passed into string length assertions. Fix: Wrapped all text inspection queries in safe `try_cast(col AS VARCHAR)` expressions.
+- **CI Missing Dependencies Under Minimal Runners** — Symptom: CI failed during test collection with `ModuleNotFoundError: No module named 'sqlglot'`. Diagnosis: `sqlglot` and `httpx` were present in the local virtual environment but omitted from `requirements.txt`. Fix: Added `sqlglot>=25.0.0` and `httpx>=0.27.0` to `requirements.txt` and updated the `Dockerfile` to copy `explore/` and `formats/` directories.
+- **Fallback Recipe Numeric Typing** — Symptom: In the interactive SQL query box, numeric columns in cleaned tables remained typed as `VARCHAR`. Diagnosis: `MinimalSafeRecipeGenerator` detected numeric types for bounds clipping but omitted setting `rule.cast_type`. Fix: Updated heuristic fallback logic to automatically set `CastTypeConfig(type="double" | "bigint")` for all inferred numeric columns.
 - **LLM Model Availability and Rate Spikes** — Symptom: Calls to preview Gemini endpoints intermittently returned `503 UNAVAILABLE` or `404 NOT_FOUND` during peak usage. Diagnosis: Preview model quotas and regional demand fluctuations caused transient request drops. Fix: Built a two-tier resilience architecture featuring `gemini-3-flash-preview` with an automatic fallback to `MinimalSafeRecipeGenerator` heuristic execution.
 - **Windows CLI Encoding Glitches** — Symptom: CLI demo crashed with `UnicodeEncodeError: 'charmap' codec can't encode character '\u2717'`. Diagnosis: Standard Windows PowerShell consoles operate on Windows-1252 code pages that cannot display Unicode tick/cross symbols. Fix: Standardized CLI test outputs on ASCII markers `[PASS]` and `[WARN]`.
 
