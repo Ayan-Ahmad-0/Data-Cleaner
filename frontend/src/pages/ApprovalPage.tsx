@@ -346,7 +346,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                             }`}
                           >
                             <Check className={`w-4 h-4 shrink-0 ${choice === 'standard' ? 'text-white' : 'text-[var(--text-muted)]'}`} />
-                            <span>Accept Recommended Fix</span>
+                            <span>Apply Recommended Fix</span>
                           </button>
 
                           <button
@@ -358,7 +358,7 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
                                 : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border-[var(--border-hairline)] hover:border-[var(--border-strong)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] font-medium'
                             }`}
                           >
-                            <span>Keep Token As-Is</span>
+                            <span>Keep Original Value (Don't Change)</span>
                           </button>
                         </div>
                       </td>
