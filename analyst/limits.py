@@ -19,8 +19,8 @@ class AnalystLimits:
     max_questions_per_user_per_day: int = 100
     max_questions_global_per_minute: int = 60
     max_context_chars: int = 30000
-    max_output_tokens: int = 800
-    llm_timeout_seconds: float = 30.0
+    max_output_tokens: int = 2048
+    llm_timeout_seconds: float = 20.0
     max_generated_queries_per_question: int = 2
     max_columns_in_context: int = 200
     max_sample_chars: int = 40
@@ -28,7 +28,7 @@ class AnalystLimits:
 
     # Dynamic environment-backed settings
     model_name: str = field(
-        default_factory=lambda: os.getenv("ANALYST_MODEL", "gemini-3.8-flash")
+        default_factory=lambda: os.getenv("ANALYST_MODEL", "gemini-3.5-flash")
     )
     temperature: float = field(
         default_factory=lambda: float(os.getenv("ANALYST_TEMPERATURE", "0.1"))

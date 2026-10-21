@@ -51,6 +51,7 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
 
   const timerIntervalRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Dynamic context-aware suggested questions
   const suggestedQuestions = useMemo(() => {
@@ -104,6 +105,16 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
     return list;
   }, [schema, activeTable]);
 
+  const handleCancel = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    clearInterval(timerIntervalRef.current);
+    setIsAsking(false);
+    setError('Analysis cancelled by user.');
+  };
+
   const handleSelectExample = (promptText: string) => {
     setQuestion(promptText);
     if (textareaRef.current) {
@@ -114,6 +125,12 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
   const handleAsk = async () => {
     const trimmed = question.trim();
     if (!trimmed || isAsking) return;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
 
     setIsAsking(true);
     setError(null);
@@ -126,21 +143,27 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
     timerIntervalRef.current = setInterval(() => {
       const elapsed = Math.floor((Date.now() - startTime) / 100) / 10;
       setElapsedTimer(elapsed);
-      if (elapsed > 3.0) {
+      if (elapsed > 4.0) {
+        setStatusMessage('Synthesizing query with Gemini 3.5...');
+      } else if (elapsed > 8.0) {
         setStatusMessage('Validating query in DuckDB sandbox...');
       }
     }, 100);
 
     try {
-      const res = await askAiAnalyst(jobId, trimmed);
+      const res = await askAiAnalyst(jobId, trimmed, 'anonymous', controller.signal);
       clearInterval(timerIntervalRef.current);
       setResult(res);
     } catch (err: any) {
+      if (err.name === 'AbortError') {
+        return;
+      }
       clearInterval(timerIntervalRef.current);
       setError(err.message || 'Failed to analyze question with AI Analyst.');
     } finally {
       clearInterval(timerIntervalRef.current);
       setIsAsking(false);
+      abortControllerRef.current = null;
     }
   };
 
@@ -216,15 +239,24 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
             </div>
 
             <div className="flex items-center gap-2 ml-auto">
-              {question.trim() && (
+              {isAsking ? (
                 <Button
                   size="sm"
-                  variant="ghost"
-                  onClick={() => setQuestion('')}
-                  disabled={isAsking}
+                  variant="secondary"
+                  onClick={handleCancel}
                 >
-                  Clear
+                  Cancel
                 </Button>
+              ) : (
+                question.trim() && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setQuestion('')}
+                  >
+                    Clear
+                  </Button>
+                )
               )}
               <Button
                 size="sm"
@@ -263,6 +295,11 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
               <p className="text-xs text-[var(--text-muted)] font-mono">
                 Elapsed: {elapsedTimer.toFixed(1)}s
               </p>
+            </div>
+            <div className="pt-2">
+              <Button size="sm" variant="secondary" onClick={handleCancel}>
+                Cancel
+              </Button>
             </div>
           </div>
         )}

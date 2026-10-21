@@ -281,11 +281,13 @@ export async function askAiAnalyst(
   jobId: string,
   question: string,
   userId: string = 'anonymous',
+  signal?: AbortSignal,
 ): Promise<AnalystAskResult> {
   const res = await fetch(`${API_BASE}/api/explore/${jobId}/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question, user_id: userId }),
+    signal,
   });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));

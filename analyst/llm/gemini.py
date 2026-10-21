@@ -6,7 +6,7 @@ import json
 import logging
 import os
 import time
-from typing import Optional, Type, TypeVar
+from typing import List, Optional, Type, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from analyst.errors import (
@@ -20,6 +20,9 @@ from analyst.llm.base import LLMClient
 
 logger = logging.getLogger(__name__)
 T = TypeVar("T", bound=BaseModel)
+
+# Reusable executor with daemon workers to prevent shutdown deadlock on timeouts
+_SHARED_EXECUTOR = concurrent.futures.ThreadPoolExecutor(max_workers=4)
 
 
 class GeminiClient(LLMClient):
@@ -42,7 +45,12 @@ class GeminiClient(LLMClient):
         if self.api_key:
             try:
                 from google import genai
-                self._client = genai.Client(api_key=self.api_key)
+                from google.genai import types
+                timeout_ms = int(max(10.0, self.limits.llm_timeout_seconds) * 1000)
+                self._client = genai.Client(
+                    api_key=self.api_key,
+                    http_options=types.HttpOptions(timeout=timeout_ms),
+                )
             except Exception as e:
                 logger.error("Failed to initialize google.genai Client: %s", e)
 
@@ -60,31 +68,42 @@ class GeminiClient(LLMClient):
 
         from google.genai import types
 
-        config = types.GenerateContentConfig(
-            system_instruction=system_prompt,
-            response_mime_type="application/json",
-            response_schema=response_model,
-            temperature=self.limits.temperature,
-            max_output_tokens=self.limits.max_output_tokens,
-        )
+        config_kwargs = {
+            "system_instruction": system_prompt,
+            "response_mime_type": "application/json",
+            "response_schema": response_model,
+            "temperature": self.limits.temperature,
+            "max_output_tokens": max(2048, self.limits.max_output_tokens),
+        }
 
-        max_network_attempts = 2
+        # Set thinking_budget=0 to ensure thought tokens do not consume the JSON budget
+        try:
+            config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+        except Exception:
+            pass
+
+        config = types.GenerateContentConfig(**config_kwargs)
+
+        candidate_models: List[str] = [self.model_name]
+        for fallback in ["gemini-3.5-flash", "gemini-flash-latest"]:
+            if fallback not in candidate_models:
+                candidate_models.append(fallback)
+
         last_exception = None
+        timeout_sec = max(10.0, self.limits.llm_timeout_seconds)
 
-        for attempt in range(1, max_network_attempts + 1):
+        for model in candidate_models:
             try:
-                def _invoke():
+                def _invoke(m=model):
                     return self._client.models.generate_content(
-                        model=self.model_name,
+                        model=m,
                         contents=user_prompt,
                         config=config,
                     )
 
-                # Enforce configured timeout
-                timeout_sec = self.limits.llm_timeout_seconds
-                with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                    future = executor.submit(_invoke)
-                    response = future.result(timeout=timeout_sec)
+                # Submit to shared executor with deadline
+                future = _SHARED_EXECUTOR.submit(_invoke)
+                response = future.result(timeout=timeout_sec)
 
                 # Inspect candidates and finish reason
                 if not response.candidates:
@@ -122,9 +141,9 @@ class GeminiClient(LLMClient):
                         raise LLMBadResponseError(f"Malformed JSON returned by model: {ve}")
 
             except concurrent.futures.TimeoutError:
-                logger.warning("Gemini API call timed out after %ss (attempt %d/%d)", timeout_sec, attempt, max_network_attempts)
+                logger.warning("Gemini model %s timed out after %.1fs. Trying next candidate...", model, timeout_sec)
                 last_exception = LLMTimeoutError(timeout_sec)
-                break  # Don't retry timeouts
+                continue
 
             except Exception as e:
                 err_text = str(e).lower()
@@ -145,12 +164,8 @@ class GeminiClient(LLMClient):
                         technical_detail="401/403 Auth error",
                     )
 
-                # Transient network or 5xx error: exponential backoff retry
-                if attempt < max_network_attempts:
-                    sleep_time = 0.5 * (2 ** (attempt - 1))
-                    logger.info("Transient error calling Gemini (%s). Retrying in %.1fs...", e, sleep_time)
-                    time.sleep(sleep_time)
-                    continue
+                logger.warning("Gemini model %s failed (%s). Trying next candidate...", model, e)
+                continue
 
         if isinstance(last_exception, (LLMTimeoutError, RateLimitError, LLMBadResponseError, LLMUnavailableError)):
             raise last_exception

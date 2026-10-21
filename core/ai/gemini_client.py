@@ -18,7 +18,7 @@ _circuit_broken_until: float = 0.0
 _circuit_breaker_reason: str = ""
 
 
-def get_gemini_callable(api_key: Optional[str] = None, model_name: str = "gemini-3.8-flash"):
+def get_gemini_callable(api_key: Optional[str] = None, model_name: str = "gemini-3.5-flash"):
     """
     Returns a callable `(system_prompt: str, user_prompt: str) -> str`
     powered by the Google GenAI SDK.
@@ -46,7 +46,7 @@ def get_gemini_callable(api_key: Optional[str] = None, model_name: str = "gemini
         def gemini_call(system_prompt: str, user_prompt: str) -> str:
             global _circuit_broken_until, _circuit_breaker_reason
 
-            candidate_models = [model_name, "gemini-2.5-flash"]
+            candidate_models = [model_name, "gemini-flash-latest"]
             last_err = None
 
             for m in candidate_models:
