@@ -41,7 +41,7 @@ class AnalystLimits:
     )
 
     # Sensitive patterns
-    sensitive_column_pattern: str = r"(?i)(email|phone|ssn|social_security|password|passwd|secret|token|credit_card|card_num|card_number|address|dob|birth_date)"
+    sensitive_column_pattern: str = r"(?i)(name|first_name|last_name|full_name|email|phone|ssn|social_security|password|passwd|secret|token|credit_card|card_num|card_number|address|dob|birth_date)"
     sensitive_value_patterns: List[str] = field(
         default_factory=lambda: [
             r"^[\w\.-]+@[\w\.-]+\.\w+$",  # email

@@ -280,6 +280,121 @@ EVAL_QUESTIONS: List[EvalQuestion] = [
             reason="Location or zip code columns are not tracked in this dataset.",
         ),
     ),
+    # 9. Additional Multi-Condition & Aggregate Benchmarks
+    EvalQuestion(
+        id="Q21",
+        question="How many trips have distance greater than 5 miles and fare greater than 20 dollars?",
+        category="compound_filter",
+        expected_action="answer",
+        expected_sql="SELECT count(*) FROM data WHERE trip_distance > 5 AND fare_amount > 20;",
+        expected_first_cell=2,
+        canned_llm_response=LLMResponse(
+            action="answer",
+            sql='SELECT count(*) as count FROM data WHERE "trip_distance" > 5 AND "fare_amount" > 20;',
+            explanation="Counts trips exceeding both 5 miles distance and $20 fare.",
+        ),
+    ),
+    EvalQuestion(
+        id="Q22",
+        question="What was the lowest fare amount paid in any trip?",
+        category="aggregation_min",
+        expected_action="answer",
+        expected_sql="SELECT min(fare_amount) FROM data;",
+        expected_first_cell=6.0,
+        canned_llm_response=LLMResponse(
+            action="answer",
+            sql='SELECT min("fare_amount") as min_fare FROM data;',
+            explanation="Computes the minimum fare amount.",
+        ),
+    ),
+    EvalQuestion(
+        id="Q23",
+        question="How many trips were paid with Credit payment type?",
+        category="filter_string",
+        expected_action="answer",
+        expected_sql="SELECT count(*) FROM data WHERE payment_type = 'Credit';",
+        expected_first_cell=3,
+        canned_llm_response=LLMResponse(
+            action="answer",
+            sql='SELECT count(*) as count FROM data WHERE "payment_type" = \'Credit\';',
+            explanation="Counts trips paid with Credit.",
+        ),
+    ),
+    EvalQuestion(
+        id="Q24",
+        question="What is the total revenue and average distance for each payment type?",
+        category="multi_aggregation_groupby",
+        expected_action="answer",
+        expected_sql="SELECT payment_type, sum(fare_amount) as total_rev, avg(trip_distance) as avg_dist FROM data GROUP BY payment_type;",
+        canned_llm_response=LLMResponse(
+            action="answer",
+            sql='SELECT "payment_type", sum("fare_amount") as total_revenue, avg("trip_distance") as avg_dist FROM data GROUP BY "payment_type";',
+            explanation="Calculates total revenue and average distance grouped by payment type.",
+        ),
+    ),
+    EvalQuestion(
+        id="Q25",
+        question="What is the pickup time of the latest trip recorded?",
+        category="datetime_max",
+        expected_action="answer",
+        expected_sql="SELECT max(pickup_datetime) FROM data;",
+        canned_llm_response=LLMResponse(
+            action="answer",
+            sql='SELECT max("pickup_datetime") as latest_pickup FROM data;',
+            explanation="Finds the most recent pickup datetime.",
+        ),
+    ),
+    # 10. Additional Clarification & Honesty Benchmarks
+    EvalQuestion(
+        id="Q26",
+        question="Show me the most interesting records.",
+        category="ambiguity",
+        expected_action="clarify",
+        canned_llm_response=LLMResponse(
+            action="clarify",
+            clarification_question="What criteria defines an interesting record (e.g. longest distance, highest fare, or disputed payments)?",
+        ),
+    ),
+    EvalQuestion(
+        id="Q27",
+        question="Which trips are considered cheap?",
+        category="ambiguity",
+        expected_action="clarify",
+        canned_llm_response=LLMResponse(
+            action="clarify",
+            clarification_question="What fare threshold or percentile should be used to classify a trip as cheap?",
+        ),
+    ),
+    EvalQuestion(
+        id="Q28",
+        question="Show me the top performance metrics.",
+        category="ambiguity",
+        expected_action="clarify",
+        canned_llm_response=LLMResponse(
+            action="clarify",
+            clarification_question="Which specific metric would you like to see (e.g. total trips, revenue, or average fare)?",
+        ),
+    ),
+    EvalQuestion(
+        id="Q29",
+        question="What is the passenger's home street address and zip code?",
+        category="unanswerable_column",
+        expected_action="cannot_answer",
+        canned_llm_response=LLMResponse(
+            action="cannot_answer",
+            reason="Passenger addresses and zip codes are not tracked in the dataset.",
+        ),
+    ),
+    EvalQuestion(
+        id="Q30",
+        question="What is the airline flight number connected to each trip?",
+        category="unanswerable_concept",
+        expected_action="cannot_answer",
+        canned_llm_response=LLMResponse(
+            action="cannot_answer",
+            reason="The dataset does not contain airline or flight data.",
+        ),
+    ),
 ]
 
 
@@ -317,20 +432,25 @@ def run_evaluation_suite(
 
     for item in EVAL_QUESTIONS:
         t0 = time.perf_counter()
-        res = ask(
-            job_id=job_id,
-            question=item.question,
-            llm_client=llm_client,
-            limits=limits,
-            storage=storage,
-            rate_limiter=rate_limiter,
-            profile_data=profile_data,
-        )
-        elapsed = time.perf_counter() - t0
-        latencies.append(elapsed)
-
         passed = False
         notes = []
+        try:
+            res = ask(
+                job_id=job_id,
+                question=item.question,
+                llm_client=llm_client,
+                limits=limits,
+                storage=storage,
+                rate_limiter=rate_limiter,
+                profile_data=profile_data,
+            )
+        except Exception as err:
+            logger.warning("Error running question %s: %s", item.id, err)
+            res = AnalystResult(status="error", question=item.question, message=str(err))
+            notes.append(f"Exception during ask: {err}")
+
+        elapsed = time.perf_counter() - t0
+        latencies.append(elapsed)
 
         if item.expected_action == "answer":
             if res.status == "ok" and res.result is not None:
@@ -384,6 +504,9 @@ def run_evaluation_suite(
             "elapsed_seconds": round(elapsed, 3),
             "notes": "; ".join(notes),
         })
+
+        if not isinstance(llm_client, FakeLLMClient):
+            time.sleep(0.5)
 
     total = len(EVAL_QUESTIONS)
     pass_rate = (total_passed / total) * 100.0 if total > 0 else 0.0

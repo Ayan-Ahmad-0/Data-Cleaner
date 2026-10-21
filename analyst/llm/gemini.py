@@ -85,7 +85,7 @@ class GeminiClient(LLMClient):
         config = types.GenerateContentConfig(**config_kwargs)
 
         candidate_models: List[str] = [self.model_name]
-        for fallback in ["gemini-3.5-flash", "gemini-flash-latest"]:
+        for fallback in ["gemini-3-flash-preview", "gemini-3.5-flash", "gemini-3.5-flash-lite", "gemini-flash-latest"]:
             if fallback not in candidate_models:
                 candidate_models.append(fallback)
 
@@ -93,79 +93,88 @@ class GeminiClient(LLMClient):
         timeout_sec = max(10.0, self.limits.llm_timeout_seconds)
 
         for model in candidate_models:
-            try:
-                def _invoke(m=model):
-                    return self._client.models.generate_content(
-                        model=m,
-                        contents=user_prompt,
-                        config=config,
-                    )
-
-                # Submit to shared executor with deadline
-                future = _SHARED_EXECUTOR.submit(_invoke)
-                response = future.result(timeout=timeout_sec)
-
-                # Inspect candidates and finish reason
-                if not response.candidates:
-                    raise LLMBadResponseError("Gemini returned no candidates.")
-
-                candidate = response.candidates[0]
-                finish_reason = getattr(candidate, "finish_reason", None)
-                finish_str = str(finish_reason).upper() if finish_reason else ""
-                if "SAFETY" in finish_str or "BLOCKED" in finish_str:
-                    logger.warning("Gemini response was blocked by safety filters.")
-                    raise LLMBadResponseError("The response was filtered by safety policies.")
-
-                raw_text = response.text
-                if not raw_text or not raw_text.strip():
-                    raise LLMBadResponseError("Gemini returned an empty response.")
-
-                # Validate with Pydantic
+            for attempt in range(2):
                 try:
-                    return response_model.model_validate_json(raw_text)
-                except ValidationError as ve:
-                    # Attempt cleanup if fenced inside markdown ```json ... ```
-                    cleaned = raw_text.strip()
-                    if cleaned.startswith("```json"):
-                        cleaned = cleaned[7:]
-                    elif cleaned.startswith("```"):
-                        cleaned = cleaned[3:]
-                    if cleaned.endswith("```"):
-                        cleaned = cleaned[:-3]
-                    cleaned = cleaned.strip()
+                    def _invoke(m=model):
+                        return self._client.models.generate_content(
+                            model=m,
+                            contents=user_prompt,
+                            config=config,
+                        )
 
+                    # Submit to shared executor with deadline
+                    future = _SHARED_EXECUTOR.submit(_invoke)
+                    response = future.result(timeout=timeout_sec)
+
+                    # Inspect candidates and finish reason
+                    if not response.candidates:
+                        raise LLMBadResponseError("Gemini returned no candidates.")
+
+                    candidate = response.candidates[0]
+                    finish_reason = getattr(candidate, "finish_reason", None)
+                    finish_str = str(finish_reason).upper() if finish_reason else ""
+                    if "SAFETY" in finish_str or "BLOCKED" in finish_str:
+                        logger.warning("Gemini response was blocked by safety filters.")
+                        raise LLMBadResponseError("The response was filtered by safety policies.")
+
+                    raw_text = response.text
+                    if not raw_text or not raw_text.strip():
+                        raise LLMBadResponseError("Gemini returned an empty response.")
+
+                    # Validate with Pydantic
                     try:
-                        return response_model.model_validate_json(cleaned)
-                    except Exception:
-                        logger.error("Failed to parse structured JSON from Gemini: %s", ve)
-                        raise LLMBadResponseError(f"Malformed JSON returned by model: {ve}")
+                        return response_model.model_validate_json(raw_text)
+                    except ValidationError as ve:
+                        # Attempt cleanup if fenced inside markdown ```json ... ```
+                        cleaned = raw_text.strip()
+                        if cleaned.startswith("```json"):
+                            cleaned = cleaned[7:]
+                        elif cleaned.startswith("```"):
+                            cleaned = cleaned[3:]
+                        if cleaned.endswith("```"):
+                            cleaned = cleaned[:-3]
+                        cleaned = cleaned.strip()
 
-            except concurrent.futures.TimeoutError:
-                logger.warning("Gemini model %s timed out after %.1fs. Trying next candidate...", model, timeout_sec)
-                last_exception = LLMTimeoutError(timeout_sec)
-                continue
+                        try:
+                            return response_model.model_validate_json(cleaned)
+                        except Exception:
+                            logger.error("Failed to parse structured JSON from Gemini: %s", ve)
+                            raise LLMBadResponseError(f"Malformed JSON returned by model: {ve}")
 
-            except Exception as e:
-                err_text = str(e).lower()
-                last_exception = e
+                except concurrent.futures.TimeoutError:
+                    if attempt == 0:
+                        time.sleep(1.0)
+                        continue
+                    logger.warning("Gemini model %s timed out after %.1fs. Trying next candidate...", model, timeout_sec)
+                    last_exception = LLMTimeoutError(timeout_sec)
+                    break
 
-                # Rate limit / Quota check
-                if "429" in err_text or "resource_exhausted" in err_text or "quota" in err_text:
-                    logger.warning("Gemini API rate limit or quota exceeded: %s", e)
-                    raise RateLimitError(
-                        "Ask AI rate limit reached. Please wait a moment or try again later.",
-                        technical_detail=f"Gemini quota/429: {e}",
-                    )
+                except Exception as e:
+                    err_text = str(e).lower()
+                    last_exception = e
 
-                if "401" in err_text or "403" in err_text or "unauthenticated" in err_text or "permission" in err_text:
-                    logger.error("Gemini API key authentication error: %s", e)
-                    raise LLMUnavailableError(
-                        "AI service authentication failed. Please check server configuration.",
-                        technical_detail="401/403 Auth error",
-                    )
+                    # Rate limit / Quota check
+                    if "429" in err_text or "resource_exhausted" in err_text or "quota" in err_text:
+                        logger.warning("Gemini API rate limit or quota exceeded: %s", e)
+                        raise RateLimitError(
+                            "Ask AI rate limit reached. Please wait a moment or try again later.",
+                            technical_detail=f"Gemini quota/429: {e}",
+                        )
 
-                logger.warning("Gemini model %s failed (%s). Trying next candidate...", model, e)
-                continue
+                    if "401" in err_text or "403" in err_text or "unauthenticated" in err_text or "permission" in err_text:
+                        logger.error("Gemini API key authentication error: %s", e)
+                        raise LLMUnavailableError(
+                            "AI service authentication failed. Please check server configuration.",
+                            technical_detail="401/403 Auth error",
+                        )
+
+                    if ("503" in err_text or "unavailable" in err_text or "504" in err_text or "deadline" in err_text) and attempt == 0:
+                        logger.warning("Transient error on %s (%s). Retrying in 1.5s...", model, e)
+                        time.sleep(1.5)
+                        continue
+
+                    logger.warning("Gemini model %s failed (%s). Trying next candidate...", model, e)
+                    break
 
         if isinstance(last_exception, (LLMTimeoutError, RateLimitError, LLMBadResponseError, LLMUnavailableError)):
             raise last_exception
