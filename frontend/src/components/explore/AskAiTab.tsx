@@ -9,7 +9,7 @@ import { Button } from '../ui/Button';
 import { Callout } from '../ui/Callout';
 import { Tag } from '../ui/Tag';
 import {
-  Sparkles,
+  Bot,
   Download,
   Clock,
   Copy,
@@ -199,10 +199,9 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold uppercase tracking-wider text-[var(--accent)] flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5" />
+              <Bot className="w-3.5 h-3.5" />
               Ask a Question in English
             </span>
-            <Tag variant="neutral" font="mono">DuckDB SQL Synthesis</Tag>
           </div>
           <span className="text-xs text-[var(--text-muted)] font-mono">
             {question.length} / 1,000 chars
@@ -261,7 +260,7 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
               <Button
                 size="sm"
                 variant="primary"
-                leftIcon={<Sparkles className="w-3.5 h-3.5" />}
+                leftIcon={<Bot className="w-3.5 h-3.5" />}
                 onClick={handleAsk}
                 disabled={isAsking || !question.trim()}
               >
@@ -602,7 +601,7 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
         {!isAsking && !result && !error && (
           <div className="py-12 text-center space-y-3">
             <div className="w-12 h-12 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto">
-              <Sparkles className="w-6 h-6" />
+              <Bot className="w-6 h-6" />
             </div>
             <div className="space-y-1">
               <h3 className="text-sm font-semibold text-[var(--text-primary)]">

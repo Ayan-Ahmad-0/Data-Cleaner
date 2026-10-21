@@ -19,6 +19,7 @@ import {
   FileUp,
   Loader2,
   RefreshCw,
+  Bot,
   Terminal,
   UploadCloud,
 } from 'lucide-react';
@@ -62,7 +63,17 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
   const [uploadProgressPct, setUploadProgressPct] = useState<number>(0);
   const [convertResult, setConvertResult] = useState<ConvertResultResponse | null>(null);
   const [showExplore, setShowExplore] = useState<boolean>(false);
+  const [exploreInitialMode, setExploreInitialMode] = useState<'sql' | 'ask_ai'>('ask_ai');
   const [error, setError] = useState<{ message: string; recovery: string } | null>(null);
+
+  const handleOpenExplore = (mode: 'sql' | 'ask_ai') => {
+    if (showExplore && exploreInitialMode === mode) {
+      setShowExplore(false);
+    } else {
+      setExploreInitialMode(mode);
+      setShowExplore(true);
+    }
+  };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -550,50 +561,110 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
               )}
 
               {/* Download & Handoff Actions */}
-              <div className="flex flex-wrap items-center justify-between gap-4 pt-2 hairline-t">
-                <div className="flex items-center gap-3">
-                  <a
-                    href={getConvertDownloadUrl(convertResult.convert_id)}
-                    download
-                    className="inline-block"
-                  >
-                    <Button
-                      variant="primary"
-                      size="lg"
-                      leftIcon={<Download className="w-5 h-5" />}
+              <div className="flex flex-col gap-4 pt-3 hairline-t">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <a
+                      href={getConvertDownloadUrl(convertResult.convert_id)}
+                      download
+                      className="inline-block"
                     >
-                      Download Converted File ({convertResult.result.target_format.toUpperCase()})
+                      <Button
+                        variant="primary"
+                        size="lg"
+                        leftIcon={<Download className="w-5 h-5" />}
+                      >
+                        Download Converted File ({convertResult.result.target_format.toUpperCase()})
+                      </Button>
+                    </a>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-3">
+                    {/* Ask AI Analyst Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenExplore('ask_ai')}
+                      className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] text-sm font-semibold transition-all cursor-pointer select-none ${
+                        showExplore && exploreInitialMode === 'ask_ai'
+                          ? 'bg-[var(--accent)] text-white shadow-xs'
+                          : 'bg-[var(--bg-surface)] hairline-border text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                      }`}
+                      title="Ask questions in plain English with AI"
+                    >
+                      <Bot className="w-4 h-4" />
+                      <span>Ask AI Analyst</span>
+                    </button>
+
+                    {/* SQL Query Box Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleOpenExplore('sql')}
+                      className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] text-sm font-semibold transition-all cursor-pointer select-none ${
+                        showExplore && exploreInitialMode === 'sql'
+                          ? 'bg-[var(--accent)] text-white shadow-xs'
+                          : 'bg-[var(--bg-surface)] hairline-border text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                      }`}
+                      title="Query converted data with SQL"
+                    >
+                      <Terminal className="w-4 h-4" />
+                      <span>SQL Query Box</span>
+                    </button>
+
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={() => onHandoffToClean(convertResult.convert_id, selectedFile.name)}
+                      rightIcon={<ArrowRight className="w-4 h-4" />}
+                    >
+                      Clean this file too
                     </Button>
-                  </a>
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    leftIcon={<Terminal className="w-5 h-5" />}
-                    onClick={() => setShowExplore(!showExplore)}
-                  >
-                    {showExplore ? 'Hide SQL Box' : 'Explore Data (SQL)'}
-                  </Button>
-
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    onClick={() => onHandoffToClean(convertResult.convert_id, selectedFile.name)}
-                    rightIcon={<ArrowRight className="w-4 h-4" />}
-                  >
-                    Clean this file too
-                  </Button>
-                </div>
+                {/* Exploration Spotlight Card when closed */}
+                {!showExplore && (
+                  <div className="p-4 rounded-[var(--radius-md)] bg-[var(--bg-surface)] hairline-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-md bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center shrink-0 hairline-border">
+                        <Bot className="w-4 h-4" />
+                      </div>
+                      <div className="text-xs">
+                        <span className="font-semibold text-[var(--text-primary)] block">
+                          Inspect or query this converted dataset
+                        </span>
+                        <p className="text-[var(--text-secondary)] mt-0.5">
+                          Ask questions in natural English with our AI Analyst or write custom SQL queries directly against the dataset.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenExplore('ask_ai')}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors cursor-pointer"
+                      >
+                        Ask AI Analyst
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleOpenExplore('sql')}
+                        className="text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] hairline-border text-[var(--text-primary)] transition-colors cursor-pointer"
+                      >
+                        SQL Query Box
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
-              {/* Conditional SQL Query Box for converted dataset */}
+              {/* Conditional SQL / AI Query Box for converted dataset */}
               {showExplore && (
                 <div className="pt-4 hairline-t">
                   <SqlQueryBox
                     jobId={convertResult.convert_id}
                     datasetName={selectedFile?.name || 'converted dataset'}
+                    initialMode={exploreInitialMode}
+                    onClose={() => setShowExplore(false)}
                   />
                 </div>
               )}

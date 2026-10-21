@@ -2,8 +2,8 @@ import React, { useMemo, useState } from 'react';
 import { getDownloadUrl, type JobDetailResponse } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
-import { formatNumber, formatPercent, pluralize } from '../lib/format';
-import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal } from 'lucide-react';
+import { formatNumber, formatPercent } from '../lib/format';
+import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal, Bot } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
 
 interface ResultsPageProps {
@@ -13,7 +13,7 @@ interface ResultsPageProps {
 }
 
 export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, onGoToUpload }) => {
-  const [activeTab, setActiveTab] = useState<'summary' | 'explore'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'ask_ai' | 'sql'>('summary');
   const verification = jobData?.verification;
   const comparison = verification?.comparison;
   const jobId = jobData?.job?.id || '';
@@ -91,8 +91,8 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
   return (
     <div className="container-shell py-8 sm:py-12 space-y-8">
       {/* Editorial Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 hairline-b">
-        <div>
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-6 pb-6 hairline-b">
+        <div className="space-y-3">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
               Cleaning & Verification Results
@@ -111,23 +111,45 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
               </Tag>
             )}
           </div>
-          <p className="text-sm sm:text-base text-[var(--text-secondary)] mt-1.5 max-w-2xl leading-relaxed">
-            {comparison
-              ? `${formatNumber(comparison.rows_after)} rows reconciled. ${pluralize(rowsDropped, 'row was', 'rows were')} removed (${formatPercent(pctDropped)}).`
-              : 'Cleaning process completed.'}{' '}
-            {passedTestsCount} verification {passedTestsCount === 1 ? 'test' : 'tests'} passed
-            {failedTestsCount > 0 ? `, ${failedTestsCount} flagged for review.` : '.'}
-          </p>
+
+          {/* Structured Compact Stat Bar */}
+          <div className="inline-flex flex-wrap items-center gap-x-6 gap-y-2 py-2 px-3.5 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] hairline-border text-xs sm:text-sm">
+            <div className="flex items-center gap-2">
+              <span className="text-[var(--text-muted)] font-medium">Reconciled Rows:</span>
+              <span className="font-mono font-semibold text-[var(--text-primary)]">
+                {comparison ? formatNumber(comparison.rows_after) : '—'}
+              </span>
+            </div>
+            <span className="text-[var(--border-hairline)] hidden sm:inline">|</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[var(--text-muted)] font-medium">Removed:</span>
+              <span className="font-mono font-semibold text-[var(--text-primary)]">
+                {comparison ? `${formatNumber(rowsDropped)} (${formatPercent(pctDropped)})` : '—'}
+              </span>
+            </div>
+            <span className="text-[var(--border-hairline)] hidden sm:inline">|</span>
+            <div className="flex items-center gap-2">
+              <span className="text-[var(--text-muted)] font-medium">Tests Passed:</span>
+              <span className="font-mono font-semibold text-[var(--text-primary)]">
+                {passedTestsCount} / {sortedTests.length}
+                {failedTestsCount > 0 && (
+                  <span className="text-[var(--status-warn)] font-medium ml-1">
+                    ({failedTestsCount} Flagged)
+                  </span>
+                )}
+              </span>
+            </div>
+          </div>
         </div>
 
-        {/* Multi-Format Download Control */}
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Top-Right Utility / Export Actions Only */}
+        <div className="flex flex-wrap items-center gap-3 shrink-0">
           {/* Format Selector Dropdown */}
           <div className="relative inline-flex items-center">
             <select
               value={selectedFormat}
               onChange={(e) => setSelectedFormat(e.target.value)}
-              className="appearance-none bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-sm font-medium pl-3.5 pr-9 py-2.5 h-12 rounded-[var(--radius-sm)] hairline-border cursor-pointer transition-colors outline-none focus:border-[var(--accent)]"
+              className="appearance-none bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] text-sm font-medium pl-3.5 pr-9 py-2.5 h-11 rounded-[var(--radius-sm)] hairline-border cursor-pointer transition-colors outline-none focus:border-[var(--accent)]"
             >
               {exportOptions.map((opt) => (
                 <option
@@ -147,42 +169,32 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
           <a
             href={getDownloadUrl(jobId, selectedFormat)}
             download
-            className="inline-flex items-center justify-center border hairline-border rounded-[var(--radius-sm)] transition-colors cursor-pointer select-none font-sans whitespace-nowrap text-base px-6 py-2.5 gap-2.5 h-12 font-semibold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-transparent shadow-none"
+            className="inline-flex items-center justify-center border hairline-border rounded-[var(--radius-sm)] transition-colors cursor-pointer select-none font-sans whitespace-nowrap text-sm px-5 py-2.5 gap-2 h-11 font-semibold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white border-transparent shadow-none"
           >
-            <Download className="w-5 h-5 shrink-0" />
+            <Download className="w-4 h-4 shrink-0" />
             <span>Download {isFlattened ? 'Flattened ' : ''}{activeOption?.format_id ? activeOption.format_id.toUpperCase() : 'DATA'}</span>
           </a>
-
-          {/* Explore in SQL Action */}
-          <Button
-            size="md"
-            variant={activeTab === 'explore' ? 'primary' : 'secondary'}
-            onClick={() => setActiveTab(activeTab === 'explore' ? 'summary' : 'explore')}
-            leftIcon={<Terminal className="w-4 h-4" />}
-          >
-            {activeTab === 'explore' ? 'Quality Summary' : 'Explore Data (SQL)'}
-          </Button>
 
           {/* Audit JSON Report */}
           <a
             href={getDownloadUrl(jobId, 'report')}
             download
-            className="inline-flex items-center justify-center border hairline-border rounded-[var(--radius-sm)] transition-colors cursor-pointer select-none font-sans whitespace-nowrap text-base px-6 py-2.5 gap-2.5 h-12 font-semibold bg-transparent hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border-transparent"
+            className="inline-flex items-center justify-center border hairline-border rounded-[var(--radius-sm)] transition-colors cursor-pointer select-none font-sans whitespace-nowrap text-sm px-4 py-2.5 gap-2 h-11 font-medium bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           >
-            <FileText className="w-5 h-5 shrink-0" />
+            <FileText className="w-4 h-4 shrink-0" />
             <span>Audit JSON</span>
           </a>
         </div>
       </div>
 
       {/* Primary Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b hairline-b border-[var(--border-hairline)] pb-0">
+      <div className="flex items-center gap-1 border-b hairline-b border-[var(--border-hairline)] pb-0">
         <button
           type="button"
           onClick={() => setActiveTab('summary')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
             activeTab === 'summary'
-              ? 'border-[var(--accent)] text-[var(--accent)]'
+              ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
@@ -192,21 +204,35 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
 
         <button
           type="button"
-          onClick={() => setActiveTab('explore')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold border-b-2 transition-all cursor-pointer ${
-            activeTab === 'explore'
-              ? 'border-[var(--accent)] text-[var(--accent)]'
+          onClick={() => setActiveTab('ask_ai')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
+            activeTab === 'ask_ai'
+              ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
+              : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+          }`}
+        >
+          <Bot className="w-4 h-4" />
+          <span>Ask AI Analyst</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab('sql')}
+          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
+            activeTab === 'sql'
+              ? 'border-[var(--text-primary)] text-[var(--text-primary)] font-semibold'
               : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
           }`}
         >
           <Terminal className="w-4 h-4" />
-          <span>Explore Data (SQL)</span>
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded hairline-border bg-[var(--bg-subtle)]">DuckDB</span>
+          <span>SQL Query Box</span>
         </button>
       </div>
 
-      {activeTab === 'explore' ? (
-        <SqlQueryBox jobId={jobId} datasetName={jobData.job.filename} />
+      {activeTab === 'ask_ai' ? (
+        <SqlQueryBox jobId={jobId} datasetName={jobData.job.filename} initialMode="ask_ai" />
+      ) : activeTab === 'sql' ? (
+        <SqlQueryBox jobId={jobId} datasetName={jobData.job.filename} initialMode="sql" />
       ) : (
         <>
       {/* Export Format Properties & Notices Table */}
