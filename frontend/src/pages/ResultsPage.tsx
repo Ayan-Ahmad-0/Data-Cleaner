@@ -98,17 +98,9 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
             <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
               Cleaning & Verification Results
             </h1>
-            <Tag variant={failedTestsCount > 0 ? 'warn' : 'ok'} font="mono">
-              {failedTestsCount > 0 ? 'Completed with Warnings' : 'Verified Clean'}
-            </Tag>
             {isFlattened && (
               <Tag variant="neutral" font="mono">
                 Flattened Schema
-              </Tag>
-            )}
-            {detectedFormat && (
-              <Tag variant="neutral" font="mono">
-                Source: {detectedFormat.toUpperCase()}
               </Tag>
             )}
           </div>
@@ -225,45 +217,55 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
         </div>
       </div>
 
-      {/* Primary Navigation Tabs */}
-      <div className="flex items-center gap-2 border-b border-zinc-800 pb-0">
+      {/* Prominent Elevated Mode / Tab Switcher Bar */}
+      <div className="p-1.5 rounded-xl bg-zinc-900 border border-zinc-800 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xs">
         <button
           type="button"
           onClick={() => setActiveTab('summary')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-lg text-sm transition-all cursor-pointer ${
             activeTab === 'summary'
-              ? 'border-[#FF4B3E] text-white font-semibold'
-              : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              ? 'bg-[#141517] text-white font-semibold shadow-xs border border-zinc-750'
+              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/60 font-medium'
           }`}
         >
-          <FileCheck className="w-4 h-4 text-[#FF4B3E]" />
+          <FileCheck className={`w-4 h-4 ${activeTab === 'summary' ? 'text-[#FF4B3E]' : 'text-zinc-500'}`} />
           <span>Verification & Quality Summary</span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('ask_ai')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-lg text-sm transition-all cursor-pointer ${
             activeTab === 'ask_ai'
-              ? 'border-[#FF4B3E] text-white font-semibold'
-              : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              ? 'bg-[#141517] text-white font-semibold shadow-xs border border-zinc-750 ring-1 ring-[#FF4B3E]/40'
+              : 'text-zinc-200 hover:text-white hover:bg-zinc-850/60 font-medium'
           }`}
         >
-          <Bot className="w-4 h-4 text-[#FF4B3E]" />
-          <span>Ask AI Analyst</span>
+          <div className={`w-6 h-6 rounded-md flex items-center justify-center ${activeTab === 'ask_ai' ? 'bg-[#FF4B3E] text-white' : 'bg-[#FF4B3E]/15 text-[#FF4B3E]'}`}>
+            <Bot className="w-3.5 h-3.5" />
+          </div>
+          <span className="font-semibold text-white">Ask AI Analyst</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-[#FF4B3E] text-white shadow-2xs">
+            Interactive
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab('sql')}
-          className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors cursor-pointer ${
+          className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-lg text-sm transition-all cursor-pointer ${
             activeTab === 'sql'
-              ? 'border-[#FF4B3E] text-white font-semibold'
-              : 'border-transparent text-zinc-400 hover:text-zinc-200'
+              ? 'bg-[#141517] text-white font-semibold shadow-xs border border-zinc-750 ring-1 ring-[#FF4B3E]/40'
+              : 'text-zinc-200 hover:text-white hover:bg-zinc-850/60 font-medium'
           }`}
         >
-          <Terminal className="w-4 h-4 text-[#FF4B3E]" />
-          <span>SQL Query Box</span>
+          <div className={`w-6 h-6 rounded-md flex items-center justify-center ${activeTab === 'sql' ? 'bg-[#FF4B3E] text-white' : 'bg-zinc-800 text-zinc-300'}`}>
+            <Terminal className="w-3.5 h-3.5" />
+          </div>
+          <span className="font-semibold text-white">SQL Query Box</span>
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wide bg-zinc-800 text-zinc-300 border border-zinc-700">
+            DuckDB
+          </span>
         </button>
       </div>
 

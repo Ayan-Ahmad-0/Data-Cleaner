@@ -270,44 +270,50 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
     <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-lg)] shadow-xs overflow-hidden flex flex-col min-h-[640px]">
       {/* Header bar */}
       <div className="hairline-b bg-[var(--bg-subtle)] flex flex-col">
-        {/* Top bar: Dataset metadata, active table toggle, actions */}
-        <div className="px-5 py-3 hairline-b flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] hairline-border text-[var(--text-secondary)] flex items-center justify-center shrink-0">
+        {/* Top bar: Dataset metadata, centered active table toggle, actions */}
+        <div className="px-5 py-3 hairline-b grid grid-cols-1 sm:grid-cols-3 items-center gap-3">
+          {/* Left: Metadata */}
+          <div className="flex items-center gap-3 min-w-0 justify-self-start">
+            <div className="w-8 h-8 rounded-lg bg-zinc-850 border border-zinc-750 text-[#FF4B3E] flex items-center justify-center shrink-0">
               {exploreMode === 'ask_ai' ? <Bot className="w-4 h-4" /> : <Terminal className="w-4 h-4" />}
             </div>
             <div className="min-w-0">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-                  Dataset Explorer
-                </span>
-                <span className="font-mono text-xs font-medium text-[var(--text-primary)] truncate max-w-[200px] sm:max-w-xs" title={datasetName}>
-                  {datasetName}
-                </span>
-
-                {schema?.tables_available && schema.tables_available.length > 1 && (
-                  <div className="inline-flex rounded-md shadow-xs ml-1">
-                    {schema.tables_available.map((t) => (
-                      <button
-                        key={t}
-                        type="button"
-                        onClick={() => handleTableChange(t)}
-                        className={`px-2.5 py-0.5 text-xs font-medium first:rounded-l-md last:rounded-r-md hairline-border transition-colors cursor-pointer ${
-                          activeTable === t
-                            ? 'bg-[var(--accent)] text-white font-semibold shadow-xs'
-                            : 'bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
-                        }`}
-                      >
-                        {getTableLabel(t)}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block font-mono">
+                Dataset Explorer
+              </span>
+              <span className="font-mono text-xs font-semibold text-white truncate max-w-[150px] sm:max-w-[200px] block" title={datasetName}>
+                {datasetName}
+              </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Center: Previous Compact Size Cleaned Data vs Original Data Switcher */}
+          <div className="flex items-center justify-center justify-self-center">
+            {schema?.tables_available && schema.tables_available.length > 1 && (
+              <div className="inline-flex items-center p-0.5 rounded-lg bg-zinc-950 border border-zinc-800 shadow-2xs">
+                {schema.tables_available.map((t) => {
+                  const isActive = activeTable === t;
+                  return (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => handleTableChange(t)}
+                      className={`px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[#FF4B3E] text-white font-semibold shadow-xs'
+                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/60'
+                      }`}
+                    >
+                      {getTableLabel(t)}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Right: Actions */}
+          <div className="flex items-center gap-2 justify-self-end">
             {exploreMode === 'sql' && history.length > 0 && (
               <Button
                 size="sm"
@@ -344,33 +350,48 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
           </div>
         </div>
 
-        {/* Mode Switcher Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 bg-[var(--bg-subtle)] p-2 gap-2">
+        {/* Prominent Mode Switcher Bar */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 bg-zinc-950/80 p-2.5 gap-2.5 border-b border-zinc-800">
           {/* Option 1: Ask AI Analyst */}
           <button
             type="button"
             onClick={() => setExploreMode('ask_ai')}
-            className={`flex items-start gap-3 p-3 text-left rounded-[var(--radius-md)] transition-colors cursor-pointer hairline-border ${
+            className={`flex items-center gap-3.5 p-3.5 text-left rounded-xl transition-all cursor-pointer border ${
               exploreMode === 'ask_ai'
-                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--border-strong)] shadow-xs'
-                : 'bg-transparent hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border-transparent'
+                ? 'bg-[#141517] border-[#FF4B3E]/60 ring-1 ring-[#FF4B3E]/30 text-white shadow-sm'
+                : 'bg-zinc-900/50 hover:bg-zinc-850/80 border-zinc-800 hover:border-zinc-700 text-zinc-300'
             }`}
           >
-            <div className={`w-8 h-8 rounded-[var(--radius-sm)] flex items-center justify-center shrink-0 transition-colors ${
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               exploreMode === 'ask_ai'
-                ? 'bg-[var(--accent)] text-white'
-                : 'bg-[var(--bg-surface)] hairline-border text-[var(--text-muted)]'
+                ? 'bg-[#FF4B3E] text-white shadow-xs'
+                : 'bg-zinc-800 border border-zinc-750 text-zinc-400'
             }`}>
-              <Bot className="w-4 h-4" />
+              <Bot className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className={`text-sm font-semibold ${exploreMode === 'ask_ai' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                  Ask AI Analyst
-                </span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm sm:text-base font-semibold ${exploreMode === 'ask_ai' ? 'text-white' : 'text-zinc-200'}`}>
+                    Ask AI Analyst
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-[#FF4B3E] text-white">
+                    AI
+                  </span>
+                </div>
+                {exploreMode === 'ask_ai' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF4B3E]/15 text-[#FF4B3E] border border-[#FF4B3E]/30 uppercase tracking-wide">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF4B3E] inline-block" />
+                    Active
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-medium text-zinc-500 hover:text-zinc-300">
+                    Switch ↵
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-1">
-                Ask questions in plain English · AI writes, validates & executes SQL
+              <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">
+                Ask in plain English · AI writes, validates & executes SQL
               </p>
             </div>
           </button>
@@ -379,27 +400,42 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
           <button
             type="button"
             onClick={() => setExploreMode('sql')}
-            className={`flex items-start gap-3 p-3 text-left rounded-[var(--radius-md)] transition-colors cursor-pointer hairline-border ${
+            className={`flex items-center gap-3.5 p-3.5 text-left rounded-xl transition-all cursor-pointer border ${
               exploreMode === 'sql'
-                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--border-strong)] shadow-xs'
-                : 'bg-transparent hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] border-transparent'
+                ? 'bg-[#141517] border-[#FF4B3E]/60 ring-1 ring-[#FF4B3E]/30 text-white shadow-sm'
+                : 'bg-zinc-900/50 hover:bg-zinc-850/80 border-zinc-800 hover:border-zinc-700 text-zinc-300'
             }`}
           >
-            <div className={`w-8 h-8 rounded-[var(--radius-sm)] flex items-center justify-center shrink-0 transition-colors ${
+            <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               exploreMode === 'sql'
-                ? 'bg-[var(--accent)] text-white'
-                : 'bg-[var(--bg-surface)] hairline-border text-[var(--text-muted)]'
+                ? 'bg-[#FF4B3E] text-white shadow-xs'
+                : 'bg-zinc-800 border border-zinc-750 text-zinc-400'
             }`}>
-              <Terminal className="w-4 h-4" />
+              <Terminal className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <span className={`text-sm font-semibold ${exploreMode === 'sql' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
-                  SQL Query Box
-                </span>
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className={`text-sm sm:text-base font-semibold ${exploreMode === 'sql' ? 'text-white' : 'text-zinc-200'}`}>
+                    SQL Query Box
+                  </span>
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide bg-zinc-800 text-zinc-300 border border-zinc-700">
+                    DuckDB
+                  </span>
+                </div>
+                {exploreMode === 'sql' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-[#FF4B3E]/15 text-[#FF4B3E] border border-[#FF4B3E]/30 uppercase tracking-wide">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#FF4B3E] inline-block" />
+                    Active
+                  </span>
+                ) : (
+                  <span className="text-[11px] font-medium text-zinc-500 hover:text-zinc-300">
+                    Switch ↵
+                  </span>
+                )}
               </div>
-              <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-1">
-                Direct read-only SQL editor · Quick starter chips & Parquet/CSV export
+              <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">
+                Direct read-only SQL editor · Starter templates & CSV export
               </p>
             </div>
           </button>
