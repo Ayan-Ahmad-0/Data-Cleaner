@@ -1,7 +1,6 @@
 import React, { useRef, useState } from 'react';
 import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
-import { Tag } from '../components/ui/Tag';
 import { formatBytes, formatNumber } from '../lib/format';
 import {
   detectFormat,
@@ -192,7 +191,6 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
           <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
             Convert Format Only
           </h1>
-          <Tag variant="neutral" font="mono">No Cleaning / Pure Streaming</Tag>
         </div>
         <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
           High-performance, in-process format conversion powered by DuckDB.

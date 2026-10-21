@@ -151,8 +151,6 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
             <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
               Query Your Data
             </h1>
-            <Tag variant="accent" font="mono">Instant Explore</Tag>
-            <Tag variant="neutral" font="mono">No Cleaning Required</Tag>
           </div>
           <p className="text-sm text-[var(--text-secondary)] max-w-2xl leading-relaxed">
             Upload any dataset to ask questions in natural English with our AI Analyst or write sandboxed DuckDB SQL queries directly against your data without cleaning or converting.

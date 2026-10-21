@@ -189,9 +189,6 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
               <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
                 Drag and drop your data file here
               </span>
-              <span className="text-sm text-[var(--text-muted)] block">
-                or click to browse your local computer
-              </span>
             </div>
 
             <div className="pt-2">
