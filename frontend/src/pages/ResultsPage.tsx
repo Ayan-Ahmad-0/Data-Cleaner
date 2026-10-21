@@ -13,7 +13,8 @@ interface ResultsPageProps {
 }
 
 export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, onGoToUpload }) => {
-  const [activeTab, setActiveTab] = useState<'summary' | 'ask_ai' | 'sql'>('summary');
+  const [showExplore, setShowExplore] = useState<boolean>(false);
+  const [exploreInitialMode, setExploreInitialMode] = useState<'ask_ai' | 'sql'>('ask_ai');
   const verification = jobData?.verification;
   const comparison = verification?.comparison;
   const jobId = jobData?.job?.id || '';
@@ -217,64 +218,62 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
         </div>
       </div>
 
-      {/* Prominent Elevated Mode / Tab Switcher Bar */}
-      <div className="p-1.5 rounded-xl bg-zinc-900 border border-zinc-800 flex flex-wrap sm:flex-nowrap gap-1.5 shadow-xs">
-        <button
-          type="button"
-          onClick={() => setActiveTab('summary')}
-          className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-lg text-sm transition-all cursor-pointer ${
-            activeTab === 'summary'
-              ? 'bg-[#141517] text-white font-semibold shadow-xs border border-zinc-750'
-              : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/60 font-medium'
-          }`}
-        >
-          <FileCheck className={`w-4 h-4 ${activeTab === 'summary' ? 'text-[#FF4B3E]' : 'text-zinc-500'}`} />
-          <span>Verification & Quality Summary</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab('ask_ai')}
-          className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-lg text-sm transition-all cursor-pointer ${
-            activeTab === 'ask_ai'
-              ? 'bg-[#141517] text-white font-semibold shadow-xs border border-zinc-750 ring-1 ring-[#FF4B3E]/40'
-              : 'text-zinc-200 hover:text-white hover:bg-zinc-850/60 font-medium'
-          }`}
-        >
-          <div className={`w-6 h-6 rounded-md flex items-center justify-center ${activeTab === 'ask_ai' ? 'bg-[#FF4B3E] text-white' : 'bg-[#FF4B3E]/15 text-[#FF4B3E]'}`}>
-            <Bot className="w-3.5 h-3.5" />
+      {/* Inspect or Query your Data Card */}
+      {!showExplore && (
+        <div className="p-6 rounded-xl bg-zinc-950/60 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-2xs">
+          <div className="flex items-start gap-4">
+            <div className="w-11 h-11 rounded-xl bg-zinc-850 border border-zinc-750 text-[#FF4B3E] flex items-center justify-center shrink-0 mt-0.5">
+              <Bot className="w-5 h-5" />
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base sm:text-lg font-semibold text-white tracking-tight">
+                Inspect or Query your Data
+              </h3>
+              <p className="text-sm text-zinc-400 max-w-xl leading-relaxed">
+                Ask questions in natural English with our AI Analyst or write custom SQL queries directly against your cleaned data.
+              </p>
+            </div>
           </div>
-          <span className="font-semibold text-white">Ask AI Analyst</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide bg-[#FF4B3E] text-white shadow-2xs">
-            Interactive
-          </span>
-        </button>
 
-        <button
-          type="button"
-          onClick={() => setActiveTab('sql')}
-          className={`flex-1 flex items-center justify-center gap-2.5 px-4 py-3 rounded-lg text-sm transition-all cursor-pointer ${
-            activeTab === 'sql'
-              ? 'bg-[#141517] text-white font-semibold shadow-xs border border-zinc-750 ring-1 ring-[#FF4B3E]/40'
-              : 'text-zinc-200 hover:text-white hover:bg-zinc-850/60 font-medium'
-          }`}
-        >
-          <div className={`w-6 h-6 rounded-md flex items-center justify-center ${activeTab === 'sql' ? 'bg-[#FF4B3E] text-white' : 'bg-zinc-800 text-zinc-300'}`}>
-            <Terminal className="w-3.5 h-3.5" />
+          <div className="flex flex-wrap items-center gap-3 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                setExploreInitialMode('ask_ai');
+                setShowExplore(true);
+              }}
+              className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-[#FF4B3E] hover:bg-[#E03E32] text-white shadow-xs transition-all cursor-pointer"
+            >
+              <Bot className="w-4 h-4" />
+              <span>Ask AI Analyst</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setExploreInitialMode('sql');
+                setShowExplore(true);
+              }}
+              className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-zinc-850 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-750 transition-all cursor-pointer"
+            >
+              <Terminal className="w-4 h-4 text-zinc-400" />
+              <span>SQL Query Box</span>
+            </button>
           </div>
-          <span className="font-semibold text-white">SQL Query Box</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wide bg-zinc-800 text-zinc-300 border border-zinc-700">
-            DuckDB
-          </span>
-        </button>
-      </div>
+        </div>
+      )}
 
-      {activeTab === 'ask_ai' ? (
-        <SqlQueryBox jobId={jobId} datasetName={jobData.job.filename} initialMode="ask_ai" />
-      ) : activeTab === 'sql' ? (
-        <SqlQueryBox jobId={jobId} datasetName={jobData.job.filename} initialMode="sql" />
-      ) : (
-        <>
+      {/* Exploration Box when active */}
+      {showExplore && (
+        <div className="pt-2">
+          <SqlQueryBox
+            jobId={jobId}
+            datasetName={jobData.job.filename}
+            initialMode={exploreInitialMode}
+            onClose={() => setShowExplore(false)}
+          />
+        </div>
+      )}
           {/* Export Format Properties & Notices Table */}
           {(activeOption?.note || (conversionReport?.warnings && conversionReport.warnings.length > 0)) && (
             <div className="bg-[#141517] border border-zinc-800 rounded-xl overflow-hidden shadow-2xs">
@@ -471,8 +470,6 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
               </table>
             </div>
           </div>
-        </>
-      )}
 
       {/* Clean Another File Card */}
       <div className="bg-[#141517] border border-zinc-800 rounded-xl p-6 sm:p-7 flex flex-col sm:flex-row sm:items-center justify-between gap-5 shadow-2xs">
