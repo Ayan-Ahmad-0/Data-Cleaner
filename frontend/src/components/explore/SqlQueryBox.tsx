@@ -23,7 +23,9 @@ import {
   Terminal,
   Shield,
   X,
+  Sparkles,
 } from 'lucide-react';
+import { AskAiTab } from './AskAiTab';
 
 interface SqlQueryBoxProps {
   jobId: string;
@@ -43,6 +45,7 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
   datasetName = 'cleaned dataset',
   onClose,
 }) => {
+  const [exploreMode, setExploreMode] = useState<'sql' | 'ask_ai'>('ask_ai');
   const [schema, setSchema] = useState<ExploreSchemaResponse | null>(null);
   const [schemaLoading, setSchemaLoading] = useState<boolean>(true);
   const [schemaFilter, setSchemaFilter] = useState<string>('');
@@ -246,14 +249,43 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
       <div className="px-5 py-4 hairline-b bg-[var(--bg-subtle)] flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
           <div className="w-8 h-8 rounded-[var(--radius-sm)] bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center">
-            <Terminal className="w-4.5 h-4.5" />
+            {exploreMode === 'ask_ai' ? <Sparkles className="w-4.5 h-4.5" /> : <Terminal className="w-4.5 h-4.5" />}
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
-                Explore Data (SQL)
+                {exploreMode === 'ask_ai' ? 'Ask AI Analyst' : 'Explore Data (SQL)'}
               </h2>
               <Tag variant="neutral" font="mono">Sandboxed DuckDB</Tag>
+
+              {/* Mode Switcher Tabs */}
+              <div className="inline-flex rounded-md shadow-xs ml-3 p-0.5 bg-[var(--bg-hover)] hairline-border">
+                <button
+                  type="button"
+                  onClick={() => setExploreMode('ask_ai')}
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded transition-colors cursor-pointer ${
+                    exploreMode === 'ask_ai'
+                      ? 'bg-[var(--accent)] text-white font-semibold shadow-xs'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Sparkles className="w-3 h-3" />
+                  <span>Ask AI</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExploreMode('sql')}
+                  className={`flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded transition-colors cursor-pointer ${
+                    exploreMode === 'sql'
+                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs'
+                      : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
+                  }`}
+                >
+                  <Terminal className="w-3 h-3" />
+                  <span>SQL Box</span>
+                </button>
+              </div>
+
               {schema?.tables_available && schema.tables_available.length > 1 && (
                 <div className="inline-flex rounded-md shadow-xs ml-2">
                   {schema.tables_available.map((t) => (
@@ -274,13 +306,19 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
               )}
             </div>
             <p className="text-xs text-[var(--text-secondary)]">
-              Query <span className="font-mono text-[var(--text-primary)]">{datasetName}</span> directly using standard read-only SQL statements.
+              {exploreMode === 'ask_ai'
+                ? `Ask questions in plain English about `
+                : `Query `}
+              <span className="font-mono text-[var(--text-primary)]">{datasetName}</span>
+              {exploreMode === 'ask_ai'
+                ? ` to synthesize verified DuckDB SQL.`
+                : ` directly using standard read-only SQL statements.`}
             </p>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          {history.length > 0 && (
+          {exploreMode === 'sql' && history.length > 0 && (
             <Button
               size="sm"
               variant="secondary"
@@ -291,21 +329,23 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
             </Button>
           )}
 
-          <Button
-            size="sm"
-            variant="primary"
-            leftIcon={<Play className="w-3.5 h-3.5 fill-current" />}
-            onClick={handleRunQuery}
-            disabled={isRunning || !sql.trim()}
-          >
-            {isRunning ? `Running (${elapsedTimer}s)...` : 'Run Query'}
-          </Button>
+          {exploreMode === 'sql' && (
+            <Button
+              size="sm"
+              variant="primary"
+              leftIcon={<Play className="w-3.5 h-3.5 fill-current" />}
+              onClick={handleRunQuery}
+              disabled={isRunning || !sql.trim()}
+            >
+              {isRunning ? `Running (${elapsedTimer}s)...` : 'Run Query'}
+            </Button>
+          )}
 
           {onClose && (
             <button
               type="button"
               onClick={onClose}
-              title="Close query box"
+              title="Close explore view"
               className="p-1.5 rounded-[var(--radius-xs)] hover:bg-[var(--bg-hover)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
             >
               <X className="w-4 h-4" />
@@ -380,9 +420,23 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
           </div>
         </aside>
 
-        {/* Right: SQL Editor & Results (9 cols) */}
-        <main className="lg:col-span-8 xl:col-span-9 flex flex-col min-w-0 bg-[var(--bg-surface)]">
-          {/* Editor Header Toolbar */}
+        {/* Right: Workspace (9 cols) */}
+        {exploreMode === 'ask_ai' ? (
+          <main className="lg:col-span-8 xl:col-span-9 flex flex-col min-w-0 bg-[var(--bg-surface)]">
+            <AskAiTab
+              jobId={jobId}
+              datasetName={datasetName}
+              schema={schema}
+              activeTable={activeTable}
+              onOpenInSqlBox={(generatedSql) => {
+                setSql(generatedSql);
+                setExploreMode('sql');
+              }}
+            />
+          </main>
+        ) : (
+          <main className="lg:col-span-8 xl:col-span-9 flex flex-col min-w-0 bg-[var(--bg-surface)]">
+            {/* Editor Header Toolbar */}
           <div className="px-4 py-2 hairline-b bg-[var(--bg-subtle)] flex flex-wrap items-center justify-between gap-2 text-xs">
             <div className="flex items-center gap-2">
               <span className="text-[var(--text-muted)] font-mono">SQL Editor</span>
@@ -607,7 +661,8 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
             </div>
           </div>
         </main>
-      </div>
+      )}
+    </div>
 
       {/* Footer bar with privacy line */}
       <div className="px-5 py-2.5 hairline-t bg-[var(--bg-subtle)] flex items-center justify-between text-[11px] text-[var(--text-muted)]">

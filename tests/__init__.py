@@ -1,1 +1,1 @@
-"""Unit and integration tests for data cleaner."""
+"""Test package for data-cleaner."""

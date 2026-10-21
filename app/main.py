@@ -480,6 +480,45 @@ def export_explore_query(job_id: str, payload: ExploreExportRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class AnalystAskRequest(BaseModel):
+    question: str = Field(..., description="Natural language question to ask the data analyst")
+    user_id: Optional[str] = Field("anonymous", description="User identifier for rate limiting")
+
+
+@app.post("/api/explore/{job_id}/ask")
+def ask_ai_analyst(job_id: str, payload: AnalystAskRequest):
+    """Ask a natural-language question about the dataset and receive SQL + results."""
+    from analyst import (
+        ask,
+        RateLimitError as AnalystRateLimitError,
+        QuestionNotAllowedError,
+        LLMUnavailableError,
+        LLMTimeoutError,
+        LLMBadResponseError,
+    )
+    try:
+        res = ask(
+            job_id=job_id,
+            user_id=payload.user_id or "anonymous",
+            question=payload.question,
+            storage=storage,
+        )
+        return res.to_dict()
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except AnalystRateLimitError as e:
+        raise HTTPException(status_code=429, detail=e.user_message)
+    except QuestionNotAllowedError as e:
+        raise HTTPException(status_code=400, detail=e.user_message)
+    except (LLMUnavailableError, LLMTimeoutError) as e:
+        raise HTTPException(status_code=503, detail=e.user_message)
+    except LLMBadResponseError as e:
+        raise HTTPException(status_code=502, detail=e.user_message)
+    except Exception as e:
+        logger.exception("AI Analyst failed for job %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail="Failed to process question with AI Analyst.")
+
+
 # Mount built frontend assets if present
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if frontend_dist.exists():

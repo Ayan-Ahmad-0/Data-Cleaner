@@ -89,3 +89,47 @@ def test_api_export_explore_query(test_client):
     assert len(content) == 4
     assert content[0] == "city,population"
     assert content[1] == "Tokyo,13960000"
+
+
+def test_api_ask_ai_analyst(test_client, monkeypatch):
+    """Verify POST /api/explore/{job_id}/ask routes question to analyst service and returns structured result."""
+    from analyst.llm.fake import FakeLLMClient
+    from analyst.schemas import LLMResponse
+    import analyst.service
+
+    fake_client = FakeLLMClient(
+        canned_responses=[
+            LLMResponse(
+                action="answer",
+                sql="SELECT city, population FROM data ORDER BY population DESC LIMIT 1;",
+                explanation="Finds the city with the largest population.",
+            )
+        ]
+    )
+
+    # Patch default client creation to return fake_client
+    monkeypatch.setattr(analyst.service, "GeminiClient", lambda **kwargs: fake_client)
+
+    client, job_id = test_client
+    resp = client.post(
+        f"/api/explore/{job_id}/ask",
+        json={"question": "Which city has the highest population?"},
+    )
+
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["status"] == "ok"
+    assert data["sql"] == "SELECT city, population FROM data ORDER BY population DESC LIMIT 1;"
+    assert data["result"]["row_count_returned"] == 1
+    assert data["result"]["rows"][0][0] == "Shanghai"
+
+
+def test_api_ask_ai_analyst_validation_error(test_client):
+    """Verify empty question yields 400 Bad Request."""
+    client, job_id = test_client
+    resp = client.post(
+        f"/api/explore/{job_id}/ask",
+        json={"question": "   "},
+    )
+    assert resp.status_code == 400
+    assert "empty" in resp.json()["detail"].lower()

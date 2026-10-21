@@ -264,3 +264,33 @@ export async function exportExploreQuery(jobId: string, sql: string): Promise<vo
   document.body.removeChild(a);
 }
 
+export interface AnalystAskResult {
+  status: 'ok' | 'needs_clarification' | 'cannot_answer' | 'error';
+  question: string;
+  sql?: string | null;
+  explanation?: string | null;
+  assumptions: string[];
+  clarification_question?: string | null;
+  result?: ExploreQueryResult | null;
+  retried: boolean;
+  message?: string | null;
+  elapsed_seconds: number;
+}
+
+export async function askAiAnalyst(
+  jobId: string,
+  question: string,
+  userId: string = 'anonymous',
+): Promise<AnalystAskResult> {
+  const res = await fetch(`${API_BASE}/api/explore/${jobId}/ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ question, user_id: userId }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Ask AI request failed.');
+  }
+  return res.json();
+}
+
