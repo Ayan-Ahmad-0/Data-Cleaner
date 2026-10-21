@@ -5,11 +5,13 @@ import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
 import { Toggle } from '../components/ui/Toggle';
 import { formatBytes } from '../lib/format';
-import { CheckCircle2, FileUp, Shield, UploadCloud } from 'lucide-react';
+import { CheckCircle2, FileUp, Shield, UploadCloud, Zap } from 'lucide-react';
 
 interface UploadPageProps {
   onUploadComplete: (jobData: { id: string; name: string; size: string; rowCount: string }) => void;
 }
+
+const SUPPORTED_FORMATS = ['CSV', 'TSV', 'Parquet', 'JSON', 'NDJSON', 'XLSX', 'SQLite'];
 
 export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   const [dragActive, setDragActive] = useState(false);
@@ -108,15 +110,14 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   };
 
   return (
-    <div className="container-shell pt-6 sm:pt-8 pb-12 sm:pb-16 max-w-3xl mx-auto space-y-8">
-      {/* Title */}
+    <div className="container-shell pt-6 sm:pt-8 pb-12 sm:pb-16 max-w-3xl mx-auto space-y-7">
+      {/* Hero Title */}
       <div className="text-left space-y-2">
         <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
           Clean Your Data
         </h1>
-        <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-          Upload any dataset in CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) format.
-          DuckDB will standardize it into canonical columnar format, profile the data, identify quality anomalies, and draft a verified cleaning recipe.
+        <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl">
+          Upload raw datasets up to 10 GB. Fast out-of-core profiling and AI-assisted cleaning rules.
         </p>
       </div>
 
@@ -135,17 +136,22 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         </Callout>
       )}
 
-      {/* Dropzone Container */}
+      {/* Dropzone Container — Tactile, with radial glow */}
       <div
         onDragEnter={handleDrag}
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        className={`bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-10 sm:p-14 text-center transition-all border-dashed ${
+        className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dashed ${
           dragActive
-            ? 'border-[var(--accent)] bg-[var(--accent-subtle)]'
+            ? 'drag-active border-[var(--accent)] bg-[var(--accent-subtle)]'
             : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
         }`}
+        style={{
+          backgroundImage: dragActive
+            ? undefined
+            : 'radial-gradient(ellipse at center top, var(--bg-subtle) 0%, transparent 70%)',
+        }}
       >
         <input
           ref={fileInputRef}
@@ -158,7 +164,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
 
         {uploading ? (
           <div className="space-y-5 py-4">
-            <div className="w-14 h-14 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto border border-[var(--accent-border)]">
               <UploadCloud className="w-7 h-7 animate-pulse" />
             </div>
 
@@ -171,21 +177,22 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
               </span>
             </div>
 
-            <div className="w-64 mx-auto bg-[var(--bg-subtle)] h-2 rounded-full overflow-hidden hairline-border">
+            <div className="w-64 mx-auto bg-[var(--bg-subtle)] h-1.5 rounded-full overflow-hidden border border-[var(--border-hairline)]">
               <div
-                className="bg-[var(--accent)] h-full transition-all duration-200"
+                className="bg-[var(--accent)] h-full transition-all duration-200 rounded-full"
                 style={{ width: `${uploadProgressPct}%` }}
               />
             </div>
           </div>
         ) : (
-          <div className="space-y-5">
-            <div className="w-14 h-14 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto">
+          <div className="space-y-6">
+            {/* Upload icon with subtle background */}
+            <div className="w-16 h-16 rounded-[var(--radius-xl)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto border border-[var(--border-hairline)] shadow-[var(--shadow-card)]">
               <FileUp className="w-7 h-7" />
             </div>
 
             <div className="space-y-1.5">
-              <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
+              <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block tracking-tight">
                 Drag and drop your data file here
               </span>
               <span className="text-sm text-[var(--text-muted)] block">
@@ -193,11 +200,22 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
               </span>
             </div>
 
-            <div className="pt-2">
+            {/* Format Pill Tray */}
+            <div className="flex flex-wrap justify-center gap-2 pt-1">
+              {SUPPORTED_FORMATS.map((fmt) => (
+                <span key={fmt} className="format-pill">
+                  {fmt}
+                </span>
+              ))}
+            </div>
+
+            {/* Primary CTA */}
+            <div className="pt-1">
               <Button
                 variant="primary"
                 size="lg"
                 onClick={() => fileInputRef.current?.click()}
+                className="shadow-[0_2px_12px_rgba(253,66,51,0.18)] hover:shadow-[0_4px_20px_rgba(253,66,51,0.25)] transition-shadow duration-200"
               >
                 Select Dataset File
               </Button>
@@ -206,75 +224,72 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         )}
       </div>
 
-      {/* Ingestion & Engine Configuration Table */}
-      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
-        <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
-          <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
-            Ingestion & Privacy Configurations
-          </span>
-        </div>
+      {/* Privacy & Engine Settings — Clean Toggle Cards */}
+      <div className="space-y-3">
+        <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] block">
+          Privacy & Processing
+        </span>
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs sm:text-sm">
-            <thead>
-              <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
-                <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[36%] sm:w-[32%]">
-                  Configuration / Feature
-                </th>
-                <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider">
-                  Description & Operational Scope
-                </th>
-                <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[20%] sm:w-[18%]">
-                  Setting
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-hairline)]">
-              <tr className="hover:bg-[var(--bg-hover)] transition-colors">
-                <td className="py-3 px-4 align-middle">
-                  <div className="flex items-center gap-2">
-                    <Shield className="w-4 h-4 text-[var(--accent)] shrink-0" />
-                    <span className="font-semibold text-xs sm:text-sm text-[var(--text-primary)]">
-                      Privacy Mode
-                    </span>
-                  </div>
-                  <span className="font-mono text-xs text-[var(--text-muted)] block mt-0.5">
-                    scope: raw-value-redaction
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Privacy Mode Card */}
+          <div
+            className={`rounded-[var(--radius-lg)] border p-4 sm:p-5 transition-all duration-200 cursor-pointer ${
+              privacyMode
+                ? 'bg-[var(--accent-subtle)] border-[var(--accent-border)]'
+                : 'bg-[var(--bg-surface)] border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
+            }`}
+            onClick={() => !uploading && setPrivacyMode(!privacyMode)}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3 min-w-0">
+                <div className={`w-9 h-9 rounded-[var(--radius-md)] flex items-center justify-center shrink-0 transition-colors ${
+                  privacyMode
+                    ? 'bg-[var(--accent)] text-white'
+                    : 'bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-hairline)]'
+                }`}>
+                  <Shield className="w-4 h-4" />
+                </div>
+                <div className="space-y-1 min-w-0">
+                  <span className="text-sm font-semibold text-[var(--text-primary)] block">
+                    Privacy Mode
                   </span>
-                </td>
-                <td className="py-3 px-4 align-middle text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                  Your data stays private. The AI only sees column names and summary statistics, never your actual values.
-                </td>
-                <td className="py-3 px-4 align-middle text-right whitespace-nowrap">
-                  <Toggle
-                    checked={privacyMode}
-                    onChange={setPrivacyMode}
-                    disabled={uploading}
-                  />
-                </td>
-              </tr>
+                  <span className="text-xs text-[var(--text-muted)] leading-relaxed block">
+                    Your data stays private. The AI only sees column names and summary statistics, never your actual values.
+                  </span>
+                </div>
+              </div>
+              <div className="shrink-0 pt-0.5">
+                <Toggle
+                  checked={privacyMode}
+                  onChange={setPrivacyMode}
+                  disabled={uploading}
+                />
+              </div>
+            </div>
+          </div>
 
-              <tr className="hover:bg-[var(--bg-hover)] transition-colors">
-                <td className="py-3 px-4 align-middle">
-                  <span className="font-semibold text-xs sm:text-sm text-[var(--text-primary)] block">
+          {/* Execution Isolation Card */}
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 sm:p-5">
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-[var(--radius-md)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center shrink-0 border border-[var(--border-hairline)]">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div className="space-y-1 min-w-0 flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-semibold text-[var(--text-primary)]">
                     Execution Isolation
                   </span>
-                  <span className="font-mono text-xs text-[var(--text-muted)] block mt-0.5">
-                    engine: duckdb-vectorized
-                  </span>
-                </td>
-                <td className="py-3 px-4 align-middle text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                  Processing runs in-process with memory spillover to disk. Zero external storage or database mutation.
-                </td>
-                <td className="py-3 px-4 align-middle text-right whitespace-nowrap">
-                  <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm">
+                  <div className="inline-flex items-center gap-1.5 font-medium text-xs shrink-0">
                     <CheckCircle2 className="w-3.5 h-3.5 text-[var(--status-ok)] shrink-0" />
                     <span className="text-[var(--status-ok)]">Protected</span>
                   </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+                </div>
+                <span className="text-xs text-[var(--text-muted)] leading-relaxed block">
+                  Processing runs in-process with memory spillover to disk. Zero external storage or database mutation.
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

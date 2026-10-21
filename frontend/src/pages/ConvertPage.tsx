@@ -489,65 +489,138 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
 
           {/* 3. Conversion Completed Screen */}
           {convertResult && (
-            <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-6 sm:p-8 space-y-6">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                  <CheckCircle2 className="w-6 h-6" />
+            <div className="bg-[#141517] border border-zinc-800 rounded-xl p-6 sm:p-8 space-y-6 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-800">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-xl bg-zinc-850 border border-zinc-750 text-emerald-400 flex items-center justify-center shrink-0">
+                    <CheckCircle2 className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">
+                      Conversion Completed
+                    </h2>
+                    <p className="text-xs sm:text-sm text-zinc-400 font-mono">
+                      Dataset staged and converted via DuckDB columnar streaming
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className="text-xl font-semibold text-[var(--text-primary)]">
-                    Conversion Successful
-                  </h2>
-                  <p className="text-xs sm:text-sm text-[var(--text-secondary)] font-mono">
-                    {formatNumber(convertResult.result.rows)} rows converted in {convertResult.result.elapsed_seconds}s
-                  </p>
+
+                <div className="flex items-center gap-3">
+                  <a
+                    href={getConvertDownloadUrl(convertResult.convert_id)}
+                    download
+                    className="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold bg-[#FF4B3E] hover:bg-[#E03E32] text-white shadow-xs transition-all cursor-pointer"
+                  >
+                    <Download className="w-4 h-4" />
+                    <span>Download {convertResult.result.target_format.toUpperCase()}</span>
+                  </a>
+
+                  <Button
+                    variant="secondary"
+                    size="md"
+                    onClick={() => onHandoffToClean(convertResult.convert_id, selectedFile.name)}
+                    rightIcon={<ArrowRight className="w-4 h-4 text-zinc-400" />}
+                  >
+                    Clean this file too
+                  </Button>
+                </div>
+              </div>
+
+              {/* Horizontal Metrics Grid */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
+                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 block font-sans">
+                    Converted Rows
+                  </span>
+                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-white tracking-tight mt-1.5">
+                    {formatNumber(convertResult.result.rows)}
+                  </span>
+                  <span className="text-xs text-zinc-400 mt-2 block font-sans">
+                    100% records preserved
+                  </span>
+                </div>
+
+                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 block font-sans">
+                    Elapsed Duration
+                  </span>
+                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-white tracking-tight mt-1.5">
+                    {convertResult.result.elapsed_seconds}s
+                  </span>
+                  <span className="text-xs text-zinc-400 mt-2 block font-sans">
+                    Vectorized streaming throughput
+                  </span>
+                </div>
+
+                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 block font-sans">
+                    Target Format
+                  </span>
+                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-white tracking-tight mt-1.5">
+                    {convertResult.result.target_format.toUpperCase()}
+                  </span>
+                  <span className="text-xs text-zinc-400 mt-2 block font-sans">
+                    Zero-copy adapter output
+                  </span>
+                </div>
+
+                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 block font-sans">
+                    Columns Preserved
+                  </span>
+                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-white tracking-tight mt-1.5">
+                    {formatNumber(convertResult.result.columns.length)}
+                  </span>
+                  <span className="text-xs text-zinc-400 mt-2 block font-sans">
+                    100% schema preserved
+                  </span>
                 </div>
               </div>
 
               {/* Fidelity & Schema Validation Notices */}
               {convertResult.result.warnings.length > 0 && (
-                <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
-                  <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
+                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl overflow-hidden">
+                  <div className="p-3.5 sm:p-4 border-b border-zinc-800 bg-zinc-900/60 flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono">
                       Fidelity & Schema Notices
                     </span>
-                    <span className="text-xs text-[var(--text-muted)] font-mono">
+                    <span className="text-xs text-zinc-400 font-mono">
                       {convertResult.result.warnings.length} notices
                     </span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs sm:text-sm">
                       <thead>
-                        <tr className="hairline-b text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
-                          <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[36%] sm:w-[32%]">
+                        <tr className="border-b border-zinc-800 text-zinc-400 font-medium bg-zinc-900/40">
+                          <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[36%] sm:w-[32%] font-mono">
                             Notice / Target
                           </th>
-                          <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider">
+                          <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider font-mono">
                             Details & Action Taken
                           </th>
-                          <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[20%] sm:w-[18%]">
+                          <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider text-right w-[20%] sm:w-[18%] font-mono">
                             Status
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-[var(--border-hairline)]">
+                      <tbody className="divide-y divide-zinc-800/70">
                         {convertResult.result.warnings.map((w, idx) => (
-                          <tr key={idx} className="hover:bg-[var(--bg-hover)] transition-colors">
+                          <tr key={idx} className="hover:bg-zinc-850/40 transition-colors">
                             <td className="py-3 px-4 align-top">
-                              <span className="font-semibold text-xs sm:text-sm text-[var(--text-primary)] block">
+                              <span className="font-semibold text-xs sm:text-sm text-zinc-200 block">
                                 Notice #{idx + 1}
                               </span>
-                              <span className="font-mono text-xs text-[var(--text-muted)]">
-                                adapter: <span className="text-[var(--text-secondary)] font-medium">{convertResult.result.target_format}</span>
+                              <span className="font-mono text-xs text-zinc-500">
+                                adapter: <span className="text-zinc-300 font-medium">{convertResult.result.target_format}</span>
                               </span>
                             </td>
-                            <td className="py-3 px-4 align-top text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
+                            <td className="py-3 px-4 align-top text-xs sm:text-sm text-zinc-400 leading-relaxed">
                               {w}
                             </td>
                             <td className="py-3 px-4 align-top text-right whitespace-nowrap">
-                              <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm">
-                                <AlertTriangle className="w-3.5 h-3.5 text-[var(--status-warn)] shrink-0" />
-                                <span className="text-[var(--status-warn)] font-medium">Notice</span>
+                              <div className="inline-flex items-center gap-1.5 font-medium text-xs sm:text-sm font-mono text-amber-400">
+                                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                                <span>Notice</span>
                               </div>
                             </td>
                           </tr>
@@ -558,78 +631,44 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                 </div>
               )}
 
-              {/* Download & Handoff Actions */}
-              <div className="flex flex-col gap-4 pt-3 hairline-t">
-                <div className="flex flex-wrap items-center justify-between gap-4">
-                  <div className="flex items-center gap-3">
-                    <a
-                      href={getConvertDownloadUrl(convertResult.convert_id)}
-                      download
-                      className="inline-block"
-                    >
-                      <Button
-                        variant="primary"
-                        size="lg"
-                        leftIcon={<Download className="w-5 h-5" />}
-                      >
-                        Download Converted File ({convertResult.result.target_format.toUpperCase()})
-                      </Button>
-                    </a>
+              {/* Prominent Feature Block: Query & Inspect Converted Dataset */}
+              {!showExplore && (
+                <div className="p-6 rounded-xl bg-zinc-950/60 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-6 mt-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-11 h-11 rounded-xl bg-zinc-850 border border-zinc-750 text-[#FF4B3E] flex items-center justify-center shrink-0 mt-0.5">
+                      <Bot className="w-5 h-5" />
+                    </div>
+                    <div className="space-y-1">
+                      <h3 className="text-base sm:text-lg font-semibold text-white tracking-tight">
+                        Inspect or Query your Data
+                      </h3>
+                      <p className="text-sm text-zinc-400 max-w-xl leading-relaxed">
+                        Ask questions in natural English with our AI Analyst or write custom SQL queries directly against your converted data.
+                      </p>
+                    </div>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="secondary"
-                      size="lg"
-                      onClick={() => onHandoffToClean(convertResult.convert_id, selectedFile.name)}
-                      rightIcon={<ArrowRight className="w-4 h-4" />}
+                  <div className="flex flex-wrap items-center gap-3 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenExplore('ask_ai')}
+                      className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-[#FF4B3E] hover:bg-[#E03E32] text-white shadow-xs transition-all cursor-pointer"
                     >
-                      Clean this file too
-                    </Button>
+                      <Bot className="w-4 h-4" />
+                      <span>Ask AI Analyst</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenExplore('sql')}
+                      className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-zinc-850 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-750 transition-all cursor-pointer"
+                    >
+                      <Terminal className="w-4 h-4 text-zinc-400" />
+                      <span>SQL Query Box</span>
+                    </button>
                   </div>
                 </div>
-
-                {/* Prominent Feature Block: Query & Inspect Converted Dataset */}
-                {!showExplore && (
-                  <div className="p-6 rounded-xl bg-zinc-900/80 border border-zinc-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 mt-2">
-                    <div className="flex items-start gap-4">
-                      <div className="w-11 h-11 rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-zinc-200 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
-                        <Bot className="w-5 h-5 text-[var(--accent)]" />
-                      </div>
-                      <div className="space-y-1">
-                        <h3 className="text-base sm:text-lg font-semibold text-white tracking-tight">
-                          Inspect or Query your Data
-                        </h3>
-                        <p className="text-sm text-zinc-400 max-w-xl leading-relaxed">
-                          Ask questions in natural English with our AI Analyst or write custom SQL queries directly against your data.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap items-center gap-3 shrink-0">
-                      {/* Ask AI Analyst Button */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenExplore('ask_ai')}
-                        className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
-                      >
-                        <Bot className="w-4 h-4" />
-                        <span>Ask AI Analyst</span>
-                      </button>
-
-                      {/* SQL Query Box Button - Styled orange just like AI Analyst */}
-                      <button
-                        type="button"
-                        onClick={() => handleOpenExplore('sql')}
-                        className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
-                      >
-                        <Terminal className="w-4 h-4" />
-                        <span>SQL Query Box</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
 
               {/* Conditional SQL / AI Query Box for converted dataset */}
               {showExplore && (

@@ -176,12 +176,12 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
   return (
     <div className="container-shell py-8 sm:py-12 space-y-8">
       {/* Editorial Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 hairline-b">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
             Data Quality Assessment
           </h1>
-          <p className="text-sm sm:text-base text-[var(--text-secondary)] mt-1.5 max-w-2xl leading-relaxed">
+          <p className="text-sm sm:text-base text-zinc-400 mt-1.5 max-w-2xl leading-relaxed">
             {verdictText}
           </p>
         </div>
@@ -202,14 +202,14 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
         </Button>
       </div>
 
-      {/* Summary Strip (Dividers, not boxes) */}
+      {/* Summary Strip (Horizontal Metrics Grid) */}
       <SummaryStrip metrics={summaryMetrics} />
 
       {/* Formatted AI Quality Report */}
       {jobData?.report_markdown && (
-        <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] p-6 sm:p-8 space-y-4">
-          <div className="flex items-center justify-between pb-3.5 hairline-b">
-            <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
+        <div className="bg-[#141517] border border-zinc-800 rounded-xl p-6 sm:p-8 space-y-4 shadow-2xs">
+          <div className="flex items-center justify-between pb-3.5 border-b border-zinc-800">
+            <h2 className="text-base sm:text-lg font-semibold text-white tracking-tight">
               AI Data Quality Report
             </h2>
             <Tag variant="neutral" font="mono">Generated from Statistical Profile</Tag>
@@ -220,11 +220,11 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
       )}
 
       {/* Column Inspector Table */}
-      <div className="bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-md)] overflow-hidden">
+      <div className="bg-[#141517] border border-zinc-800 rounded-xl overflow-hidden shadow-2xs">
         {/* Table Controls (Search & Filter) */}
-        <div className="p-4 sm:p-5 hairline-b flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 bg-[var(--bg-surface)]">
+        <div className="p-4 sm:p-5 border-b border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3.5 bg-zinc-900/60">
           <div className="flex items-center gap-2.5">
-            <h2 className="text-base sm:text-lg font-semibold text-[var(--text-primary)]">
+            <h2 className="text-base sm:text-lg font-semibold text-white tracking-tight">
               Column Profiler Breakdown
             </h2>
             <Tag variant="neutral" font="mono">
@@ -235,13 +235,13 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
           <div className="flex items-center gap-3">
             {/* Search filter */}
             <div className="relative">
-              <Search className="w-4 h-4 text-[var(--text-muted)] absolute left-3 top-2.5" />
+              <Search className="w-4 h-4 text-zinc-500 absolute left-3 top-2.5" />
               <input
                 type="text"
                 placeholder="Search column..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9 pr-3.5 py-1.5 text-sm font-sans rounded-[var(--radius-xs)] border hairline-border bg-[var(--bg-surface)] text-[var(--text-primary)] placeholder-[var(--text-placeholder)] focus:outline-none focus:border-[var(--accent)]"
+                className="pl-9 pr-3.5 py-1.5 text-sm font-sans rounded-lg border border-zinc-800 bg-[#141517] text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-[#FF4B3E]"
               />
             </div>
 
@@ -470,12 +470,12 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
       </Disclosure>
 
       {/* Bottom Step Progression Banner */}
-      <div className="pt-6 hairline-t flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[var(--bg-surface)] p-6 rounded-[var(--radius-md)] hairline-border">
+      <div className="pt-6 border-t border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#141517] p-6 rounded-xl border border-zinc-800 shadow-2xs">
         <div>
-          <span className="font-semibold text-[var(--text-primary)] block text-base sm:text-lg">
+          <span className="font-semibold text-white block text-base sm:text-lg tracking-tight">
             Finished Reviewing Assessment?
           </span>
-          <span className="text-xs sm:text-sm text-[var(--text-secondary)]">
+          <span className="text-xs sm:text-sm text-zinc-400">
             Proceed to Step 3 to review transformation rules, resolve ambiguities, and approve execution.
           </span>
         </div>

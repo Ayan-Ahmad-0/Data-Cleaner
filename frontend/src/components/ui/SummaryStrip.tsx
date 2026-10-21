@@ -14,33 +14,27 @@ export interface SummaryStripProps {
 
 export const SummaryStrip: React.FC<SummaryStripProps> = ({ metrics, className = '' }) => {
   return (
-    <div
-      className={`w-full bg-[var(--bg-surface)] hairline-border rounded-[var(--radius-sm)] flex flex-wrap divide-y sm:divide-y-0 sm:divide-x divide-[var(--border-hairline)] ${className}`}
-    >
-      {metrics.map((metric, idx) => {
-        const valueColor = {
-          normal: 'text-[var(--text-primary)]',
-          ok: 'text-[var(--status-ok)]',
-          warn: 'text-[var(--status-warn)]',
-          danger: 'text-[var(--status-danger)]',
-        }[metric.status || 'normal'];
-
-        return (
-          <div key={idx} className="flex-1 min-w-[150px] px-5 py-4">
-            <span className="text-sm font-medium text-[var(--text-muted)] block font-sans">
+    <div className={`grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 w-full ${className}`}>
+      {metrics.map((metric, idx) => (
+        <div
+          key={idx}
+          className="bg-[#141517] border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between hover:border-zinc-700/60 transition-colors"
+        >
+          <div className="space-y-1.5">
+            <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 block font-sans">
               {metric.label}
             </span>
-            <span className={`text-xl sm:text-2xl font-semibold font-mono block mt-1 ${valueColor}`}>
+            <span className="text-2xl sm:text-3xl font-semibold font-mono block text-white tracking-tight">
               {metric.value}
             </span>
-            {metric.subtext && (
-              <span className="text-xs text-[var(--text-muted)] block mt-1 leading-tight font-sans">
-                {metric.subtext}
-              </span>
-            )}
           </div>
-        );
-      })}
+          {metric.subtext && (
+            <span className="text-xs text-zinc-400 mt-2 block font-sans">
+              {metric.subtext}
+            </span>
+          )}
+        </div>
+      ))}
     </div>
   );
 };
