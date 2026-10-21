@@ -189,7 +189,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
       <div className="space-y-1.5 pb-4 hairline-b">
         <div className="flex items-center gap-2.5">
           <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
-            Convert Format Only
+            Convert Data Format
           </h1>
         </div>
         <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">

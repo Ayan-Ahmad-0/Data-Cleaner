@@ -3,7 +3,6 @@ import { uploadDataset } from '../lib/api';
 import { MAX_FILE_SIZE_BYTES } from '../config';
 import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
-import { Tag } from '../components/ui/Tag';
 import { Toggle } from '../components/ui/Toggle';
 import { formatBytes } from '../lib/format';
 import { CheckCircle2, FileUp, Shield, UploadCloud } from 'lucide-react';
@@ -113,7 +112,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
       {/* Title */}
       <div className="text-left space-y-2">
         <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
-          Upload Raw Dataset
+          Clean Your Data
         </h1>
         <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
           Upload any dataset in CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) format.
@@ -189,6 +188,9 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
               <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
                 Drag and drop your data file here
               </span>
+              <span className="text-sm text-[var(--text-muted)] block">
+                CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
+              </span>
             </div>
 
             <div className="pt-2">
@@ -200,14 +202,6 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
                 Select Dataset File
               </Button>
             </div>
-
-            <div className="flex flex-wrap items-center justify-center gap-2 pt-2 text-xs sm:text-sm text-[var(--text-muted)] font-mono">
-              <Tag variant="neutral">CSV · TSV · Parquet · JSON · Excel · SQLite</Tag>
-              <span>·</span>
-              <Tag variant="neutral">Max Size: 10 GB</Tag>
-              <span>·</span>
-              <Tag variant="neutral">Auto-detection</Tag>
-            </div>
           </div>
         )}
       </div>
@@ -217,9 +211,6 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         <div className="p-3.5 sm:p-4 hairline-b bg-[var(--bg-subtle)] flex items-center justify-between">
           <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">
             Ingestion & Privacy Configurations
-          </span>
-          <span className="text-xs text-[var(--text-muted)] font-mono">
-            Pipeline Settings
           </span>
         </div>
 
@@ -252,7 +243,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
                   </span>
                 </td>
                 <td className="py-3 px-4 align-middle text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
-                  Sample data values and sensitive strings are withheld. The AI recipe generator receives only column names and statistical distributions.
+                  Your data stays private. The AI only sees column names and summary statistics, never your actual values.
                 </td>
                 <td className="py-3 px-4 align-middle text-right whitespace-nowrap">
                   <Toggle
