@@ -296,3 +296,36 @@ export async function askAiAnalyst(
   return res.json();
 }
 
+export interface QueryUploadResult {
+  query_id: string;
+  filename: string;
+  row_count: number;
+  columns: string[];
+  file_size_bytes: number;
+  detected_format?: string;
+}
+
+export async function uploadForQuery(
+  file: File,
+  options?: Record<string, any>,
+): Promise<QueryUploadResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (options) {
+    formData.append('options', JSON.stringify(options));
+  }
+
+  const res = await fetch(`${API_BASE}/api/query/upload`, {
+    method: 'POST',
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to upload dataset for querying.');
+  }
+
+  return res.json();
+}
+
+

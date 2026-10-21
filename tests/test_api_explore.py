@@ -133,3 +133,42 @@ def test_api_ask_ai_analyst_validation_error(test_client):
     )
     assert resp.status_code == 400
     assert "empty" in resp.json()["detail"].lower()
+
+
+def test_api_query_upload(tmp_path):
+    """Verify /api/query/upload allows uploading any file to immediately query with schema and SQL without cleaning."""
+    client = TestClient(app)
+    csv_content = b"product_id,product_name,price\n101,Keyboard,49.99\n102,Mouse,24.50\n103,Monitor,199.00\n"
+
+    files = {"file": ("products.csv", csv_content, "text/csv")}
+    upload_resp = client.post("/api/query/upload", files=files)
+    assert upload_resp.status_code == 200
+    upload_data = upload_resp.json()
+
+    assert "query_id" in upload_data
+    assert upload_data["query_id"].startswith("query_")
+    assert upload_data["filename"] == "products.csv"
+    assert upload_data["row_count"] == 3
+
+    query_id = upload_data["query_id"]
+
+    # 1. Verify schema retrieval on the query-only dataset
+    schema_resp = client.get(f"/api/explore/{query_id}/schema")
+    assert schema_resp.status_code == 200
+    schema_data = schema_resp.json()
+    assert schema_data["table"] == "data"
+    assert schema_data["row_count"] == 3
+    col_names = [c["name"] for c in schema_data["columns"]]
+    assert "product_name" in col_names
+    assert "price" in col_names
+
+    # 2. Verify SQL execution on the query-only dataset
+    query_resp = client.post(
+        f"/api/explore/{query_id}/query",
+        json={"sql": "SELECT product_name, price FROM data WHERE product_id = '101';"},
+    )
+    assert query_resp.status_code == 200
+    query_result = query_resp.json()
+    assert query_result["row_count_returned"] == 1
+    assert query_result["rows"][0][0] == "Keyboard"
+

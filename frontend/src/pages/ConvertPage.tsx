@@ -579,37 +579,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                     </a>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-3">
-                    {/* Ask AI Analyst Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenExplore('ask_ai')}
-                      className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] text-sm font-semibold transition-all cursor-pointer select-none ${
-                        showExplore && exploreInitialMode === 'ask_ai'
-                          ? 'bg-[var(--accent)] text-white shadow-xs'
-                          : 'bg-[var(--bg-surface)] hairline-border text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-                      }`}
-                      title="Ask questions in plain English with AI"
-                    >
-                      <Bot className="w-4 h-4" />
-                      <span>Ask AI Analyst</span>
-                    </button>
-
-                    {/* SQL Query Box Button */}
-                    <button
-                      type="button"
-                      onClick={() => handleOpenExplore('sql')}
-                      className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-[var(--radius-sm)] text-sm font-semibold transition-all cursor-pointer select-none ${
-                        showExplore && exploreInitialMode === 'sql'
-                          ? 'bg-[var(--accent)] text-white shadow-xs'
-                          : 'bg-[var(--bg-surface)] hairline-border text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
-                      }`}
-                      title="Query converted data with SQL"
-                    >
-                      <Terminal className="w-4 h-4" />
-                      <span>SQL Query Box</span>
-                    </button>
-
+                  <div className="flex items-center gap-3">
                     <Button
                       variant="secondary"
                       size="lg"
@@ -621,36 +591,42 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                   </div>
                 </div>
 
-                {/* Exploration Spotlight Card when closed */}
+                {/* Prominent Feature Block: Query & Inspect Converted Dataset */}
                 {!showExplore && (
-                  <div className="p-4 rounded-[var(--radius-md)] bg-[var(--bg-surface)] hairline-border flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-md bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center shrink-0 hairline-border">
-                        <Bot className="w-4 h-4" />
+                  <div className="p-6 rounded-xl bg-zinc-900/80 border border-zinc-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6 mt-2">
+                    <div className="flex items-start gap-4">
+                      <div className="w-11 h-11 rounded-xl bg-zinc-800/80 border border-zinc-700/60 text-zinc-200 flex items-center justify-center shrink-0 mt-0.5 shadow-2xs">
+                        <Bot className="w-5 h-5 text-[var(--accent)]" />
                       </div>
-                      <div className="text-xs">
-                        <span className="font-semibold text-[var(--text-primary)] block">
-                          Inspect or query this converted dataset
-                        </span>
-                        <p className="text-[var(--text-secondary)] mt-0.5">
-                          Ask questions in natural English with our AI Analyst or write custom SQL queries directly against the dataset.
+                      <div className="space-y-1">
+                        <h3 className="text-base sm:text-lg font-semibold text-white tracking-tight">
+                          Inspect or Query your Data
+                        </h3>
+                        <p className="text-sm text-zinc-400 max-w-xl leading-relaxed">
+                          Ask questions in natural English with our AI Analyst or write custom SQL queries directly against your data.
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+
+                    <div className="flex flex-wrap items-center gap-3 shrink-0">
+                      {/* Ask AI Analyst Button */}
                       <button
                         type="button"
                         onClick={() => handleOpenExplore('ask_ai')}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
                       >
-                        Ask AI Analyst
+                        <Bot className="w-4 h-4" />
+                        <span>Ask AI Analyst</span>
                       </button>
+
+                      {/* SQL Query Box Button - Styled orange just like AI Analyst */}
                       <button
                         type="button"
                         onClick={() => handleOpenExplore('sql')}
-                        className="text-xs font-semibold px-3 py-1.5 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] hairline-border text-[var(--text-primary)] transition-colors cursor-pointer"
+                        className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-[var(--accent)] hover:bg-[var(--accent-hover)] text-white shadow-xs hover:shadow-sm transition-all cursor-pointer"
                       >
-                        SQL Query Box
+                        <Terminal className="w-4 h-4" />
+                        <span>SQL Query Box</span>
                       </button>
                     </div>
                   </div>

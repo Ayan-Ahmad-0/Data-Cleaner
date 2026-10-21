@@ -230,6 +230,69 @@ def handoff_to_cleaning(convert_id: str, background_tasks: BackgroundTasks):
     return clean_job
 
 
+@app.post("/api/query/upload")
+async def upload_dataset_for_query_only(
+    file: UploadFile = File(...),
+    options: Optional[str] = Form(None),
+):
+    """Stage an uploaded dataset directly into a sandboxed queryable Parquet store for instant AI and SQL exploration without cleaning or format conversion."""
+    import uuid
+    from formats import convert_to_parquet, detect_format, AdapterRegistry
+
+    query_id = f"query_{uuid.uuid4().hex[:8]}"
+    work_dir = Path("data/query_jobs").resolve() / query_id
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    input_file_path = work_dir / file.filename
+    with open(input_file_path, "wb") as buf:
+        shutil.copyfileobj(file.file, buf)
+
+    parsed_options = None
+    if options:
+        try:
+            parsed_options = json.loads(options)
+        except Exception:
+            pass
+
+    suffix = Path(file.filename).suffix.lower()
+
+    try:
+        detected_fmt, conf = detect_format(input_file_path)
+        if detected_fmt == "unknown" and suffix in (".csv", ".tsv", ".parquet", ".json", ".ndjson", ".xlsx", ".db", ".sqlite"):
+            adapter = AdapterRegistry.find_by_extension(suffix)
+            if adapter:
+                detected_fmt = adapter.format_id
+
+        target_parquet = work_dir / f"{Path(file.filename).stem}.parquet"
+        conversion_report = convert_to_parquet(
+            path=input_file_path,
+            out_path=target_parquet,
+            format_id=detected_fmt if detected_fmt != "unknown" else None,
+            options=parsed_options,
+        )
+
+        # Register in convert_jobs so handoff to clean works seamlessly if user later chooses to clean it
+        convert_jobs[query_id] = {
+            "id": query_id,
+            "filename": file.filename,
+            "work_dir": work_dir,
+            "intermediate_parquet": target_parquet,
+        }
+
+        return {
+            "query_id": query_id,
+            "filename": file.filename,
+            "row_count": conversion_report.rows,
+            "columns": conversion_report.columns,
+            "file_size_bytes": input_file_path.stat().st_size,
+            "detected_format": detected_fmt,
+        }
+    except Exception as e:
+        shutil.rmtree(work_dir, ignore_errors=True)
+        logger.exception("Failed to stage dataset for query: %s", e)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
 @app.post("/api/jobs/upload", response_model=JobMetadata)
 async def upload_dataset(
     background_tasks: BackgroundTasks,

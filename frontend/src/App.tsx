@@ -6,11 +6,12 @@ import { ApprovalPage } from './pages/ApprovalPage';
 import { ProgressPage } from './pages/ProgressPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { ConvertPage } from './pages/ConvertPage';
+import { QueryPage } from './pages/QueryPage';
 import { approveAndClean, getJobDetail, type JobDetailResponse } from './lib/api';
 import { formatNumber } from './lib/format';
 
 export function App() {
-  const [appMode, setAppMode] = useState<'clean' | 'convert'>('clean');
+  const [appMode, setAppMode] = useState<'clean' | 'convert' | 'query'>('clean');
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobData, setJobData] = useState<JobDetailResponse | null>(null);
@@ -137,14 +138,14 @@ export function App() {
       />
 
       <main className="flex-1">
-        {/* Centered Mode Switcher (Clean Data vs Convert Only) - visible when selecting mode or uploading */}
+        {/* Centered Mode Switcher (Clean Data vs Convert Only vs Query Data) - visible when selecting mode or uploading */}
         {currentStep === 1 && (
           <div className="pt-3 sm:pt-4 pb-0 flex justify-center items-center">
             <div className="inline-flex items-center bg-[var(--bg-subtle)] p-1.5 rounded-[var(--radius-md)] hairline-border shadow-xs">
               <button
                 type="button"
                 onClick={() => setAppMode('clean')}
-                className={`px-5 py-2 text-sm sm:text-base font-semibold rounded-[var(--radius-sm)] transition-all cursor-pointer select-none ${
+                className={`px-4 sm:px-5 py-2 text-sm sm:text-base font-semibold rounded-[var(--radius-sm)] transition-all cursor-pointer select-none ${
                   appMode === 'clean'
                     ? 'bg-[var(--accent)] text-white shadow-sm'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
@@ -155,7 +156,7 @@ export function App() {
               <button
                 type="button"
                 onClick={() => setAppMode('convert')}
-                className={`px-5 py-2 text-sm sm:text-base font-semibold rounded-[var(--radius-sm)] transition-all cursor-pointer select-none ${
+                className={`px-4 sm:px-5 py-2 text-sm sm:text-base font-semibold rounded-[var(--radius-sm)] transition-all cursor-pointer select-none ${
                   appMode === 'convert'
                     ? 'bg-[var(--accent)] text-white shadow-sm'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
@@ -163,12 +164,25 @@ export function App() {
               >
                 Convert Only
               </button>
+              <button
+                type="button"
+                onClick={() => setAppMode('query')}
+                className={`px-4 sm:px-5 py-2 text-sm sm:text-base font-semibold rounded-[var(--radius-sm)] transition-all cursor-pointer select-none ${
+                  appMode === 'query'
+                    ? 'bg-[var(--accent)] text-white shadow-sm'
+                    : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
+                }`}
+              >
+                Query Data
+              </button>
             </div>
           </div>
         )}
 
         {appMode === 'convert' ? (
           <ConvertPage onHandoffToClean={handleHandoffToClean} />
+        ) : appMode === 'query' ? (
+          <QueryPage onHandoffToClean={handleHandoffToClean} />
         ) : (
           <>
             {currentStep === 1 && (
