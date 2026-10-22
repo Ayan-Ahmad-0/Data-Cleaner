@@ -236,14 +236,9 @@ export const ApprovalPage: React.FC<ApprovalPageProps> = ({ jobData, onStartClea
       {/* Editorial Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-zinc-800">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
-              Review & Approve Cleaning Plan
-            </h1>
-            <Tag variant="ok" font="mono">
-              Vectorized Safe Execution
-            </Tag>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+            Review & Approve Cleaning Plan
+          </h1>
           <p className="text-sm sm:text-base text-zinc-400 mt-1.5 max-w-2xl leading-relaxed">
             Review proposed transformation rules, answer confirmation questions, and tailor parameters.
             Your original CSV file is never modified or overwritten.
