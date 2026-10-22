@@ -108,7 +108,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   };
 
   return (
-    <div className="container-shell pt-6 sm:pt-8 pb-12 sm:pb-16 max-w-3xl mx-auto space-y-7">
+    <div className="container-shell pt-6 sm:pt-8 pb-12 sm:pb-16 space-y-7">
       {/* Hero Title */}
       <div className="text-left space-y-2">
         <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">

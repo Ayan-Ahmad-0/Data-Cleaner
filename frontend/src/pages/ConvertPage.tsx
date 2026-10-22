@@ -184,7 +184,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
   };
 
   return (
-    <div className="container-shell pt-6 sm:pt-8 pb-12 sm:pb-16 max-w-4xl mx-auto space-y-8">
+    <div className="container-shell pt-6 sm:pt-8 pb-12 sm:pb-16 space-y-8">
       {/* Title & Mode Switch Note */}
       <div className="space-y-1.5">
         <div className="flex items-center gap-2.5">

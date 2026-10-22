@@ -138,7 +138,7 @@ export function App() {
         rowCountFormatted={fileMeta.rowCountFormatted}
       />
 
-      <main className="flex-1">
+      <main className="flex-1 w-full">
         {/* Centered Mode Switcher (Clean Data vs Convert Only vs Query Data vs Visualize Data) - visible when selecting mode or uploading */}
         {currentStep === 1 && (
           <div className="pt-4 sm:pt-5 pb-0 flex justify-center items-center">

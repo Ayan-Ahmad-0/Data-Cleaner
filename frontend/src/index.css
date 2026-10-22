@@ -65,29 +65,68 @@ html, body {
   border-right: 1px solid var(--border-hairline);
 }
 
-/* Layout Container */
+/* Layout Container - High-Density Fluid Canvas (max-w-[1600px]) */
 .container-shell {
+  width: 100%;
   max-width: var(--max-content-width);
   margin-left: auto;
   margin-right: auto;
-  padding-left: 24px;
-  padding-right: 24px;
+  padding-left: 16px;
+  padding-right: 16px;
 }
 
-@media (max-width: 640px) {
+@media (min-width: 640px) {
   .container-shell {
-    padding-left: 16px;
-    padding-right: 16px;
+    padding-left: 24px;
+    padding-right: 24px;
   }
 }
 
-/* Full-Width Header Container (No max-width constraint) */
+@media (min-width: 768px) {
+  .container-shell {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container-shell {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
+}
+
+/* Header Shell - Synchronized with High-Density Canvas */
 .header-shell {
   width: 100%;
+  max-width: var(--max-content-width);
+  margin-left: auto;
+  margin-right: auto;
   height: var(--header-height);
-  padding-left: var(--header-inset);
-  padding-right: var(--header-inset);
+  padding-left: 16px;
+  padding-right: 16px;
   box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .header-shell {
+    padding-left: 24px;
+    padding-right: 24px;
+  }
+}
+
+@media (min-width: 768px) {
+  .header-shell {
+    padding-left: 40px;
+    padding-right: 40px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .header-shell {
+    padding-left: 48px;
+    padding-right: 48px;
+  }
 }
 
 /* Accessible, high-contrast Select and Option Dropdown styling */

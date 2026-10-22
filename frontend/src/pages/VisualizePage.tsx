@@ -434,13 +434,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
   };
 
   return (
-    <div
-      className={`w-full ${
-        datasetInfo
-          ? 'max-w-[1600px] px-4 sm:px-6 md:px-10 lg:px-12'
-          : 'max-w-3xl px-4'
-      } mx-auto pt-6 sm:pt-8 pb-12 sm:pb-16 space-y-5 sm:space-y-6`}
-    >
+    <div className="container-shell pt-6 sm:pt-8 pb-12 sm:pb-16 space-y-5 sm:space-y-6">
       {/* Hero Title */}
       <div className="text-left space-y-2">
         <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">

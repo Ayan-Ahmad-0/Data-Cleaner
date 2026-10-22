@@ -139,7 +139,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
   const tagVariant = isFailed ? 'danger' : status === 'DONE' || status === 'DONE_WITH_WARNINGS' ? 'ok' : 'accent';
 
   return (
-    <div className="container-shell py-12 sm:py-16 max-w-3xl mx-auto space-y-8">
+    <div className="container-shell py-12 sm:py-16 space-y-8">
       {/* Header card with aria-live */}
       <div
         aria-live="polite"
