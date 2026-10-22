@@ -27,11 +27,13 @@ import { VisualizationAdviceModal } from '../components/explore/VisualizationAdv
 import { DEFAULT_CHART_COLOR } from '../components/explore/chartColors';
 import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
+import { Tag } from '../components/ui/Tag';
 import {
   BarChart3,
   Upload,
   Info,
   FileSpreadsheet,
+  Database,
   Sparkles,
   ShieldCheck,
 } from 'lucide-react';
@@ -70,6 +72,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
   const [isAddingChart, setIsAddingChart] = useState(false);
 
   // File sheet/table disambiguation
+  const [stagedFile, setStagedFile] = useState<File | null>(null);
   const [sheetNames, setSheetNames] = useState<string[]>([]);
   const [selectedSheet, setSelectedSheet] = useState<string>('');
   const [tableNames, setTableNames] = useState<string[]>([]);
@@ -108,12 +111,14 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     setSelectedSheet('');
     setTableNames([]);
     setSelectedTable('');
+    setStagedFile(file);
 
     const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
     const supportedExts = ['.csv', '.tsv', '.parquet', '.json', '.ndjson', '.jsonl', '.xlsx', '.db', '.sqlite'];
 
     if (!supportedExts.includes(ext)) {
       setError(`Unsupported file type '${ext}'. Please upload a CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) file.`);
+      setStagedFile(null);
       return;
     }
 
@@ -122,9 +127,15 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
       if (detectRes.sheets && detectRes.sheets.length > 1) {
         setSheetNames(detectRes.sheets);
         setSelectedSheet(detectRes.sheets[0]);
+        // Await user sheet selection confirmation
+        return;
       } else if (detectRes.tables && detectRes.tables.length > 1) {
         setTableNames(detectRes.tables);
         setSelectedTable(detectRes.tables[0]);
+        return;
+      } else if (detectRes.sheets && detectRes.sheets.length === 1) {
+        // Single sheet Excel - auto stage with explicit sheet name
+        await processAndStageFile(file, { sheet: detectRes.sheets[0] });
       } else {
         await processAndStageFile(file);
       }
@@ -154,6 +165,11 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
       clearInterval(timer);
       setUploadProgress(100);
       setDatasetInfo(res);
+      setStagedFile(null);
+      setSheetNames([]);
+      setSelectedSheet('');
+      setTableNames([]);
+      setSelectedTable('');
 
       try {
         const [colStats, chartSuggestions, aiStatusRes] = await Promise.all([
@@ -456,6 +472,11 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     setCards([]);
     setError(null);
     setAdvicePlan(null);
+    setStagedFile(null);
+    setSheetNames([]);
+    setSelectedSheet('');
+    setTableNames([]);
+    setSelectedTable('');
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -490,22 +511,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
 
       {/* Upload & Prepare Area (if no dataset loaded) */}
       {!datasetInfo && (
-        <div
-          onDragEnter={handleDrag}
-          onDragLeave={handleDrag}
-          onDragOver={handleDrag}
-          onDrop={handleDrop}
-          className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dashed ${
-            dragActive
-              ? 'drag-active border-[var(--accent)] bg-[var(--accent-subtle)]'
-              : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
-          }`}
-          style={{
-            backgroundImage: dragActive
-              ? undefined
-              : 'radial-gradient(ellipse at center top, var(--bg-subtle) 0%, transparent 70%)',
-          }}
-        >
+        <div className="space-y-4">
           <input
             ref={fileInputRef}
             type="file"
@@ -515,84 +521,157 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
             id="visualize-file-input"
           />
 
-          {isUploading ? (
-            <div className="space-y-5 py-4">
-              <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto border border-[var(--accent-border)]">
-                <BarChart3 className="w-7 h-7 animate-pulse" />
+          {/* Disambiguation for multi-sheet Excel / multi-table SQLite */}
+          {stagedFile && !isUploading && (sheetNames.length > 1 || tableNames.length > 1) ? (
+            <div className="bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-8 sm:p-10 border border-[var(--border-hairline)] shadow-[var(--shadow-card)] space-y-6 max-w-2xl mx-auto text-left">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-[var(--radius-lg)] bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center border border-[var(--accent-border)] shrink-0">
+                    {sheetNames.length > 1 ? (
+                      <FileSpreadsheet className="w-6 h-6" />
+                    ) : (
+                      <Database className="w-6 h-6" />
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-base font-semibold text-[var(--text-primary)]">
+                      {sheetNames.length > 1 ? 'Select Excel Sheet to Visualize' : 'Select SQLite Table to Visualize'}
+                    </h3>
+                    <p className="text-xs text-[var(--text-muted)] font-mono mt-0.5">
+                      {stagedFile.name} • {formatBytes(stagedFile.size)}
+                    </p>
+                  </div>
+                </div>
+                <Tag variant="neutral" font="mono">
+                  {sheetNames.length > 1 ? `${sheetNames.length} SHEETS` : `${tableNames.length} TABLES`}
+                </Tag>
               </div>
 
-              <div className="space-y-1.5">
-                <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
-                  Preparing your file (internal zero-copy conversion)...
-                </span>
-                <span className="text-sm text-[var(--text-muted)] font-mono block">
-                  {uploadProgress}% processed
-                </span>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-[var(--text-secondary)] block">
+                  {sheetNames.length > 1 ? 'Available Sheets:' : 'Available Tables:'}
+                </label>
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                  <select
+                    value={sheetNames.length > 1 ? (selectedSheet || sheetNames[0]) : (selectedTable || tableNames[0])}
+                    onChange={(e) => {
+                      if (sheetNames.length > 1) setSelectedSheet(e.target.value);
+                      else setSelectedTable(e.target.value);
+                    }}
+                    className="flex-1 bg-[var(--bg-app)] text-[var(--text-primary)] text-sm rounded-[var(--radius-md)] px-3.5 py-2.5 border border-[var(--border-hairline)] focus:border-[var(--accent)] outline-none transition-colors"
+                  >
+                    {(sheetNames.length > 1 ? sheetNames : tableNames).map((item) => (
+                      <option key={item} value={item}>
+                        {item}
+                      </option>
+                    ))}
+                  </select>
+
+                  <Button
+                    variant="primary"
+                    size="md"
+                    leftIcon={<BarChart3 className="w-4 h-4" />}
+                    onClick={() => {
+                      const chosenSheet = selectedSheet || sheetNames[0];
+                      const chosenTable = selectedTable || tableNames[0];
+                      processAndStageFile(
+                        stagedFile,
+                        sheetNames.length > 1 ? { sheet: chosenSheet } : { table: chosenTable }
+                      );
+                    }}
+                    className="shadow-[0_2px_12px_rgba(253,66,51,0.18)] hover:shadow-[0_4px_20px_rgba(253,66,51,0.25)] shrink-0"
+                  >
+                    {sheetNames.length > 1 ? 'Visualize Selected Sheet' : 'Visualize Selected Table'}
+                  </Button>
+                </div>
               </div>
 
-              <div className="w-64 mx-auto bg-[var(--bg-subtle)] h-1.5 rounded-full overflow-hidden border border-[var(--border-hairline)]">
-                <div
-                  className="bg-[var(--accent)] h-full transition-all duration-200 rounded-full"
-                  style={{ width: `${uploadProgress}%` }}
-                />
+              <div className="pt-2 border-t border-[var(--border-hairline)] flex items-center justify-between text-xs text-[var(--text-muted)]">
+                <span>Want to visualize a different file?</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStagedFile(null);
+                    setSheetNames([]);
+                    setSelectedSheet('');
+                    setTableNames([]);
+                    setSelectedTable('');
+                    if (fileInputRef.current) fileInputRef.current.value = '';
+                    fileInputRef.current?.click();
+                  }}
+                  className="text-[var(--accent)] hover:underline font-medium cursor-pointer"
+                >
+                  Choose another file
+                </button>
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="w-16 h-16 rounded-[var(--radius-xl)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto border border-[var(--border-hairline)] shadow-[var(--shadow-card)]">
-                <BarChart3 className="w-7 h-7 text-[var(--accent)]" />
-              </div>
+            <div
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDrop}
+              className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dashed ${
+                dragActive
+                  ? 'drag-active border-[var(--accent)] bg-[var(--accent-subtle)]'
+                  : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
+              }`}
+              style={{
+                backgroundImage: dragActive
+                  ? undefined
+                  : 'radial-gradient(ellipse at center top, var(--bg-subtle) 0%, transparent 70%)',
+              }}
+            >
+              {isUploading ? (
+                <div className="space-y-5 py-4">
+                  <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto border border-[var(--accent-border)]">
+                    <BarChart3 className="w-7 h-7 animate-pulse" />
+                  </div>
 
-              <div className="space-y-1.5">
-                <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block tracking-tight">
-                  Drag and drop your data file here to visualize
-                </span>
-                <span className="text-sm text-[var(--text-muted)] block">
-                  CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
-                </span>
-              </div>
+                  <div className="space-y-1.5">
+                    <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
+                      Preparing your file (internal zero-copy conversion)...
+                    </span>
+                    <span className="text-sm text-[var(--text-muted)] font-mono block">
+                      {uploadProgress}% processed
+                    </span>
+                  </div>
 
-              {sheetNames.length > 1 && (
-                <div className="flex items-center justify-center gap-2 text-xs pt-1">
-                  <span className="text-[var(--text-secondary)] font-medium">Select sheet:</span>
-                  <select
-                    value={selectedSheet}
-                    onChange={(e) => setSelectedSheet(e.target.value)}
-                    className="bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-sm)] px-2.5 py-1 text-xs"
-                  >
-                    {sheetNames.map((s) => (
-                      <option key={s} value={s}>{s}</option>
-                    ))}
-                  </select>
+                  <div className="w-64 mx-auto bg-[var(--bg-subtle)] h-1.5 rounded-full overflow-hidden border border-[var(--border-hairline)]">
+                    <div
+                      className="bg-[var(--accent)] h-full transition-all duration-200 rounded-full"
+                      style={{ width: `${uploadProgress}%` }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-6">
+                  <div className="w-16 h-16 rounded-[var(--radius-xl)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto border border-[var(--border-hairline)] shadow-[var(--shadow-card)]">
+                    <BarChart3 className="w-7 h-7 text-[var(--accent)]" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block tracking-tight">
+                      Drag and drop your data file here to visualize
+                    </span>
+                    <span className="text-sm text-[var(--text-muted)] block">
+                      CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
+                    </span>
+                  </div>
+
+                  <div className="pt-1">
+                    <Button
+                      variant="primary"
+                      size="lg"
+                      leftIcon={<Upload className="w-4 h-4" />}
+                      onClick={() => fileInputRef.current?.click()}
+                      className="shadow-[0_2px_12px_rgba(253,66,51,0.18)] hover:shadow-[0_4px_20px_rgba(253,66,51,0.25)] transition-shadow duration-200"
+                    >
+                      Select Dataset File
+                    </Button>
+                  </div>
                 </div>
               )}
-
-              {tableNames.length > 1 && (
-                <div className="flex items-center justify-center gap-2 text-xs pt-1">
-                  <span className="text-[var(--text-secondary)] font-medium">Select table:</span>
-                  <select
-                    value={selectedTable}
-                    onChange={(e) => setSelectedTable(e.target.value)}
-                    className="bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-sm)] px-2.5 py-1 text-xs"
-                  >
-                    {tableNames.map((t) => (
-                      <option key={t} value={t}>{t}</option>
-                    ))}
-                  </select>
-                </div>
-              )}
-
-              <div className="pt-1">
-                <Button
-                  variant="primary"
-                  size="lg"
-                  leftIcon={<Upload className="w-4 h-4" />}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="shadow-[0_2px_12px_rgba(253,66,51,0.18)] hover:shadow-[0_4px_20px_rgba(253,66,51,0.25)] transition-shadow duration-200"
-                >
-                  Select Dataset File
-                </Button>
-              </div>
             </div>
           )}
         </div>

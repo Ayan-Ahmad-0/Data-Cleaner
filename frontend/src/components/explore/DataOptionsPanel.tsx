@@ -214,7 +214,7 @@ export const DataOptionsPanel: React.FC<DataOptionsPanelProps> = ({
                     className="fixed inset-0 z-40"
                     onClick={() => setIsColorMenuOpen(false)}
                   />
-                  <div className="absolute right-0 top-full mt-1.5 z-50 p-2.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl shadow-xl w-48 space-y-2 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="absolute right-0 top-full mt-1.5 z-50 p-2.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl shadow-xl w-64 space-y-2 animate-in fade-in zoom-in-95 duration-100">
                     <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-primary)] px-0.5">
                       <span>Global Chart Color</span>
                       {globalColor && globalColor !== DEFAULT_CHART_COLOR && (
@@ -231,7 +231,7 @@ export const DataOptionsPanel: React.FC<DataOptionsPanelProps> = ({
                       )}
                     </div>
 
-                    <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                    <div className="grid grid-cols-5 gap-1.5 pt-0.5">
                       {CHART_COLOR_SWATCHES.map((swatch) => {
                         const activeHex = globalColor || DEFAULT_CHART_COLOR;
                         const isSelected = activeHex.toLowerCase() === swatch.hex.toLowerCase();

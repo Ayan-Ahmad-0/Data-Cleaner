@@ -138,7 +138,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                   className="fixed inset-0 z-40"
                   onClick={() => setIsColorPickerOpen(false)}
                 />
-                <div className="absolute right-0 top-full mt-1.5 z-50 p-2.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl shadow-xl w-48 space-y-2 animate-in fade-in zoom-in-95 duration-100">
+                <div className="absolute right-0 top-full mt-1.5 z-50 p-2.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl shadow-xl w-64 space-y-2 animate-in fade-in zoom-in-95 duration-100">
                   <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-primary)] px-0.5">
                     <span>Chart Color</span>
                     {item.spec.custom_color && (
@@ -154,7 +154,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                     )}
                   </div>
 
-                  <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                  <div className="grid grid-cols-5 gap-1.5 pt-0.5">
                     {CHART_COLOR_SWATCHES.map((swatch) => {
                       const isSelected = activeColor.toLowerCase() === swatch.hex.toLowerCase();
                       return (
