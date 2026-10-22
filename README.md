@@ -61,7 +61,7 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX, SQLite) → Format Stager → Canon
 - **Backend Framework** — FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13 (223 passing automated unit & integration tests)
 - **Schema & Validation** — Pydantic v2 (strict allowlist models with `extra="forbid"`, 100% PII redaction for names, emails, phones, SSNs)
 - **AI Reasoning** — Google GenAI SDK (`gemini-3.5-flash` / `gemini-3-flash-preview`), 30-question NL-to-SQL benchmark set with offline heuristic fallback
-- **Visualization Engine** — Plotly.js, React 19, Lucide Icons, 20-color analytics palette with brand coral `#FD4233`
+- **Visualization Engine** — Plotly.js, React 19, Lucide Icons, 20-color analytics palette with brand coral `#FD4233`, dedicated 10-query concurrency controller
 - **Frontend Architecture** — React 19, TypeScript 5.0+, Vite, Tailwind CSS (fluid 1600px high-density layout, sub-1s cold build)
 
 ---
@@ -79,7 +79,7 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX, SQLite) → Format Stager → Canon
 
 ---
 
-## Pipeline Flow   
+## Pipeline Flow
 
 ```
 Input File (CSV, Parquet, JSON, NDJSON, XLSX, SQLite)
@@ -220,6 +220,7 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 - **AST Sandboxed SQL Studio** — All interactive SQL queries are parsed through `sqlglot` prior to execution. DDL, DML, file system calls, and external table references are denied at parse time before reaching the query engine.
 - **Declarative Chart SQL Compilation** — Visualizations compile declarative `ChartSpec` contracts into safe DuckDB SQL using `TRY_CAST` type coercions, ensuring untyped varchar columns aggregate reliably into numerical sums, averages, and histograms.
 - **Dedicated Chart Concurrency Architecture** — Dashboard chart execution decouples from interactive SQL queries using a dedicated `_chart_controller` allowing up to 10 concurrent analytical chart queries per user and 20 globally with a 15.0-second queue timeout, preventing per-user concurrency bottlenecks when loading multi-card dashboards.
+- **Single-Click Error Recovery** — Individual chart cards feature isolated error boundaries with an integrated "Retry Render" action, allowing users to re-execute transient failures without reloading or re-configuring specs.
 - **Cleaned Dataset Handoff Priority** — Downstream visualization and query routes inspect and prioritize `cleaned.parquet` over raw `staged.parquet`, ensuring post-clean charts immediately reflect deduplicated, typed, and normalized data.
 - **Strict Query Resource Caps** — Interactive SQL queries enforce a 5.0-second execution timeout, a 10,000-row return limit, a 100 MB export ceiling, and a 2-worker concurrency guard.
 - **Autonomous AI Analyst Error Recovery** — If an AI-synthesized SQL query fails during sandbox execution, the error and schema context are fed back to the model for an autonomous single-retry correction pass.
