@@ -6,7 +6,7 @@ import {
   askChartFromText,
 } from '../../lib/api';
 import { Button } from '../ui/Button';
-import { Sparkles, Loader2, HelpCircle, AlertTriangle, ArrowRight } from 'lucide-react';
+import { Sparkles, Loader2, HelpCircle, AlertTriangle, ArrowRight, X } from 'lucide-react';
 
 interface DescribeChartBarProps {
   jobId: string;
@@ -68,14 +68,14 @@ export const DescribeChartBar: React.FC<DescribeChartBarProps> = ({
   };
 
   return (
-    <div className="space-y-3">
-      {/* Prominent Search Bar */}
+    <div className="space-y-2.5">
+      {/* Sleek Floating Command Bar */}
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 p-1.5 sm:p-2 bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-[var(--radius-xl)] shadow-[var(--shadow-card)] focus-within:border-[var(--accent)] transition-all"
+        className="flex items-center gap-2 px-3 py-1.5 sm:py-2 bg-[var(--bg-surface)] backdrop-blur-md border border-[var(--border-hairline)] rounded-xl shadow-[var(--shadow-card)] focus-within:border-[var(--accent)] focus-within:ring-2 focus-within:ring-[var(--accent)]/15 hover:border-[var(--border-strong)] transition-all"
       >
-        <div className="pl-3 text-[var(--accent)] flex items-center">
-          <Sparkles className="w-5 h-5" />
+        <div className="text-[var(--accent)] flex items-center pl-1 shrink-0">
+          <Sparkles className="w-4 h-4" />
         </div>
 
         <input
@@ -88,17 +88,34 @@ export const DescribeChartBar: React.FC<DescribeChartBarProps> = ({
             if (errorMessage) setErrorMessage(null);
           }}
           placeholder={`Describe a chart in plain English (${placeholderExample})...`}
-          className="flex-1 bg-transparent px-2 py-2 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-hidden"
+          className="flex-1 bg-transparent px-2 py-1 text-sm text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none"
           disabled={isLoading}
         />
+
+        {requestText && (
+          <button
+            type="button"
+            onClick={() => setRequestText('')}
+            className="p-1 text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+            title="Clear prompt"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+
+        <div className="hidden sm:inline-flex items-center">
+          <kbd className="px-1.5 py-0.5 text-[10px] font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] border border-[var(--border-hairline)] rounded">
+            ↵ Enter
+          </kbd>
+        </div>
 
         <Button
           type="submit"
           variant="primary"
-          size="md"
+          size="sm"
           disabled={!requestText.trim() || isLoading}
-          leftIcon={isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : undefined}
-          className="px-5 shrink-0"
+          leftIcon={isLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : undefined}
+          className="px-4 h-8 shrink-0 text-xs font-semibold shadow-xs"
         >
           {isLoading ? 'Creating...' : 'Create'}
         </Button>
@@ -106,11 +123,10 @@ export const DescribeChartBar: React.FC<DescribeChartBarProps> = ({
 
       {/* Clarification prompt */}
       {clarification && (
-        <div className="flex items-start gap-2.5 p-3.5 bg-[var(--accent-subtle)] border border-[var(--accent-border)] rounded-[var(--radius-lg)] text-xs text-[var(--accent-text)] animate-in fade-in">
+        <div className="flex items-start gap-2.5 p-3 bg-[var(--accent-subtle)] border border-[var(--accent-border)] rounded-lg text-xs text-[var(--accent-text)] animate-in fade-in">
           <HelpCircle className="w-4 h-4 shrink-0 text-[var(--accent)] mt-0.5" />
           <div className="space-y-1">
             <span className="font-semibold block text-[var(--accent)]">Clarification needed:</span>
-            {/* Plain text escaping guaranteed */}
             <p className="text-[var(--text-primary)]">{clarification}</p>
           </div>
         </div>
@@ -118,7 +134,7 @@ export const DescribeChartBar: React.FC<DescribeChartBarProps> = ({
 
       {/* Cannot Chart Banner */}
       {cannotChartMsg && (
-        <div className="flex items-start justify-between gap-3 p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-[var(--radius-lg)] text-xs text-amber-400 animate-in fade-in">
+        <div className="flex items-start justify-between gap-3 p-3 bg-amber-500/10 border border-amber-500/25 rounded-lg text-xs text-amber-400 animate-in fade-in">
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="w-4 h-4 shrink-0 text-amber-400 mt-0.5" />
             <div className="space-y-1">
@@ -131,7 +147,7 @@ export const DescribeChartBar: React.FC<DescribeChartBarProps> = ({
             size="sm"
             onClick={onHandoffToQuery}
             rightIcon={<ArrowRight className="w-3.5 h-3.5" />}
-            className="shrink-0 text-xs"
+            className="shrink-0 text-xs h-7"
           >
             Open SQL Box
           </Button>
@@ -140,7 +156,7 @@ export const DescribeChartBar: React.FC<DescribeChartBarProps> = ({
 
       {/* Error Banner */}
       {errorMessage && (
-        <div className="p-3 bg-red-500/10 border border-red-500/25 rounded-[var(--radius-lg)] text-xs text-red-400 animate-in fade-in">
+        <div className="p-3 bg-red-500/10 border border-red-500/25 rounded-lg text-xs text-red-400 animate-in fade-in">
           {errorMessage}
         </div>
       )}

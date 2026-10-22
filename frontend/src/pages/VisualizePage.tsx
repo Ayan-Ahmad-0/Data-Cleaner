@@ -32,9 +32,6 @@ import {
   Info,
   FileSpreadsheet,
   Sparkles,
-  Lightbulb,
-  Plus,
-  Loader2,
   ShieldCheck,
 } from 'lucide-react';
 
@@ -437,7 +434,13 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
   };
 
   return (
-    <div className={`container-shell ${datasetInfo ? 'max-w-7xl' : 'max-w-3xl'} mx-auto pt-6 sm:pt-8 pb-12 sm:pb-16 space-y-7`}>
+    <div
+      className={`w-full ${
+        datasetInfo
+          ? 'max-w-[1600px] px-4 sm:px-6 md:px-10 lg:px-12'
+          : 'max-w-3xl px-4'
+      } mx-auto pt-6 sm:pt-8 pb-12 sm:pb-16 space-y-5 sm:space-y-6`}
+    >
       {/* Hero Title */}
       <div className="text-left space-y-2">
         <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
@@ -575,44 +578,51 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
 
       {/* Active Dataset Dashboard */}
       {datasetInfo && (
-        <div className="space-y-6">
-          {/* Dataset Header Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-4 p-4 bg-[var(--bg-surface)] rounded-[var(--radius-lg)] border border-[var(--border-hairline)] shadow-[var(--shadow-card)]">
-            <div className="flex items-center gap-3">
-              <div className="p-2.5 bg-[var(--bg-subtle)] rounded-[var(--radius-md)] text-[var(--accent)]">
-                <FileSpreadsheet className="w-5 h-5" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-[var(--text-primary)]">
-                  {datasetInfo.filename}
-                </h2>
-                <span className="text-xs text-[var(--text-muted)]">
-                  {formatBytes(datasetInfo.file_size_bytes)} · {formatNumber(datasetInfo.row_count)} rows · {columns.length} columns
+        <div className="space-y-3.5 sm:space-y-4">
+          {/* Row 1: Integrated File & Quick-Action Bar */}
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-xs shadow-xs">
+              <FileSpreadsheet className="w-4 h-4 text-[var(--accent)] shrink-0" />
+              <span className="font-semibold text-[var(--text-primary)] truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+                {datasetInfo.filename}
+              </span>
+              <span className="text-[var(--text-muted)] font-mono">
+                • {formatNumber(datasetInfo.row_count)} rows
+              </span>
+              <span className="hidden sm:inline text-[var(--text-muted)] font-mono">
+                • {formatBytes(datasetInfo.file_size_bytes)}
+              </span>
+              <span className="hidden md:inline text-[var(--text-muted)]">
+                • {columns.length} cols
+              </span>
+              {aiEnabled && (
+                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-[var(--accent)] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent-subtle)] border border-[var(--accent-border)] ml-1">
+                  <Sparkles className="w-2.5 h-2.5" /> AI Ready
                 </span>
-              </div>
+              )}
             </div>
 
             <div className="flex items-center gap-2">
-              {aiEnabled && (
-                <span className="hidden sm:inline-flex items-center gap-1 text-[11px] text-[var(--accent)] font-medium px-2 py-0.5 rounded-full bg-[var(--accent-subtle)] border border-[var(--accent-border)]">
-                  <Sparkles className="w-3 h-3" /> AI Active
-                </span>
-              )}
               <Button
                 size="sm"
                 variant="secondary"
                 onClick={() => onHandoffToClean(datasetInfo.query_id, datasetInfo.filename)}
-                className="text-xs"
+                className="text-xs h-7.5"
               >
                 Clean data
               </Button>
-              <Button size="sm" variant="secondary" onClick={handleReset} className="text-xs">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleReset}
+                className="text-xs h-7.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+              >
                 Visualize another file
               </Button>
             </div>
           </div>
 
-          {/* Section 13: Describe a chart (top prominent AI bar) */}
+          {/* Row 2: Unified Command Bar (Natural Language Prompt input) */}
           <DescribeChartBar
             jobId={datasetInfo.query_id}
             columns={columns}
@@ -621,81 +631,25 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
             onHandoffToQuery={() => onHandoffToQuery(datasetInfo.query_id, datasetInfo.filename)}
           />
 
-          {/* Control Bar: Standard vs AI picks toggle, Auto-visualize, Advice, Add chart */}
-          <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[var(--bg-surface)] rounded-[var(--radius-lg)] border border-[var(--border-hairline)]">
-            {/* Gallery Mode Toggle */}
-            <div className="flex items-center bg-[var(--bg-app)] p-0.5 rounded-[var(--radius-md)] border border-[var(--border-hairline)]">
-              <button
-                onClick={() => handleSwitchTab('standard')}
-                className={`px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-medium transition-all ${
-                  viewTab === 'standard'
-                    ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                Standard suggestions
-              </button>
-              <button
-                onClick={() => handleSwitchTab('ai')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-[var(--radius-sm)] text-xs font-medium transition-all ${
-                  viewTab === 'ai'
-                    ? 'bg-[var(--bg-surface)] text-[var(--accent)] shadow-xs font-semibold'
-                    : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                AI picks
-              </button>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex flex-wrap items-center gap-2">
-              <Button
-                variant="primary"
-                size="sm"
-                leftIcon={isAutoVisualizing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-                onClick={handleAutoVisualize}
-                disabled={isAutoVisualizing}
-                className="text-xs shadow-xs"
-              >
-                {isAutoVisualizing ? 'Visualizing...' : 'Auto-visualize with AI'}
-              </Button>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={loadingAdvice ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Lightbulb className="w-3.5 h-3.5 text-amber-400" />}
-                onClick={handleOpenAdvice}
-                disabled={loadingAdvice}
-                className="text-xs"
-              >
-                Visualization advice
-              </Button>
-
-              <Button
-                variant="secondary"
-                size="sm"
-                leftIcon={isAddingChart ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Plus className="w-3.5 h-3.5" />}
-                onClick={handleAddChart}
-                disabled={isAddingChart}
-                className="text-xs"
-              >
-                Add chart
-              </Button>
-            </div>
-          </div>
-
-          {/* Section 5.5: Page-Wide Data Options */}
+          {/* Row 3: Streamlined Global Filter Strip */}
           <DataOptionsPanel
             options={pageOptions}
             columns={columns}
             onChange={handlePageOptionsChange}
             onReset={handleResetPageOptions}
+            viewTab={viewTab}
+            onSwitchTab={handleSwitchTab}
+            onAutoVisualize={handleAutoVisualize}
+            isAutoVisualizing={isAutoVisualizing}
+            onOpenAdvice={handleOpenAdvice}
+            loadingAdvice={loadingAdvice}
+            onAddChart={handleAddChart}
+            isAddingChart={isAddingChart}
           />
 
           {/* Active Chart Cards Grid */}
           {cards.length > 0 ? (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 sm:gap-6 pt-1">
               {cards.map((card) => (
                 <ChartCard
                   key={card.id}
@@ -709,10 +663,10 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
               ))}
             </div>
           ) : (
-            <div className="p-12 text-center rounded-[var(--radius-lg)] bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[var(--text-muted)] space-y-2">
+            <div className="p-12 text-center rounded-xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[var(--text-muted)] space-y-2">
               <BarChart3 className="w-8 h-8 mx-auto text-[var(--text-muted)]" />
               <p className="text-sm font-medium">No charts currently displayed.</p>
-              <p className="text-xs">Click "Auto-visualize with AI", "Add chart", or describe a chart above.</p>
+              <p className="text-xs">Click "Auto-visualize", "Add chart", or describe a chart in the prompt bar above.</p>
             </div>
           )}
 

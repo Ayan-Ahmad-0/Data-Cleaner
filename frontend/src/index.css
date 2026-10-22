@@ -172,3 +172,22 @@ select option:disabled {
   box-shadow: 0 0 6px rgba(253, 66, 51, 0.4);
 }
 
+/* Plotly Modebar Polish: subtle and visible only on hover */
+.js-plotly-plot .modebar-container {
+  opacity: 0 !important;
+  transition: opacity 150ms ease-in-out !important;
+}
+
+.group:hover .js-plotly-plot .modebar-container,
+.js-plotly-plot:hover .modebar-container {
+  opacity: 0.85 !important;
+}
+
+.js-plotly-plot .modebar-btn {
+  color: var(--text-muted) !important;
+}
+
+.js-plotly-plot .modebar-btn:hover {
+  color: var(--accent) !important;
+}
+

@@ -33,7 +33,9 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
 
   const plotConfig = useMemo(() => {
     const textColor = isDark ? '#e2e8f0' : '#1e293b';
-    const gridColor = isDark ? '#334155' : '#e2e8f0';
+    const tickColor = isDark ? '#94a3b8' : '#64748b';
+    const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
+    const zerolineColor = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.08)';
     const paperBg = 'transparent';
     const plotBg = 'transparent';
 
@@ -43,36 +45,35 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       paper_bgcolor: paperBg,
       plot_bgcolor: plotBg,
       colorway: THEME_PALETTE,
-      margin: { l: 50, r: 30, t: spec.title ? 45 : 20, b: 50 },
+      margin: { l: 48, r: 18, t: 14, b: 38 },
       font: {
         family: 'IBM Plex Sans, sans-serif',
         color: textColor,
-        size: 12,
+        size: 11,
       },
-      title: spec.title
-        ? {
-            text: spec.title,
-            font: { family: 'IBM Plex Sans, sans-serif', size: 15, color: textColor },
-            x: 0.02,
-            xanchor: 'left',
-          }
-        : undefined,
+      // Note: ChartCard header already displays the title cleanly in crisp typography.
+      // Omitting title from the Plotly canvas prevents duplicated headers and saves canvas height.
       xaxis: {
         gridcolor: gridColor,
-        zerolinecolor: gridColor,
-        tickfont: { color: textColor },
+        gridwidth: 1,
+        zerolinecolor: zerolineColor,
+        zerolinewidth: 1,
+        tickfont: { color: tickColor, size: 11 },
+        automargin: true,
       },
       yaxis: {
         gridcolor: gridColor,
-        zerolinecolor: gridColor,
-        tickfont: { color: textColor },
-        type: spec.log_y ? 'log' : 'linear',
+        gridwidth: 1,
+        zerolinecolor: zerolineColor,
+        zerolinewidth: 1,
+        tickfont: { color: tickColor, size: 11 },
+        automargin: true,
       },
       showlegend: !!spec.color || spec.chart_type === 'pie',
       legend: {
-        font: { color: textColor },
+        font: { color: textColor, size: 11 },
         orientation: 'h',
-        y: -0.2,
+        y: -0.18,
       },
     };
 
@@ -105,7 +106,13 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           hoverinfo: 'x+y',
         },
       ];
-      return { isBigNumber: false, traces, layout: baseLayout };
+      const histLayout = {
+        ...baseLayout,
+        bargap: 0.15,
+        xaxis: { ...baseLayout.xaxis, type: 'category' },
+        yaxis: { ...baseLayout.yaxis, type: spec.log_y ? 'log' : 'linear' },
+      };
+      return { isBigNumber: false, traces, layout: histLayout };
     }
 
     // 3. Scatter Plot
@@ -126,7 +133,12 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           },
         },
       ];
-      return { isBigNumber: false, traces, layout: baseLayout };
+      const scatterLayout = {
+        ...baseLayout,
+        xaxis: { ...baseLayout.xaxis, type: 'linear' },
+        yaxis: { ...baseLayout.yaxis, type: spec.log_y ? 'log' : 'linear' },
+      };
+      return { isBigNumber: false, traces, layout: scatterLayout };
     }
 
     // 4. Box Plot
@@ -146,7 +158,12 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           fillcolor: isDark ? 'rgba(253, 66, 51, 0.18)' : 'rgba(253, 66, 51, 0.1)',
         };
       });
-      return { isBigNumber: false, traces, layout: baseLayout };
+      const boxLayout = {
+        ...baseLayout,
+        xaxis: { ...baseLayout.xaxis, type: 'category' },
+        yaxis: { ...baseLayout.yaxis, type: spec.log_y ? 'log' : 'linear' },
+      };
+      return { isBigNumber: false, traces, layout: boxLayout };
     }
 
     // 5. Heatmap
@@ -184,7 +201,13 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
               ],
         },
       ];
-      return { isBigNumber: false, traces, layout: baseLayout };
+      const heatLayout = {
+        ...baseLayout,
+        margin: { ...baseLayout.margin, l: 80, b: 60 },
+        xaxis: { ...baseLayout.xaxis, type: 'category' },
+        yaxis: { ...baseLayout.yaxis, type: 'category' },
+      };
+      return { isBigNumber: false, traces, layout: heatLayout };
     }
 
     // 6. Pie Chart
@@ -224,11 +247,52 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           },
         },
       ];
-      return { isBigNumber: false, traces, layout: baseLayout };
+      const hbarLayout = {
+        ...baseLayout,
+        bargap: 0.28,
+        margin: {
+          ...baseLayout.margin,
+          l: 110,
+          t: 12,
+          b: 36,
+          r: 20,
+        },
+        xaxis: {
+          ...baseLayout.xaxis,
+          type: spec.log_y ? 'log' : 'linear',
+        },
+        yaxis: {
+          ...baseLayout.yaxis,
+          type: 'category',
+          automargin: true,
+        },
+      };
+      return { isBigNumber: false, traces, layout: hbarLayout };
     }
 
     // 8. Vertical Bar
     if (spec.chart_type === 'bar') {
+      const barLayout = {
+        ...baseLayout,
+        bargap: 0.28,
+        margin: {
+          ...baseLayout.margin,
+          t: 12,
+          b: 40,
+          l: 45,
+          r: 20,
+        },
+        xaxis: {
+          ...baseLayout.xaxis,
+          type: 'category',
+          automargin: true,
+        },
+        yaxis: {
+          ...baseLayout.yaxis,
+          type: spec.log_y ? 'log' : 'linear',
+        },
+      };
+
       if (spec.color && columns.length >= 3) {
         const groups = Array.from(new Set(rows.map((r) => String(r[1]))));
         const categories = Array.from(new Set(rows.map((r) => String(r[0]))));
@@ -246,7 +310,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
             marker: { color },
           };
         });
-        return { isBigNumber: false, traces, layout: baseLayout };
+        return { isBigNumber: false, traces, layout: barLayout };
       } else {
         const categories = rows.map((r) => String(r[0]));
         const values = rows.map((r) => Number(r[1]) || 0);
@@ -261,12 +325,31 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
             },
           },
         ];
-        return { isBigNumber: false, traces, layout: baseLayout };
+        return { isBigNumber: false, traces, layout: barLayout };
       }
     }
 
     // 9. Line / Area
     const isArea = spec.chart_type === 'area';
+    const lineLayout = {
+      ...baseLayout,
+      margin: {
+        ...baseLayout.margin,
+        t: 12,
+        b: 36,
+        l: 45,
+        r: 20,
+      },
+      xaxis: {
+        ...baseLayout.xaxis,
+        automargin: true,
+      },
+      yaxis: {
+        ...baseLayout.yaxis,
+        type: spec.log_y ? 'log' : 'linear',
+      },
+    };
+
     if (spec.color && columns.length >= 3) {
       const seriesNames = Array.from(new Set(rows.map((r) => String(r[1]))));
       const traces: any[] = seriesNames.map((sName, idx) => {
@@ -283,7 +366,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           marker: { color, size: 4 },
         };
       });
-      return { isBigNumber: false, traces, layout: baseLayout };
+      return { isBigNumber: false, traces, layout: lineLayout };
     }
 
     const xVals = rows.map((r) => r[0]);
@@ -303,19 +386,13 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       },
     ];
 
-    return { isBigNumber: false, traces, layout: baseLayout };
+    return { isBigNumber: false, traces, layout: lineLayout };
   }, [data, isDark, height, spec, columns, rows]);
 
   if (plotConfig.isBigNumber) {
     return (
-      <div
-        className={`flex flex-col items-center justify-center p-8 bg-[var(--bg-surface)] rounded-[var(--radius-lg)] border border-[var(--border-hairline)] ${className}`}
-        style={{ minHeight: height }}
-      >
-        <span className="text-sm font-medium uppercase tracking-wider text-[var(--text-muted)] mb-2">
-          {plotConfig.title}
-        </span>
-        <span className="text-5xl sm:text-6xl font-extrabold font-mono tracking-tight text-[var(--accent)]">
+      <div className={`flex flex-col items-center justify-center py-6 px-4 w-full text-center ${className}`}>
+        <span className="text-4xl sm:text-5xl font-extrabold font-mono tracking-tight text-[var(--accent)]">
           {plotConfig.bigNumberValue}
         </span>
       </div>
@@ -329,7 +406,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         layout={plotConfig.layout}
         config={{
           responsive: true,
-          displayModeBar: true,
+          displayModeBar: 'hover',
           displaylogo: false,
           toImageButtonOptions: {
             format: 'png',
