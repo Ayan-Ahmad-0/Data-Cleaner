@@ -86,7 +86,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               Standard
             </span>
           ) : (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)]">
               Custom
             </span>
           )}

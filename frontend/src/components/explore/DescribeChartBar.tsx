@@ -106,10 +106,10 @@ export const DescribeChartBar: React.FC<DescribeChartBarProps> = ({
 
       {/* Clarification prompt */}
       {clarification && (
-        <div className="flex items-start gap-2.5 p-3.5 bg-blue-500/10 border border-blue-500/25 rounded-[var(--radius-lg)] text-xs text-blue-400 animate-in fade-in">
-          <HelpCircle className="w-4 h-4 shrink-0 text-blue-400 mt-0.5" />
+        <div className="flex items-start gap-2.5 p-3.5 bg-[var(--accent-subtle)] border border-[var(--accent-border)] rounded-[var(--radius-lg)] text-xs text-[var(--accent-text)] animate-in fade-in">
+          <HelpCircle className="w-4 h-4 shrink-0 text-[var(--accent)] mt-0.5" />
           <div className="space-y-1">
-            <span className="font-semibold block text-blue-300">Clarification needed:</span>
+            <span className="font-semibold block text-[var(--accent)]">Clarification needed:</span>
             {/* Plain text escaping guaranteed */}
             <p className="text-[var(--text-primary)]">{clarification}</p>
           </div>
