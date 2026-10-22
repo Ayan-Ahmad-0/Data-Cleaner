@@ -158,7 +158,17 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
   };
 
   return (
-    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+    <div className={`container-shell ${datasetInfo ? 'max-w-7xl' : 'max-w-3xl'} mx-auto pt-6 sm:pt-8 pb-12 sm:pb-16 space-y-7`}>
+      {/* Hero Title */}
+      <div className="text-left space-y-2">
+        <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
+          Visualize Your Data
+        </h1>
+        <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl">
+          Upload raw datasets up to 10 GB. Instant interactive charts, automatic data distribution graphs, and live chart builder with no cleaning required.
+        </p>
+      </div>
+
       {/* Permanent Raw-Data Honesty Banner */}
       <div className="flex items-center gap-2.5 p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 rounded-[var(--radius-lg)] text-xs font-medium">
         <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
@@ -167,6 +177,13 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
         </span>
       </div>
 
+      {/* Error Callout */}
+      {error && (
+        <Callout variant="danger" title="Upload Failed">
+          {error}
+        </Callout>
+      )}
+
       {/* Upload & Prepare Area (if no dataset loaded) */}
       {!datasetInfo && (
         <div
@@ -174,7 +191,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
           onDragLeave={handleDrag}
           onDragOver={handleDrag}
           onDrop={handleDrop}
-          className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dotted ${
+          className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dashed ${
             dragActive
               ? 'drag-active border-[var(--accent)] bg-[var(--accent-subtle)]'
               : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
@@ -191,78 +208,98 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
             className="hidden"
             accept=".csv,.tsv,.parquet,.json,.ndjson,.jsonl,.xlsx,.db,.sqlite"
             onChange={handleFileInputChange}
+            id="visualize-file-input"
           />
 
-          <div className="w-16 h-16 rounded-[var(--radius-xl)] bg-[var(--bg-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto border border-[var(--border-hairline)] shadow-[var(--shadow-card)] mb-4">
-            <BarChart3 className="w-8 h-8" />
-          </div>
+          {isUploading ? (
+            <div className="space-y-5 py-4">
+              <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto border border-[var(--accent-border)]">
+                <BarChart3 className="w-7 h-7 animate-pulse" />
+              </div>
 
-          <h2 className="text-xl font-bold tracking-tight text-[var(--text-primary)] mb-2">
-            Instant Interactive Data Charts
-          </h2>
-          <p className="text-sm text-[var(--text-secondary)] max-w-md mb-6">
-            Upload CSV, Excel, Parquet, JSON, or SQLite files. View suggested charts and build interactive graphs with zero cleaning or conversion delay.
-          </p>
+              <div className="space-y-1.5">
+                <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
+                  Preparing your file (internal zero-copy conversion)...
+                </span>
+                <span className="text-sm text-[var(--text-muted)] font-mono block">
+                  {uploadProgress}% processed
+                </span>
+              </div>
 
-          {sheetNames.length > 1 && (
-            <div className="mb-4 flex items-center gap-2 text-xs">
-              <span>Select sheet:</span>
-              <select
-                value={selectedSheet}
-                onChange={(e) => setSelectedSheet(e.target.value)}
-                className="bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded px-2 py-1"
-              >
-                {sheetNames.map((s) => (
-                  <option key={s} value={s}>{s}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          {tableNames.length > 1 && (
-            <div className="mb-4 flex items-center gap-2 text-xs">
-              <span>Select table:</span>
-              <select
-                value={selectedTable}
-                onChange={(e) => setSelectedTable(e.target.value)}
-                className="bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded px-2 py-1"
-              >
-                {tableNames.map((t) => (
-                  <option key={t} value={t}>{t}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <Button
-            size="lg"
-            variant="primary"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-          >
-            <Upload className="w-4 h-4 mr-2" />
-            {isUploading ? 'Preparing your file...' : 'Choose File to Visualize'}
-          </Button>
-
-          {isUploading && (
-            <div className="w-full max-w-xs mt-6 flex flex-col gap-2">
-              <div className="w-full bg-[var(--bg-subtle)] h-2 rounded-full overflow-hidden">
+              <div className="w-64 mx-auto bg-[var(--bg-subtle)] h-1.5 rounded-full overflow-hidden border border-[var(--border-hairline)]">
                 <div
-                  className="bg-[var(--accent)] h-full transition-all duration-300"
+                  className="bg-[var(--accent)] h-full transition-all duration-200 rounded-full"
                   style={{ width: `${uploadProgress}%` }}
                 />
               </div>
-              <span className="text-xs text-[var(--text-muted)] animate-pulse">
-                Preparing your file (internal zero-copy conversion)...
-              </span>
             </div>
-          )}
+          ) : (
+            <div className="space-y-6">
+              {/* Upload icon with subtle background */}
+              <div className="w-16 h-16 rounded-[var(--radius-xl)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto border border-[var(--border-hairline)] shadow-[var(--shadow-card)]">
+                <BarChart3 className="w-7 h-7 text-[var(--accent)]" />
+              </div>
 
-          {error && (
-            <div className="mt-4 max-w-md">
-              <Callout variant="danger" title="Upload Failed">
-                {error}
-              </Callout>
+              <div className="space-y-1.5">
+                <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block tracking-tight">
+                  Drag and drop your data file here to visualize
+                </span>
+                <span className="text-sm text-[var(--text-muted)] block">
+                  CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
+                </span>
+              </div>
+
+              {/* Format Pill Tray */}
+              <div className="flex flex-wrap justify-center gap-2 pt-1">
+                {['CSV', 'TSV', 'Parquet', 'JSON', 'NDJSON', 'XLSX', 'SQLite'].map((fmt) => (
+                  <span key={fmt} className="format-pill">
+                    {fmt}
+                  </span>
+                ))}
+              </div>
+
+              {sheetNames.length > 1 && (
+                <div className="flex items-center justify-center gap-2 text-xs pt-1">
+                  <span className="text-[var(--text-secondary)] font-medium">Select sheet:</span>
+                  <select
+                    value={selectedSheet}
+                    onChange={(e) => setSelectedSheet(e.target.value)}
+                    className="bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-sm)] px-2.5 py-1 text-xs"
+                  >
+                    {sheetNames.map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {tableNames.length > 1 && (
+                <div className="flex items-center justify-center gap-2 text-xs pt-1">
+                  <span className="text-[var(--text-secondary)] font-medium">Select table:</span>
+                  <select
+                    value={selectedTable}
+                    onChange={(e) => setSelectedTable(e.target.value)}
+                    className="bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-sm)] px-2.5 py-1 text-xs"
+                  >
+                    {tableNames.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Primary CTA Button */}
+              <div className="pt-1">
+                <Button
+                  variant="primary"
+                  size="lg"
+                  leftIcon={<Upload className="w-4 h-4" />}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="shadow-[0_2px_12px_rgba(253,66,51,0.18)] hover:shadow-[0_4px_20px_rgba(253,66,51,0.25)] transition-shadow duration-200"
+                >
+                  Select Dataset File
+                </Button>
+              </div>
             </div>
           )}
         </div>
