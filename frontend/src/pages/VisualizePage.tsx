@@ -453,11 +453,32 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     }
 
     setCards((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, spec: updatedSpec, loading: true, isEdited: true } : c))
+      prev.map((c) => (c.id === id ? { ...c, spec: updatedSpec, loading: true, error: null, isEdited: true } : c))
     );
 
     try {
       const data = await buildChart(datasetInfo.query_id, updatedSpec, pageOptions);
+      setCards((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, data, loading: false, error: null } : c))
+      );
+    } catch (err: any) {
+      setCards((prev) =>
+        prev.map((c) => (c.id === id ? { ...c, loading: false, error: err.message } : c))
+      );
+    }
+  };
+
+  // Retry failed chart render
+  const handleRetryCard = async (id: string) => {
+    const card = cards.find((c) => c.id === id);
+    if (!card || !datasetInfo) return;
+
+    setCards((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, loading: true, error: null } : c))
+    );
+
+    try {
+      const data = await buildChart(datasetInfo.query_id, card.spec, pageOptions);
       setCards((prev) =>
         prev.map((c) => (c.id === id ? { ...c, data, loading: false, error: null } : c))
       );
@@ -810,6 +831,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
                   onUpdateSpec={handleUpdateCardSpec}
                   onResetSpec={handleResetCardSpec}
                   onRemove={handleRemoveCard}
+                  onRetry={handleRetryCard}
                   globalColor={globalChartColor}
                 />
               ))}

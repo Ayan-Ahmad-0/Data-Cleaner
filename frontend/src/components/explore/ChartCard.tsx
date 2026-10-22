@@ -24,6 +24,7 @@ import {
   Info,
   Palette,
   Check,
+  RefreshCw,
 } from 'lucide-react';
 
 export interface ChartCardItem {
@@ -49,6 +50,7 @@ interface ChartCardProps {
   onUpdateSpec: (id: string, updatedSpec: ChartSpec) => void;
   onResetSpec: (id: string) => void;
   onRemove: (id: string) => void;
+  onRetry?: (id: string) => void;
   globalColor?: string;
 }
 
@@ -59,6 +61,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   onUpdateSpec,
   onResetSpec,
   onRemove,
+  onRetry,
   globalColor,
 }) => {
   const [isTweakOpen, setIsTweakOpen] = useState(false);
@@ -245,12 +248,21 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             <span className="text-xs">Computing chart data...</span>
           </div>
         ) : item.error ? (
-          <div className="flex items-start gap-2.5 p-3.5 rounded-lg bg-red-500/10 border border-red-500/25 text-red-400 text-xs max-w-md w-full">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-semibold block">Failed to render chart</span>
-              <p className="mt-0.5">{item.error}</p>
+          <div className="flex flex-col items-center justify-center p-5 rounded-xl bg-red-500/5 border border-red-500/20 text-red-400 text-xs max-w-sm w-full text-center space-y-2.5">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-red-400 shrink-0" />
+              <span className="font-semibold text-sm">Failed to render chart</span>
             </div>
+            <p className="text-[11px] text-[var(--text-muted)] line-clamp-3 leading-relaxed">
+              {item.error}
+            </p>
+            <button
+              onClick={() => (onRetry ? onRetry(item.id) : onUpdateSpec(item.id, item.spec))}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition-colors cursor-pointer mt-1"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span>Retry Render</span>
+            </button>
           </div>
         ) : item.data ? (
           isKpi ? (

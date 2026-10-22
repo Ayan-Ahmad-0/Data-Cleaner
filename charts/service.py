@@ -18,11 +18,21 @@ from charts.shape import ChartSuggestion, chart_from_result
 from charts.spec import ChartSpec, validate_spec
 from charts.stats import ColumnStats, compute_column_stats
 from charts.suggest import suggest_charts_from_stats
-from explore.limits import QueryLimits
+from explore.limits import ConcurrencyController, QueryLimits
 from explore.sandbox import create_sandboxed_connection
 from explore.service import concurrency_guard, resolve_job_parquet_paths, serialize_cell_value
 
 logger = logging.getLogger(__name__)
+
+# Dedicated concurrency controller for dashboard chart execution
+# Allows up to 10 concurrent chart renders per user and 20 globally with a 15s wait queue
+_chart_limits = QueryLimits(
+    query_timeout_seconds=60.0,
+    memory_limit_per_query="2GB",
+    max_concurrent_queries_global=20,
+    max_concurrent_queries_per_user=10,
+)
+_chart_controller = ConcurrencyController(_chart_limits)
 
 
 @dataclass
@@ -195,7 +205,7 @@ def build_chart(
     )
 
     t0 = time.perf_counter()
-    with concurrency_guard(user_id, limits=q_lim):
+    with concurrency_guard(user_id, controller=_chart_controller, timeout=15.0):
         con = create_sandboxed_connection(target_pq, limits=q_lim)
         try:
             rel = con.execute(sql, params)
