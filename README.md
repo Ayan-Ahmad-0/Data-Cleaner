@@ -85,6 +85,9 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX, SQLite) → Format Stager → Canon
 Input File (CSV, Parquet, JSON, NDJSON, XLSX, SQLite)
 │
 ├───► [Mode 1: Convert Only] ──► [formats/convert.py] ───────► (data/convert_jobs/{id}/output.*)
+│                                                            │
+│                                                            ├───► [Inspect / Query Data]
+│                                                            └───► [Visualize Converted Data]
 │
 ├───► [Mode 3: Query Data] ────► [app/main.py] ──────────────► (data/query_jobs/{id}/*.parquet)
 │                                                            │
@@ -123,8 +126,10 @@ Input File (CSV, Parquet, JSON, NDJSON, XLSX, SQLite)
       [core/verifier.py] ───────────────────────────────────► (data/jobs/{id}/cleaned.parquet)
       │                                                       (data/jobs/{id}/cleaned.csv)
       │                                                       (verification.json)
-      ▼
-      [explore/service.py] ◄── [sqlglot AST Sandbox] ────────► In-Browser SQL, AI Analyst, & Charts
+      │
+      ├───► [Downstream Handoff] ───────────────────────────► [analyst/service.py] (Ask AI Analyst)
+      ├───► [Downstream Handoff] ───────────────────────────► [explore/service.py] (SQL Query Studio)
+      └───► [Downstream Handoff] ───────────────────────────► [charts/service.py] (Visualize Clean Data)
 ```
 
 Each stage is completely deterministic and re-runnable from its stored Parquet snapshot without re-processing raw input files.
@@ -214,13 +219,15 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 - **Strict Macro Allowlist** — The AI generator has no access to raw SQL generation. It selects and parameterizes macros from a closed schema (`trim_and_normalize`, `cast_type`, `clip_outliers`, `handle_nulls`, `parse_timestamp`, `dedupe`).
 - **AST Sandboxed SQL Studio** — All interactive SQL queries are parsed through `sqlglot` prior to execution. DDL, DML, file system calls, and external table references are denied at parse time before reaching the query engine.
 - **Declarative Chart SQL Compilation** — Visualizations compile declarative `ChartSpec` contracts into safe DuckDB SQL using `TRY_CAST` type coercions, ensuring untyped varchar columns aggregate reliably into numerical sums, averages, and histograms.
+- **Dedicated Chart Concurrency Architecture** — Dashboard chart execution decouples from interactive SQL queries using a dedicated `_chart_controller` allowing up to 10 concurrent analytical chart queries per user and 20 globally with a 15.0-second queue timeout, preventing per-user concurrency bottlenecks when loading multi-card dashboards.
+- **Cleaned Dataset Handoff Priority** — Downstream visualization and query routes inspect and prioritize `cleaned.parquet` over raw `staged.parquet`, ensuring post-clean charts immediately reflect deduplicated, typed, and normalized data.
 - **Strict Query Resource Caps** — Interactive SQL queries enforce a 5.0-second execution timeout, a 10,000-row return limit, a 100 MB export ceiling, and a 2-worker concurrency guard.
 - **Autonomous AI Analyst Error Recovery** — If an AI-synthesized SQL query fails during sandbox execution, the error and schema context are fed back to the model for an autonomous single-retry correction pass.
 - **SQL Injection Prevention** — All column identifiers and parameters passed into SQL generation are sanitized using `quote_ident()` with double-quote escaping.
 - **Privacy Mode Masking** — When privacy mode is enabled, sample data values and categorical token lists are stripped from LLM prompts; only statistical distributions and column names are transmitted.
 - **Deterministic Offline Fallback** — If Gemini API rate limits, network interruptions, or quota exhaustion occurs, the pipeline falls back to an offline rule-based recipe generator without pipeline stoppage.
 - **Reconciliation Audit Gate** — Output files are verified before delivery; if unexpected row loss exceeds defined thresholds, warnings are flagged in the verification report.
-- **Fluid High-Density Layout** — The user interface uses a wide 1600px breakpoint and responsive padding across all views, eliminating artificial container constraints and optimizing screen real estate for deep analytical data inspection.
+- **Fluid High-Density Layout** — The user interface uses a wide 1600px breakpoint and responsive padding across all views, eliminating artificial container constraints and bottom clutter for deep analytical data inspection.
 
 ---
 
@@ -405,6 +412,8 @@ docker compose up --build
 - **LLM Model Availability and Rate Spikes** — Symptom: Calls to preview Gemini endpoints intermittently returned `503 UNAVAILABLE` or `404 NOT_FOUND` during peak usage. Diagnosis: Preview model quotas and regional demand fluctuations caused transient request drops. Fix: Built a two-tier resilience architecture featuring `gemini-3.5-flash` with an automatic fallback to `MinimalSafeRecipeGenerator` heuristic execution.
 - **Windows CLI Encoding Glitches** — Symptom: CLI demo crashed with `UnicodeEncodeError: 'charmap' codec can't encode character '\u2717'`. Diagnosis: Standard Windows PowerShell consoles operate on Windows-1252 code pages that cannot display Unicode tick/cross symbols. Fix: Standardized CLI test outputs on ASCII markers `[PASS]` and `[WARN]`.
 - **Untyped CSV Comparisons in Direct Query Mode** — Symptom: User SQL queries comparing numeric columns in raw CSV uploads failed with `Binder Error: Cannot compare values of type VARCHAR and type INTEGER_LITERAL`. Diagnosis: Direct query staging preserved raw strings without schema-guided type casting. Fix: Updated test fixtures and UI guidance to explicitly document column data types in the interactive schema sidebar.
+- **Concurrent Dashboard Query Bottleneck in Visualize Mode** — Symptom: Loading or refreshing multi-card chart dashboards failed with `Failed to render chart: You already have a query running. Please wait for it to complete.`. Diagnosis: `ConcurrencyController` enforced `max_concurrent_queries_per_user = 1` across all endpoints with zero timeout, causing simultaneous chart card queries to reject each other via HTTP 429 `ServerBusyError`. Fix: Decoupled interactive chart execution into a dedicated `_chart_controller` with 10 concurrent query slots per user, 20 global slots, atomic per-user reservation under lock, and a 15-second acquisition wait queue, complemented by an in-card "Retry Render" button in `ChartCard.tsx`.
+- **Uncleaned Staged Parquet Used for Post-Clean Visualizations** — Symptom: Navigating from post-cleaning results to "Visualize Data" rendered charts based on dirty `staged.parquet` rather than `cleaned.parquet`. Diagnosis: `charts/service.py` and `charts_ai/context.py` resolved `orig_pq or clean_pq`, always selecting raw staged data when available. Fix: Updated dataset resolution to `target_pq = clean_pq if clean_pq and clean_pq.exists() else (orig_pq or clean_pq)` across charting and AI context services.
 
 ---
 
