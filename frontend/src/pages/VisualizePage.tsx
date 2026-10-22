@@ -16,7 +16,7 @@ import { Callout } from '../components/ui/Callout';
 import {
   BarChart3,
   Upload,
-  AlertTriangle,
+  Info,
   FileSpreadsheet,
 } from 'lucide-react';
 
@@ -169,11 +169,11 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
         </p>
       </div>
 
-      {/* Permanent Raw-Data Honesty Banner */}
-      <div className="flex items-center gap-2.5 p-3.5 bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-300 rounded-[var(--radius-lg)] text-xs font-medium">
-        <AlertTriangle className="w-4 h-4 shrink-0 text-amber-500" />
+      {/* Raw-Data Honesty Note (Clean, neutral styling without yellow shading) */}
+      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+        <Info className="w-4 h-4 shrink-0 text-[var(--text-muted)]" />
         <span>
-          <strong>Viewing original, uncleaned data.</strong> Missing values, duplicates, and unparsed types are included in these charts unless you filter them out.
+          Viewing original, uncleaned data. Missing values, duplicates, and unparsed types are included in charts unless filtered out.
         </span>
       </div>
 

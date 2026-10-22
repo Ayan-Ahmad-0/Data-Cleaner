@@ -243,7 +243,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dotted cursor-pointer ${
+            className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dashed cursor-pointer ${
               dragActive
                 ? 'drag-active border-[var(--accent)] bg-[var(--accent-subtle)]'
                 : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
