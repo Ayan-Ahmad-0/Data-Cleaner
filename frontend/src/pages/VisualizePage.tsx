@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   detectFormat,
   getColumnStats,
@@ -39,13 +39,17 @@ import {
 } from 'lucide-react';
 
 interface VisualizePageProps {
+  initialDataset?: QueryUploadResult | null;
   onHandoffToQuery: (jobId: string, filename: string) => void;
   onHandoffToClean: (cleanJobId: string, filename: string) => void;
+  onBackToSource?: () => void;
 }
 
 export const VisualizePage: React.FC<VisualizePageProps> = ({
+  initialDataset,
   onHandoffToQuery,
   onHandoffToClean,
+  onBackToSource,
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -79,6 +83,32 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
   const [selectedTable, setSelectedTable] = useState<string>('');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Auto-load pre-staged dataset when handed off from Clean or Convert flows
+  useEffect(() => {
+    if (initialDataset && initialDataset.query_id) {
+      setDatasetInfo(initialDataset);
+      setStagedFile(null);
+      setSheetNames([]);
+      setSelectedSheet('');
+      setTableNames([]);
+      setSelectedTable('');
+
+      Promise.all([
+        getColumnStats(initialDataset.query_id),
+        getChartSuggestions(initialDataset.query_id),
+        getChartAiStatus(initialDataset.query_id),
+      ])
+        .then(([colStats, chartSuggestions, aiStatusRes]) => {
+          setColumns(colStats);
+          setAiEnabled(aiStatusRes.enabled);
+          loadCardsFromSuggestions(initialDataset.query_id, chartSuggestions, pageOptions);
+        })
+        .catch((err) => {
+          console.error('Failed to load dataset metadata for visualizer:', err);
+        });
+    }
+  }, [initialDataset?.query_id]);
 
   const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -704,6 +734,24 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
             </div>
 
             <div className="flex items-center gap-2">
+              {onBackToSource && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={onBackToSource}
+                  className="text-xs h-7.5"
+                >
+                  Back
+                </Button>
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => onHandoffToQuery(datasetInfo.query_id, datasetInfo.filename)}
+                className="text-xs h-7.5"
+              >
+                Query data
+              </Button>
               <Button
                 size="sm"
                 variant="secondary"

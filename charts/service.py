@@ -74,8 +74,8 @@ def get_column_stats(
             return cached_stats
 
     clean_pq, orig_pq = resolve_job_parquet_paths(job_id, user_id=user_id, storage=storage)
-    # Prefer original (raw) Parquet in Visualize mode if present, else clean
-    target_pq = orig_pq if orig_pq and orig_pq.exists() else clean_pq
+    # Prefer cleaned Parquet if available (e.g. post-cleaning), else staged/raw Parquet
+    target_pq = clean_pq if clean_pq and clean_pq.exists() else (orig_pq or clean_pq)
 
     stats = compute_column_stats(target_pq, limits=lim)
     _stats_cache[job_id] = (now, stats)
@@ -93,7 +93,7 @@ def suggest_charts(
     stats = get_column_stats(job_id, user_id=user_id, storage=storage, limits=limits)
     
     clean_pq, orig_pq = resolve_job_parquet_paths(job_id, user_id=user_id, storage=storage)
-    target_pq = orig_pq if orig_pq and orig_pq.exists() else clean_pq
+    target_pq = clean_pq if clean_pq and clean_pq.exists() else (orig_pq or clean_pq)
 
     # Quick row count
     import duckdb
@@ -124,7 +124,7 @@ def build_chart(
 
     # Resolve dataset paths
     clean_pq, orig_pq = resolve_job_parquet_paths(job_id, user_id=user_id, storage=storage)
-    target_pq = orig_pq if orig_pq and orig_pq.exists() else clean_pq
+    target_pq = clean_pq if clean_pq and clean_pq.exists() else (orig_pq or clean_pq)
 
     # 1. Fetch schema
     import duckdb

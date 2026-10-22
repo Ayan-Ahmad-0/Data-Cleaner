@@ -8,7 +8,7 @@ import { ResultsPage } from './pages/ResultsPage';
 import { ConvertPage } from './pages/ConvertPage';
 import { QueryPage } from './pages/QueryPage';
 import { VisualizePage } from './pages/VisualizePage';
-import { approveAndClean, getJobDetail, type JobDetailResponse } from './lib/api';
+import { approveAndClean, getJobDetail, type JobDetailResponse, type QueryUploadResult } from './lib/api';
 import { formatNumber } from './lib/format';
 
 export function App() {
@@ -16,6 +16,8 @@ export function App() {
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobData, setJobData] = useState<JobDetailResponse | null>(null);
+  const [visualizeTarget, setVisualizeTarget] = useState<QueryUploadResult | null>(null);
+  const [visualizeReturnMode, setVisualizeReturnMode] = useState<'clean' | 'convert' | null>(null);
 
   const [fileMeta, setFileMeta] = useState<{
     name: string;
@@ -109,6 +111,23 @@ export function App() {
     }).catch(console.error);
   };
 
+  const handleHandoffToVisualize = (
+    targetJobId: string,
+    filename: string,
+    rowCount?: number,
+    fileSize?: number
+  ) => {
+    setVisualizeTarget({
+      query_id: targetJobId,
+      filename,
+      row_count: rowCount || 0,
+      file_size_bytes: fileSize || 0,
+      columns: [],
+    });
+    setVisualizeReturnMode(appMode === 'convert' ? 'convert' : 'clean');
+    setAppMode('visualize');
+  };
+
   // Determine max step the user is allowed to navigate to
   const maxAllowedStep = useMemo(() => {
     if (!jobId) return 1;
@@ -167,13 +186,18 @@ export function App() {
         )}
 
         {appMode === 'convert' ? (
-          <ConvertPage onHandoffToClean={handleHandoffToClean} />
+          <ConvertPage
+            onHandoffToClean={handleHandoffToClean}
+            onHandoffToVisualize={handleHandoffToVisualize}
+          />
         ) : appMode === 'query' ? (
           <QueryPage onHandoffToClean={handleHandoffToClean} />
         ) : appMode === 'visualize' ? (
           <VisualizePage
+            initialDataset={visualizeTarget}
             onHandoffToQuery={(_id, _name) => setAppMode('query')}
             onHandoffToClean={handleHandoffToClean}
+            onBackToSource={visualizeReturnMode ? () => setAppMode(visualizeReturnMode) : undefined}
           />
         ) : (
           <>
@@ -209,6 +233,7 @@ export function App() {
                 jobData={jobData}
                 onRestart={handleRestart}
                 onGoToUpload={() => setCurrentStep(1)}
+                onHandoffToVisualize={handleHandoffToVisualize}
               />
             )}
           </>

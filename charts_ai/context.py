@@ -84,8 +84,8 @@ def build_chart_ai_context(
     stats = get_column_stats(job_id=job_id, user_id=user_id, storage=storage)
 
     clean_pq, orig_pq = resolve_job_parquet_paths(job_id, user_id=user_id, storage=storage)
-    target_pq = orig_pq if orig_pq and orig_pq.exists() else clean_pq
-    is_raw = bool(orig_pq and orig_pq.exists())
+    target_pq = clean_pq if clean_pq and clean_pq.exists() else (orig_pq or clean_pq)
+    is_raw = bool(orig_pq and orig_pq.exists() and not (clean_pq and clean_pq.exists()))
 
     # Get row count
     row_count = 0

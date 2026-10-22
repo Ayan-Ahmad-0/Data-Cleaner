@@ -21,11 +21,13 @@ import {
   Bot,
   Terminal,
   UploadCloud,
+  BarChart3,
 } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
 
 interface ConvertPageProps {
   onHandoffToClean: (jobId: string, filename: string) => void;
+  onHandoffToVisualize?: (convertId: string, filename: string, rowCount?: number) => void;
 }
 
 const TARGET_FORMATS = [
@@ -37,7 +39,7 @@ const TARGET_FORMATS = [
   { id: 'xlsx', label: 'Excel Workbook (.xlsx)', ext: '.xlsx', note: 'Splits automatically into parts if >1,048,575 rows' },
 ];
 
-export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) => {
+export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHandoffToVisualize }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [detectedFormat, setDetectedFormat] = useState<string>('');
@@ -640,10 +642,10 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                     </div>
                     <div className="space-y-1">
                       <h3 className="text-base sm:text-lg font-semibold text-white tracking-tight">
-                        Inspect or Query your Data
+                        Inspect, Query, or Visualize your Data
                       </h3>
                       <p className="text-sm text-zinc-400 max-w-xl leading-relaxed">
-                        Ask questions in natural English with our AI Analyst or write custom SQL queries directly against your converted data.
+                        Ask questions in natural English with our AI Analyst, write custom SQL queries, or generate instant interactive charts from your converted data.
                       </p>
                     </div>
                   </div>
@@ -665,6 +667,15 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean }) =>
                     >
                       <Terminal className="w-4 h-4 text-zinc-400" />
                       <span>SQL Query Box</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => onHandoffToVisualize?.(convertResult.convert_id, selectedFile?.name || 'converted dataset', convertResult.result.rows)}
+                      className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-zinc-850 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-750 transition-all cursor-pointer"
+                    >
+                      <BarChart3 className="w-4 h-4 text-[#FF4B3E]" />
+                      <span>Visualize Data</span>
                     </button>
                   </div>
                 </div>

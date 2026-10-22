@@ -3,16 +3,17 @@ import { getDownloadUrl, type JobDetailResponse } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
 import { formatNumber, formatPercent } from '../lib/format';
-import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal, Bot } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal, Bot, BarChart3 } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
 
 interface ResultsPageProps {
   jobData: JobDetailResponse | null;
   onRestart: () => void;
   onGoToUpload?: () => void;
+  onHandoffToVisualize?: (jobId: string, filename: string, rowCount?: number, fileSize?: number) => void;
 }
 
-export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, onGoToUpload }) => {
+export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, onGoToUpload, onHandoffToVisualize }) => {
   const [showExplore, setShowExplore] = useState<boolean>(false);
   const [exploreInitialMode, setExploreInitialMode] = useState<'ask_ai' | 'sql'>('ask_ai');
   const verification = jobData?.verification;
@@ -227,10 +228,10 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
             </div>
             <div className="space-y-1">
               <h3 className="text-base sm:text-lg font-semibold text-white tracking-tight">
-                Inspect or Query your Data
+                Inspect, Query, or Visualize your Data
               </h3>
               <p className="text-sm text-zinc-400 max-w-xl leading-relaxed">
-                Ask questions in natural English with our AI Analyst or write custom SQL queries directly against your cleaned data.
+                Ask questions in natural English with our AI Analyst, write custom SQL queries, or generate instant interactive charts from your cleaned data.
               </p>
             </div>
           </div>
@@ -258,6 +259,15 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
             >
               <Terminal className="w-4 h-4 text-zinc-400" />
               <span>SQL Query Box</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onHandoffToVisualize?.(jobId, jobData.job.filename, comparison?.rows_after)}
+              className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-zinc-850 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-750 transition-all cursor-pointer"
+            >
+              <BarChart3 className="w-4 h-4 text-[#FF4B3E]" />
+              <span>Visualize Data</span>
             </button>
           </div>
         </div>
