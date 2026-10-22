@@ -11,8 +11,6 @@ interface UploadPageProps {
   onUploadComplete: (jobData: { id: string; name: string; size: string; rowCount: string }) => void;
 }
 
-const SUPPORTED_FORMATS = ['CSV', 'TSV', 'Parquet', 'JSON', 'NDJSON', 'XLSX', 'SQLite'];
-
 export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   const [dragActive, setDragActive] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(false);
@@ -198,15 +196,6 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
               <span className="text-sm text-[var(--text-muted)] block">
                 CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
               </span>
-            </div>
-
-            {/* Format Pill Tray */}
-            <div className="flex flex-wrap justify-center gap-2 pt-1">
-              {SUPPORTED_FORMATS.map((fmt) => (
-                <span key={fmt} className="format-pill">
-                  {fmt}
-                </span>
-              ))}
             </div>
 
             {/* Primary CTA */}

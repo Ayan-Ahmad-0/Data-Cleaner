@@ -249,15 +249,6 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
                 </span>
               </div>
 
-              {/* Format Pill Tray */}
-              <div className="flex flex-wrap justify-center gap-2 pt-1">
-                {['CSV', 'TSV', 'Parquet', 'JSON', 'NDJSON', 'XLSX', 'SQLite'].map((fmt) => (
-                  <span key={fmt} className="format-pill">
-                    {fmt}
-                  </span>
-                ))}
-              </div>
-
               {sheetNames.length > 1 && (
                 <div className="flex items-center justify-center gap-2 text-xs pt-1">
                   <span className="text-[var(--text-secondary)] font-medium">Select sheet:</span>
