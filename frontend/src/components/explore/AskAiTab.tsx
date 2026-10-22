@@ -22,7 +22,9 @@ import {
   ThumbsUp,
   ThumbsDown,
   Info,
+  BarChart2,
 } from 'lucide-react';
+import { ChartThisResultModal } from './ChartThisResultModal';
 
 interface AskAiTabProps {
   jobId: string;
@@ -48,6 +50,7 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
   const [copiedSql, setCopiedSql] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [userFeedback, setUserFeedback] = useState<'up' | 'down' | null>(null);
+  const [showChartModal, setShowChartModal] = useState<boolean>(false);
 
   const timerIntervalRef = useRef<any>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -422,17 +425,36 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
                 </div>
 
                 {result.result && result.result.rows.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    leftIcon={<Download className="w-3.5 h-3.5" />}
-                    onClick={handleExportResultCsv}
-                    disabled={isExporting}
-                  >
-                    {isExporting ? 'Exporting...' : 'Download CSV'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      leftIcon={<BarChart2 className="w-3.5 h-3.5" />}
+                      onClick={() => setShowChartModal(true)}
+                    >
+                      Chart this result
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      leftIcon={<Download className="w-3.5 h-3.5" />}
+                      onClick={handleExportResultCsv}
+                      disabled={isExporting}
+                    >
+                      {isExporting ? 'Exporting...' : 'Download CSV'}
+                    </Button>
+                  </div>
                 )}
               </div>
+
+              {/* Chart Modal */}
+              {showChartModal && result.result && (
+                <ChartThisResultModal
+                  result={result.result}
+                  datasetName={datasetName}
+                  onClose={() => setShowChartModal(false)}
+                />
+              )}
 
               {/* Truncation warning if applicable */}
               {result.result?.truncated && (

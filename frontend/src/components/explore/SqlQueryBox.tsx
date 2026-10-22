@@ -27,8 +27,10 @@ import {
   Copy,
   Check,
   Plus,
+  BarChart2,
 } from 'lucide-react';
 import { AskAiTab } from './AskAiTab';
+import { ChartThisResultModal } from './ChartThisResultModal';
 
 interface SqlQueryBoxProps {
   jobId: string;
@@ -69,6 +71,7 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [elapsedTimer, setElapsedTimer] = useState<number>(0);
   const [copiedSql, setCopiedSql] = useState<boolean>(false);
+  const [showChartModal, setShowChartModal] = useState<boolean>(false);
 
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [history, setHistory] = useState<QueryHistoryItem[]>(() => {
@@ -766,17 +769,36 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
                 </div>
 
                 {result && result.rows.length > 0 && (
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    leftIcon={<Download className="w-3.5 h-3.5" />}
-                    onClick={handleExportCsv}
-                    disabled={isExporting}
-                  >
-                    {isExporting ? 'Exporting...' : 'Export CSV'}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      leftIcon={<BarChart2 className="w-3.5 h-3.5" />}
+                      onClick={() => setShowChartModal(true)}
+                    >
+                      Chart this result
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      leftIcon={<Download className="w-3.5 h-3.5" />}
+                      onClick={handleExportCsv}
+                      disabled={isExporting}
+                    >
+                      {isExporting ? 'Exporting...' : 'Export CSV'}
+                    </Button>
+                  </div>
                 )}
               </div>
+
+              {/* Chart Modal */}
+              {showChartModal && result && (
+                <ChartThisResultModal
+                  result={result}
+                  datasetName={datasetName}
+                  onClose={() => setShowChartModal(false)}
+                />
+              )}
 
               {/* Results Table Scroll View */}
               <div className="flex-1 overflow-auto max-h-[400px]">

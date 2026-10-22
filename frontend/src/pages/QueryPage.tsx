@@ -243,11 +243,16 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
             onDragLeave={handleDrag}
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            className={`relative rounded-[var(--radius-lg)] border-2 border-dashed p-8 sm:p-14 text-center transition-all cursor-pointer ${
+            className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dotted cursor-pointer ${
               dragActive
-                ? 'border-[var(--accent)] bg-[var(--accent-subtle)]/40 shadow-xs'
-                : 'border-[var(--border-strong)] bg-[var(--bg-surface)] hover:border-[var(--border-strong)] hover:bg-[var(--bg-subtle)]'
+                ? 'drag-active border-[var(--accent)] bg-[var(--accent-subtle)]'
+                : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
             }`}
+            style={{
+              backgroundImage: dragActive
+                ? undefined
+                : 'radial-gradient(ellipse at center top, var(--bg-subtle) 0%, transparent 70%)',
+            }}
             onClick={() => !isUploading && fileInputRef.current?.click()}
           >
             <input

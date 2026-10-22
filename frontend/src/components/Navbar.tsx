@@ -8,8 +8,8 @@ interface NavbarProps {
   currentStep: number;
   maxAllowedStep?: number;
   onSelectStep: (step: number) => void;
-  appMode?: 'clean' | 'convert' | 'query';
-  onSelectMode?: (mode: 'clean' | 'convert' | 'query') => void;
+  appMode?: 'clean' | 'convert' | 'query' | 'visualize';
+  onSelectMode?: (mode: 'clean' | 'convert' | 'query' | 'visualize') => void;
   fileName?: string;
   fileSizeFormatted?: string;
   rowCountFormatted?: string;

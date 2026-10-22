@@ -328,4 +328,120 @@ export async function uploadForQuery(
   return res.json();
 }
 
+// =========================================================================
+// Charts & Visualize Data API
+// =========================================================================
+
+export interface ChartColumnStats {
+  name: string;
+  type: string;
+  null_pct: number;
+  distinct_approx: number | null;
+  min: string | null;
+  max: string | null;
+  kind: 'numeric' | 'categorical' | 'datetime' | 'boolean' | 'text_long' | 'id_like';
+  parse_hints: {
+    as_number_success_pct?: number;
+    as_date_success_pct?: number;
+  };
+}
+
+export interface ChartFieldRef {
+  column: string;
+  cast_as?: 'number' | 'date' | 'timestamp' | 'text' | null;
+  time_bucket?: 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'year' | 'hour_of_day' | 'day_of_week' | null;
+  bins?: number | null;
+}
+
+export interface ChartFilter {
+  column: string;
+  op: '=' | '!=' | '<' | '<=' | '>' | '>=' | 'in' | 'between' | 'is_null' | 'not_null';
+  value?: any;
+}
+
+export interface ChartSpec {
+  chart_type: 'bar' | 'hbar' | 'line' | 'area' | 'histogram' | 'scatter' | 'pie' | 'box' | 'heatmap' | 'big_number';
+  x?: ChartFieldRef | null;
+  y?: ChartFieldRef | null;
+  color?: ChartFieldRef | null;
+  aggregation?: 'count' | 'count_distinct' | 'sum' | 'avg' | 'min' | 'max' | 'median' | 'none';
+  filters?: ChartFilter[];
+  sort?: 'x' | 'y_desc' | 'y_asc';
+  top_n?: number | null;
+  log_y?: boolean;
+  title?: string | null;
+  exclude_nulls?: boolean;
+  hide_outliers?: boolean;
+}
+
+export interface ChartDataResponse {
+  spec: ChartSpec;
+  columns: string[];
+  rows: any[][];
+  row_count: number;
+  notes: string[];
+  warnings: string[];
+  elapsed_seconds: number;
+}
+
+export async function getColumnStats(jobId: string): Promise<ChartColumnStats[]> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/stats`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to fetch column stats.');
+  }
+  const data = await res.json();
+  return data.columns || [];
+}
+
+export async function getChartSuggestions(jobId: string): Promise<ChartSpec[]> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/suggest`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to fetch chart suggestions.');
+  }
+  const data = await res.json();
+  return data.suggestions || [];
+}
+
+export async function buildChart(
+  jobId: string,
+  spec: ChartSpec,
+  signal?: AbortSignal,
+): Promise<ChartDataResponse> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/build`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ spec }),
+    signal,
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to build chart.');
+  }
+  return res.json();
+}
+
+export async function exportChartCsv(jobId: string, spec: ChartSpec): Promise<void> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/export`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ spec }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to export chart data.');
+  }
+  const blob = await res.blob();
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `chart_data_${jobId}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(url);
+}
+
+
 

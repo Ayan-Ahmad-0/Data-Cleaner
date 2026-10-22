@@ -582,6 +582,104 @@ def ask_ai_analyst(job_id: str, payload: AnalystAskRequest):
         raise HTTPException(status_code=500, detail="Failed to process question with AI Analyst.")
 
 
+# =========================================================================
+# Charts and "Visualize Data" Endpoints
+# =========================================================================
+
+from charts import (
+    ChartError,
+    ChartSpec,
+    ChartTimeoutError,
+    ChartTooLargeError,
+    InvalidChartSpecError,
+    build_chart,
+    export_chart_data,
+    get_column_stats,
+    suggest_charts,
+)
+
+
+class BuildChartRequest(BaseModel):
+    spec: Dict[str, Any]
+    user_id: Optional[str] = "anonymous"
+
+
+@app.get("/api/charts/{job_id}/stats")
+def get_dataset_column_stats(job_id: str, user_id: str = "anonymous"):
+    """Get rich column stats, kind classification, and parse hints for raw datasets."""
+    try:
+        stats = get_column_stats(job_id=job_id, user_id=user_id, storage=storage)
+        return {"job_id": job_id, "columns": [s.to_dict() for s in stats]}
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to retrieve column stats for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to compute column statistics: {e}")
+
+
+@app.get("/api/charts/{job_id}/suggest")
+def get_chart_suggestions(job_id: str, user_id: str = "anonymous"):
+    """Get up to 8 prioritized, rule-based chart specifications for the dataset."""
+    try:
+        suggestions = suggest_charts(job_id=job_id, user_id=user_id, storage=storage)
+        return {"job_id": job_id, "suggestions": [s.model_dump() for s in suggestions]}
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to suggest charts for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to generate chart suggestions: {e}")
+
+
+@app.post("/api/charts/{job_id}/build")
+def build_dataset_chart(job_id: str, payload: BuildChartRequest):
+    """Compile and execute a ChartSpec against the sandboxed dataset."""
+    try:
+        spec = ChartSpec.model_validate(payload.spec)
+        chart_data = build_chart(
+            job_id=job_id,
+            user_id=payload.user_id or "anonymous",
+            spec=spec,
+            storage=storage,
+        )
+        return chart_data.to_dict()
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidChartSpecError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except ChartTimeoutError as e:
+        raise HTTPException(status_code=504, detail=str(e))
+    except ServerBusyError as e:
+        raise HTTPException(status_code=429, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to build chart for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to execute chart query: {e}")
+
+
+@app.post("/api/charts/{job_id}/export")
+def export_dataset_chart(job_id: str, payload: BuildChartRequest):
+    """Execute chart aggregation and download the small aggregated data table as CSV."""
+    try:
+        spec = ChartSpec.model_validate(payload.spec)
+        csv_path = export_chart_data(
+            job_id=job_id,
+            user_id=payload.user_id or "anonymous",
+            spec=spec,
+            storage=storage,
+        )
+        return FileResponse(
+            path=csv_path,
+            media_type="text/csv",
+            filename=f"chart_data_{job_id}.csv",
+        )
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except InvalidChartSpecError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to export chart for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to export chart data: {e}")
+
+
 # Mount built frontend assets if present
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if frontend_dist.exists():

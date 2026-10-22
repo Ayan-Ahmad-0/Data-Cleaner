@@ -7,11 +7,12 @@ import { ProgressPage } from './pages/ProgressPage';
 import { ResultsPage } from './pages/ResultsPage';
 import { ConvertPage } from './pages/ConvertPage';
 import { QueryPage } from './pages/QueryPage';
+import { VisualizePage } from './pages/VisualizePage';
 import { approveAndClean, getJobDetail, type JobDetailResponse } from './lib/api';
 import { formatNumber } from './lib/format';
 
 export function App() {
-  const [appMode, setAppMode] = useState<'clean' | 'convert' | 'query'>('clean');
+  const [appMode, setAppMode] = useState<'clean' | 'convert' | 'query' | 'visualize'>('clean');
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobData, setJobData] = useState<JobDetailResponse | null>(null);
@@ -138,7 +139,7 @@ export function App() {
       />
 
       <main className="flex-1">
-        {/* Centered Mode Switcher (Clean Data vs Convert Only vs Query Data) - visible when selecting mode or uploading */}
+        {/* Centered Mode Switcher (Clean Data vs Convert Only vs Query Data vs Visualize Data) - visible when selecting mode or uploading */}
         {currentStep === 1 && (
           <div className="pt-4 sm:pt-5 pb-0 flex justify-center items-center">
             <div className="inline-flex items-center bg-[var(--bg-subtle)] p-1 rounded-[var(--radius-lg)] border border-[var(--border-hairline)] shadow-[var(--shadow-card)]">
@@ -146,12 +147,13 @@ export function App() {
                 { key: 'clean' as const, label: 'Clean Data' },
                 { key: 'convert' as const, label: 'Convert Only' },
                 { key: 'query' as const, label: 'Query Data' },
+                { key: 'visualize' as const, label: 'Visualize Data' },
               ]).map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setAppMode(tab.key)}
-                  className={`relative px-5 sm:px-6 py-2 text-sm font-medium rounded-[var(--radius-md)] transition-all duration-200 cursor-pointer select-none whitespace-nowrap ${
+                  className={`relative px-4 sm:px-5 py-2 text-sm font-medium rounded-[var(--radius-md)] transition-all duration-200 cursor-pointer select-none whitespace-nowrap ${
                     appMode === tab.key
                       ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm border-t-2 border-t-[var(--accent)] border-x border-b border-x-[var(--border-hairline)] border-b-[var(--border-hairline)]'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border-t-2 border-transparent'
@@ -168,6 +170,11 @@ export function App() {
           <ConvertPage onHandoffToClean={handleHandoffToClean} />
         ) : appMode === 'query' ? (
           <QueryPage onHandoffToClean={handleHandoffToClean} />
+        ) : appMode === 'visualize' ? (
+          <VisualizePage
+            onHandoffToQuery={(_id, _name) => setAppMode('query')}
+            onHandoffToClean={handleHandoffToClean}
+          />
         ) : (
           <>
             {currentStep === 1 && (
