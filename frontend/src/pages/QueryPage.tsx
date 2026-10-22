@@ -10,12 +10,10 @@ import {
 } from '../lib/api';
 import {
   ArrowRight,
-  Bot,
   Database,
   FileText,
   FileUp,
   RefreshCw,
-  Terminal,
 } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
 
@@ -310,66 +308,6 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
                 </div>
               </div>
             )}
-          </div>
-
-          {/* Prominent Feature Highlights Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-            <div className="p-5 rounded-xl bg-[#141517] border border-zinc-800 hover:border-zinc-700/80 transition-all space-y-2.5 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <div className="w-9 h-9 rounded-lg bg-[#FF4B3E]/15 text-[#FF4B3E] flex items-center justify-center">
-                  <Bot className="w-5 h-5" />
-                </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-[#FF4B3E] text-white">
-                  Interactive AI
-                </span>
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-white block">
-                  Ask AI Analyst
-                </span>
-                <p className="text-xs text-zinc-400 leading-relaxed mt-1">
-                  Query in natural English. AI writes, verifies, and executes read-only SQL against your uploaded data, auto-correcting any errors.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-xl bg-[#141517] border border-zinc-800 hover:border-zinc-700/80 transition-all space-y-2.5 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <div className="w-9 h-9 rounded-lg bg-zinc-850 border border-zinc-750 text-zinc-200 flex items-center justify-center">
-                  <Terminal className="w-5 h-5 text-zinc-300" />
-                </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide bg-zinc-800 text-zinc-300 border border-zinc-750">
-                  DuckDB
-                </span>
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-white block">
-                  SQL Query Box
-                </span>
-                <p className="text-xs text-zinc-400 leading-relaxed mt-1">
-                  Full-featured SQL terminal with quick starters, 1-click schema insertion, query history, and instant CSV export.
-                </p>
-              </div>
-            </div>
-
-            <div className="p-5 rounded-xl bg-[#141517] border border-zinc-800 hover:border-zinc-700/80 transition-all space-y-2.5 shadow-2xs">
-              <div className="flex items-center justify-between">
-                <div className="w-9 h-9 rounded-lg bg-zinc-850 border border-zinc-750 text-zinc-400 flex items-center justify-center">
-                  <Database className="w-5 h-5 text-zinc-400" />
-                </div>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-semibold uppercase tracking-wide bg-zinc-850 text-zinc-400 border border-zinc-800">
-                  Sandboxed
-                </span>
-              </div>
-              <div>
-                <span className="text-sm font-semibold text-white block">
-                  Zero Conversion Delay
-                </span>
-                <p className="text-xs text-zinc-400 leading-relaxed mt-1">
-                  Immediate indexing into a local in-process memory sandbox. Fast queries, strictly private, auto-purged within 24h.
-                </p>
-              </div>
-            </div>
           </div>
         </div>
       ) : (
