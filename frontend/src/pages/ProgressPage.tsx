@@ -143,25 +143,25 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
       {/* Header card with aria-live */}
       <div
         aria-live="polite"
-        className="bg-[#141517] border border-zinc-800 rounded-xl p-6 sm:p-8 space-y-7 shadow-2xs"
+        className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-6 sm:p-8 space-y-7 shadow-2xs"
       >
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-800">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[var(--border-hairline)]">
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
+              <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
                 Processing Dataset
               </h1>
               <Tag variant={tagVariant} font="mono">
                 {status}
               </Tag>
             </div>
-            <p className="text-sm text-zinc-400 mt-1 font-mono">
+            <p className="text-sm text-[var(--text-muted)] mt-1 font-mono">
               {job?.filename || 'Dataset'} · {job?.id}
             </p>
           </div>
 
-          <div className="flex items-center gap-2 text-sm text-zinc-400 font-mono">
-            <Clock className="w-4 h-4 text-zinc-500" />
+          <div className="flex items-center gap-2 text-sm text-[var(--text-muted)] font-mono">
+            <Clock className="w-4 h-4 text-[var(--text-muted)]" />
             <span>{formatElapsed(elapsedSeconds)}</span>
           </div>
         </div>
@@ -169,13 +169,13 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
         {/* Current status bar */}
         <div className="space-y-2.5">
           <div className="flex justify-between text-sm sm:text-base">
-            <span className={`font-medium ${isFailed ? 'text-red-400' : 'text-zinc-200'}`}>
+            <span className={`font-medium ${isFailed ? 'text-red-400' : 'text-[var(--text-primary)]'}`}>
               {currentStageName}
             </span>
-            <span className="font-mono text-zinc-400">{progressPct.toFixed(0)}%</span>
+            <span className="font-mono text-[var(--text-muted)]">{progressPct.toFixed(0)}%</span>
           </div>
 
-          <div className="w-full bg-zinc-900 h-2.5 rounded-full overflow-hidden border border-zinc-800">
+          <div className="w-full bg-[var(--bg-subtle)] h-2.5 rounded-full overflow-hidden border border-[var(--border-hairline)]">
             <div
               className={`h-full transition-all duration-300 ease-out ${
                 isFailed ? 'bg-red-500' : 'bg-[#FF4B3E]'
@@ -189,10 +189,10 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
         {isFailed && (
           <Callout variant="danger" title="Pipeline Execution Stopped">
             <div className="space-y-3">
-              <p className="text-sm text-zinc-200">
+              <p className="text-sm text-[var(--text-primary)]">
                 {job?.error || currentStageName || 'An error occurred during dataset processing.'}
               </p>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-[var(--text-secondary)]">
                 The pipeline halted safely to protect dataset integrity. You can retry the cleaning step, return to modify your cleaning recipe, or start fresh with an upload.
               </p>
               <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -219,12 +219,12 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
 
         {/* Awaiting Approval Notice if user lands on Step 4 */}
         {status === 'AWAITING_APPROVAL' && (
-          <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="p-4 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="font-semibold text-white block text-sm sm:text-base">
+              <span className="font-semibold text-[var(--text-primary)] block text-sm sm:text-base">
                 Profiling & Recipe Complete
               </span>
-              <span className="text-xs text-zinc-400">
+              <span className="text-xs text-[var(--text-muted)]">
                 The dataset has been analyzed and the cleaning recipe drafted. Review and confirm rule parameters before executing.
               </span>
             </div>
@@ -237,12 +237,12 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
         )}
 
         {/* Pipeline Execution Stages Table */}
-        <div className="bg-[#141517] border border-zinc-800 rounded-xl overflow-hidden shadow-2xs">
-          <div className="p-3.5 sm:p-4 border-b border-zinc-800 bg-zinc-900/60 flex items-center justify-between">
-            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono">
+        <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl overflow-hidden shadow-2xs">
+          <div className="p-3.5 sm:p-4 border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)] flex items-center justify-between">
+            <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-mono">
               Pipeline Execution Plan
             </span>
-            <span className="text-xs text-zinc-400 font-mono">
+            <span className="text-xs text-[var(--text-muted)] font-mono">
               4 Vectorized Stages
             </span>
           </div>
@@ -250,7 +250,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-sm">
               <thead>
-                <tr className="border-b border-zinc-800 text-zinc-400 font-medium bg-[#141517]">
+                <tr className="border-b border-[var(--border-hairline)] text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
                   <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[36%] sm:w-[32%] font-mono">
                     Stage / Step
                   </th>
@@ -262,7 +262,7 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-zinc-800/70">
+              <tbody className="divide-y divide-[var(--border-hairline)]">
                 {STAGES.map((stg) => {
                   const stgStatus = getStageStatus(stg.id);
                   const isActive = stgStatus === 'active';
@@ -278,8 +278,8 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
                           : isActive
                           ? 'bg-[#FF4B3E]/10 hover:bg-[#FF4B3E]/15'
                           : isDone
-                          ? 'hover:bg-zinc-850/40'
-                          : 'opacity-60 hover:bg-zinc-850/40'
+                          ? 'hover:bg-[var(--bg-hover)]'
+                          : 'opacity-60 hover:bg-[var(--bg-hover)]'
                       }`}
                     >
                       {/* Stage Name & Identifier */}
@@ -291,19 +291,19 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
                                 ? 'text-red-400'
                                 : isActive
                                 ? 'text-[#FF4B3E]'
-                                : 'text-zinc-200'
+                                : 'text-[var(--text-primary)]'
                             }`}
                           >
                             {stg.name}
                           </span>
-                          <span className="font-mono text-xs text-zinc-500">
-                            stage: <span className="text-zinc-400 font-medium">{stg.id}</span>
+                          <span className="font-mono text-xs text-[var(--text-muted)]">
+                            stage: <span className="text-[var(--text-secondary)] font-medium">{stg.id}</span>
                           </span>
                         </div>
                       </td>
 
                       {/* Description / Progress Context */}
-                      <td className="py-3 px-4 align-top text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                      <td className="py-3 px-4 align-top text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
                         <div>{stg.description}</div>
                         {isFailedStage && (job?.error || currentStageName) && (
                           <div className="text-xs text-red-400 mt-1 font-mono">
@@ -337,8 +337,8 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
                             </>
                           ) : (
                             <>
-                              <span className="w-2 h-2 rounded-full bg-zinc-600 shrink-0 mr-1" />
-                              <span className="text-zinc-500 font-mono">Pending</span>
+                              <span className="w-2 h-2 rounded-full bg-[var(--text-muted)] shrink-0 mr-1" />
+                              <span className="text-[var(--text-muted)] font-mono">Pending</span>
                             </>
                           )}
                         </div>
@@ -353,12 +353,12 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
 
         {/* When completed, prominent View Results button */}
         {(status === 'DONE' || status === 'DONE_WITH_WARNINGS') && onProceedToResults && (
-          <div className="pt-4 flex items-center justify-between bg-zinc-900/60 p-5 rounded-xl border border-zinc-800">
+          <div className="pt-4 flex items-center justify-between bg-[var(--bg-subtle)] p-5 rounded-xl border border-[var(--border-hairline)]">
             <div>
-              <span className="font-semibold text-white block">
+              <span className="font-semibold text-[var(--text-primary)] block">
                 Cleaning and verification finished!
               </span>
-              <span className="text-xs text-zinc-400">
+              <span className="text-xs text-[var(--text-muted)]">
                 Ready to review reconciliation metrics and download cleaned dataset.
               </span>
             </div>
@@ -373,13 +373,13 @@ export const ProgressPage: React.FC<ProgressPageProps> = ({
         )}
 
         {/* Reassurance note & Cancel option */}
-        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-zinc-500">
+        <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-sm text-[var(--text-muted)]">
           <span>Execution occurs in-process with memory spillover protection.</span>
           {onCancel && (
             <button
               type="button"
               onClick={onCancel}
-              className="text-sm text-zinc-500 hover:text-red-400 transition-colors underline cursor-pointer"
+              className="text-sm text-[var(--text-muted)] hover:text-red-400 transition-colors underline cursor-pointer"
             >
               Cancel Operation
             </button>

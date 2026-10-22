@@ -314,21 +314,21 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
         /* 2. Active Query & Exploration Workspace */
         <div className="space-y-6">
           {/* Active Dataset Stat Bar */}
-          <div className="bg-[#141517] border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="w-10 h-10 rounded-xl bg-zinc-850 border border-zinc-750 text-[#FF4B3E] flex items-center justify-center shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[#FF4B3E] flex items-center justify-center shrink-0">
                 <FileText className="w-5 h-5" />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
-                  <span className="text-sm sm:text-base font-semibold text-white truncate block tracking-tight" title={queryResult.filename}>
+                  <span className="text-sm sm:text-base font-semibold text-[var(--text-primary)] truncate block tracking-tight" title={queryResult.filename}>
                     {queryResult.filename}
                   </span>
                   <Tag variant="neutral" font="mono">
                     {queryResult.detected_format ? queryResult.detected_format.toUpperCase() : 'DATASET'}
                   </Tag>
                 </div>
-                <span className="text-xs text-zinc-400 font-mono">
+                <span className="text-xs text-[var(--text-muted)] font-mono">
                   {formatBytes(queryResult.file_size_bytes)} · {formatNumber(queryResult.row_count)} rows · {queryResult.columns.length} columns
                 </span>
               </div>
@@ -338,7 +338,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
               <Button
                 size="sm"
                 variant="secondary"
-                leftIcon={<RefreshCw className="w-3.5 h-3.5 text-zinc-400" />}
+                leftIcon={<RefreshCw className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
                 onClick={handleReset}
               >
                 Query Another File
@@ -346,7 +346,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
               <Button
                 size="sm"
                 variant="secondary"
-                rightIcon={<ArrowRight className="w-3.5 h-3.5 text-zinc-400" />}
+                rightIcon={<ArrowRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />}
                 onClick={() => onHandoffToClean(queryResult.query_id, queryResult.filename)}
               >
                 Clean this file too

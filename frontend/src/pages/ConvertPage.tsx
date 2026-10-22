@@ -491,17 +491,17 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
 
           {/* 3. Conversion Completed Screen */}
           {convertResult && (
-            <div className="bg-[#141517] border border-zinc-800 rounded-xl p-6 sm:p-8 space-y-6 shadow-2xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-zinc-800">
+            <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-6 sm:p-8 space-y-6 shadow-2xs">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-5 border-b border-[var(--border-hairline)]">
                 <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-zinc-850 border border-zinc-750 text-emerald-400 flex items-center justify-center shrink-0">
+                  <div className="w-11 h-11 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-emerald-400 flex items-center justify-center shrink-0">
                     <CheckCircle2 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h2 className="text-xl sm:text-2xl font-semibold text-white tracking-tight">
+                    <h2 className="text-xl sm:text-2xl font-semibold text-[var(--text-primary)] tracking-tight">
                       Conversion Completed
                     </h2>
-                    <p className="text-xs sm:text-sm text-zinc-400 font-mono">
+                    <p className="text-xs sm:text-sm text-[var(--text-muted)] font-mono">
                       Dataset staged and converted via DuckDB columnar streaming
                     </p>
                   </div>
@@ -521,7 +521,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
                     variant="secondary"
                     size="md"
                     onClick={() => onHandoffToClean(convertResult.convert_id, selectedFile.name)}
-                    rightIcon={<ArrowRight className="w-4 h-4 text-zinc-400" />}
+                    rightIcon={<ArrowRight className="w-4 h-4 text-[var(--text-muted)]" />}
                   >
                     Clean this file too
                   </Button>
@@ -530,50 +530,50 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
 
               {/* Horizontal Metrics Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
-                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 block font-sans">
+                <div className="bg-[var(--bg-subtle)] border border-[var(--border-hairline)] rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)] block font-sans">
                     Converted Rows
                   </span>
-                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-white tracking-tight mt-1.5">
+                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-[var(--text-primary)] tracking-tight mt-1.5">
                     {formatNumber(convertResult.result.rows)}
                   </span>
-                  <span className="text-xs text-zinc-400 mt-2 block font-sans">
+                  <span className="text-xs text-[var(--text-muted)] mt-2 block font-sans">
                     100% records preserved
                   </span>
                 </div>
 
-                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 block font-sans">
+                <div className="bg-[var(--bg-subtle)] border border-[var(--border-hairline)] rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)] block font-sans">
                     Elapsed Duration
                   </span>
-                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-white tracking-tight mt-1.5">
+                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-[var(--text-primary)] tracking-tight mt-1.5">
                     {convertResult.result.elapsed_seconds}s
                   </span>
-                  <span className="text-xs text-zinc-400 mt-2 block font-sans">
+                  <span className="text-xs text-[var(--text-muted)] mt-2 block font-sans">
                     Vectorized streaming throughput
                   </span>
                 </div>
 
-                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 block font-sans">
+                <div className="bg-[var(--bg-subtle)] border border-[var(--border-hairline)] rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)] block font-sans">
                     Target Format
                   </span>
-                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-white tracking-tight mt-1.5">
+                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-[var(--text-primary)] tracking-tight mt-1.5">
                     {convertResult.result.target_format.toUpperCase()}
                   </span>
-                  <span className="text-xs text-zinc-400 mt-2 block font-sans">
+                  <span className="text-xs text-[var(--text-muted)] mt-2 block font-sans">
                     Zero-copy adapter output
                   </span>
                 </div>
 
-                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl p-4 sm:p-5 flex flex-col justify-between">
-                  <span className="text-xs font-medium uppercase tracking-wider text-zinc-400 block font-sans">
+                <div className="bg-[var(--bg-subtle)] border border-[var(--border-hairline)] rounded-xl p-4 sm:p-5 flex flex-col justify-between">
+                  <span className="text-xs font-medium uppercase tracking-wider text-[var(--text-muted)] block font-sans">
                     Columns Preserved
                   </span>
-                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-white tracking-tight mt-1.5">
+                  <span className="text-2xl sm:text-3xl font-semibold font-mono block text-[var(--text-primary)] tracking-tight mt-1.5">
                     {formatNumber(convertResult.result.columns.length)}
                   </span>
-                  <span className="text-xs text-zinc-400 mt-2 block font-sans">
+                  <span className="text-xs text-[var(--text-muted)] mt-2 block font-sans">
                     100% schema preserved
                   </span>
                 </div>
@@ -581,19 +581,19 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
 
               {/* Fidelity & Schema Validation Notices */}
               {convertResult.result.warnings.length > 0 && (
-                <div className="bg-zinc-950/60 border border-zinc-800 rounded-xl overflow-hidden">
-                  <div className="p-3.5 sm:p-4 border-b border-zinc-800 bg-zinc-900/60 flex items-center justify-between">
-                    <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400 font-mono">
+                <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl overflow-hidden shadow-2xs">
+                  <div className="p-3.5 sm:p-4 border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)] flex items-center justify-between">
+                    <span className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] font-mono">
                       Fidelity & Schema Notices
                     </span>
-                    <span className="text-xs text-zinc-400 font-mono">
+                    <span className="text-xs text-[var(--text-muted)] font-mono">
                       {convertResult.result.warnings.length} notices
                     </span>
                   </div>
                   <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse text-xs sm:text-sm">
                       <thead>
-                        <tr className="border-b border-zinc-800 text-zinc-400 font-medium bg-zinc-900/40">
+                        <tr className="border-b border-[var(--border-hairline)] text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
                           <th className="py-2.5 px-4 font-semibold text-xs uppercase tracking-wider w-[36%] sm:w-[32%] font-mono">
                             Notice / Target
                           </th>
@@ -605,18 +605,18 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
                           </th>
                         </tr>
                       </thead>
-                      <tbody className="divide-y divide-zinc-800/70">
+                      <tbody className="divide-y divide-[var(--border-hairline)]">
                         {convertResult.result.warnings.map((w, idx) => (
-                          <tr key={idx} className="hover:bg-zinc-850/40 transition-colors">
+                          <tr key={idx} className="hover:bg-[var(--bg-hover)] transition-colors">
                             <td className="py-3 px-4 align-top">
-                              <span className="font-semibold text-xs sm:text-sm text-zinc-200 block">
+                              <span className="font-semibold text-xs sm:text-sm text-[var(--text-primary)] block">
                                 Notice #{idx + 1}
                               </span>
-                              <span className="font-mono text-xs text-zinc-500">
-                                adapter: <span className="text-zinc-300 font-medium">{convertResult.result.target_format}</span>
+                              <span className="font-mono text-xs text-[var(--text-muted)]">
+                                adapter: <span className="text-[var(--text-secondary)] font-medium">{convertResult.result.target_format}</span>
                               </span>
                             </td>
-                            <td className="py-3 px-4 align-top text-xs sm:text-sm text-zinc-400 leading-relaxed">
+                            <td className="py-3 px-4 align-top text-xs sm:text-sm text-[var(--text-secondary)] leading-relaxed">
                               {w}
                             </td>
                             <td className="py-3 px-4 align-top text-right whitespace-nowrap">
@@ -635,16 +635,16 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
 
               {/* Prominent Feature Block: Query & Inspect Converted Dataset */}
               {!showExplore && (
-                <div className="p-6 rounded-xl bg-zinc-950/60 border border-zinc-800 flex flex-col md:flex-row md:items-center justify-between gap-6 mt-4">
+                <div className="p-6 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-hairline)] flex flex-col md:flex-row md:items-center justify-between gap-6 mt-4 shadow-2xs">
                   <div className="flex items-start gap-4">
-                    <div className="w-11 h-11 rounded-xl bg-zinc-850 border border-zinc-750 text-[#FF4B3E] flex items-center justify-center shrink-0 mt-0.5">
+                    <div className="w-11 h-11 rounded-xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[#FF4B3E] flex items-center justify-center shrink-0 mt-0.5">
                       <Bot className="w-5 h-5" />
                     </div>
                     <div className="space-y-1">
-                      <h3 className="text-base sm:text-lg font-semibold text-white tracking-tight">
+                      <h3 className="text-base sm:text-lg font-semibold text-[var(--text-primary)] tracking-tight">
                         Inspect, Query, or Visualize your Data
                       </h3>
-                      <p className="text-sm text-zinc-400 max-w-xl leading-relaxed">
+                      <p className="text-sm text-[var(--text-secondary)] max-w-xl leading-relaxed">
                         Ask questions in natural English with our AI Analyst, write custom SQL queries, or generate instant interactive charts from your converted data.
                       </p>
                     </div>
@@ -663,16 +663,16 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
                     <button
                       type="button"
                       onClick={() => handleOpenExplore('sql')}
-                      className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-zinc-850 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-750 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-hairline)] transition-all cursor-pointer"
                     >
-                      <Terminal className="w-4 h-4 text-zinc-400" />
+                      <Terminal className="w-4 h-4 text-[var(--text-muted)]" />
                       <span>SQL Query Box</span>
                     </button>
 
                     <button
                       type="button"
                       onClick={() => onHandoffToVisualize?.(convertResult.convert_id, selectedFile?.name || 'converted dataset', convertResult.result.rows)}
-                      className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-zinc-850 hover:bg-zinc-800 text-zinc-200 hover:text-white border border-zinc-750 transition-all cursor-pointer"
+                      className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border border-[var(--border-hairline)] transition-all cursor-pointer"
                     >
                       <BarChart3 className="w-4 h-4 text-[#FF4B3E]" />
                       <span>Visualize Data</span>

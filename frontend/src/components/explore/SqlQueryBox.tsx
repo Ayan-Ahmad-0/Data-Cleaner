@@ -277,14 +277,14 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
         <div className="px-5 py-3 hairline-b grid grid-cols-1 sm:grid-cols-3 items-center gap-3">
           {/* Left: Metadata */}
           <div className="flex items-center gap-3 min-w-0 justify-self-start">
-            <div className="w-8 h-8 rounded-lg bg-zinc-850 border border-zinc-750 text-[#FF4B3E] flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-[#FF4B3E] flex items-center justify-center shrink-0">
               {exploreMode === 'ask_ai' ? <Bot className="w-4 h-4" /> : <Terminal className="w-4 h-4" />}
             </div>
             <div className="min-w-0">
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400 block font-mono">
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-[var(--text-muted)] block font-mono">
                 Dataset Explorer
               </span>
-              <span className="font-mono text-xs font-semibold text-white truncate max-w-[150px] sm:max-w-[200px] block" title={datasetName}>
+              <span className="font-mono text-xs font-semibold text-[var(--text-primary)] truncate max-w-[150px] sm:max-w-[200px] block" title={datasetName}>
                 {datasetName}
               </span>
             </div>
@@ -293,7 +293,7 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
           {/* Center: Previous Compact Size Cleaned Data vs Original Data Switcher */}
           <div className="flex items-center justify-center justify-self-center">
             {schema?.tables_available && schema.tables_available.length > 1 && (
-              <div className="inline-flex items-center p-0.5 rounded-lg bg-zinc-950 border border-zinc-800 shadow-2xs">
+              <div className="inline-flex items-center p-0.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-hairline)] shadow-2xs">
                 {schema.tables_available.map((t) => {
                   const isActive = activeTable === t;
                   return (
@@ -304,7 +304,7 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
                       className={`px-3 py-1 text-xs font-medium rounded-md transition-all cursor-pointer ${
                         isActive
                           ? 'bg-[#FF4B3E] text-white font-semibold shadow-xs'
-                          : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-850/60'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)]'
                       }`}
                     >
                       {getTableLabel(t)}
@@ -354,28 +354,28 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
         </div>
 
         {/* Prominent Mode Switcher Bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 bg-zinc-950/80 p-2.5 gap-2.5 border-b border-zinc-800">
+        <div className="grid grid-cols-1 sm:grid-cols-2 bg-[var(--bg-subtle)] p-2.5 gap-2.5 border-b border-[var(--border-hairline)]">
           {/* Option 1: Ask AI Analyst */}
           <button
             type="button"
             onClick={() => setExploreMode('ask_ai')}
             className={`flex items-center gap-3.5 p-3.5 text-left rounded-xl transition-all cursor-pointer border ${
               exploreMode === 'ask_ai'
-                ? 'bg-[#141517] border-[#FF4B3E]/60 ring-1 ring-[#FF4B3E]/30 text-white shadow-sm'
-                : 'bg-zinc-900/50 hover:bg-zinc-850/80 border-zinc-800 hover:border-zinc-700 text-zinc-300'
+                ? 'bg-[var(--bg-surface)] border-[#FF4B3E]/60 ring-1 ring-[#FF4B3E]/30 text-[var(--text-primary)] shadow-sm'
+                : 'bg-[var(--bg-surface)]/60 hover:bg-[var(--bg-hover)] border-[var(--border-hairline)] hover:border-[var(--border-strong)] text-[var(--text-secondary)]'
             }`}
           >
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               exploreMode === 'ask_ai'
                 ? 'bg-[#FF4B3E] text-white shadow-xs'
-                : 'bg-zinc-800 border border-zinc-750 text-zinc-400'
+                : 'bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-muted)]'
             }`}>
               <Bot className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm sm:text-base font-semibold ${exploreMode === 'ask_ai' ? 'text-white' : 'text-zinc-200'}`}>
+                  <span className={`text-sm sm:text-base font-semibold ${exploreMode === 'ask_ai' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                     Ask AI Analyst
                   </span>
                   <span className="px-1.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide bg-[#FF4B3E] text-white">
@@ -388,12 +388,12 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
                     Active
                   </span>
                 ) : (
-                  <span className="text-[11px] font-medium text-zinc-500 hover:text-zinc-300">
+                  <span className="text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)]">
                     Switch ↵
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">
+              <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-1">
                 Ask in plain English · AI writes, validates & executes SQL
               </p>
             </div>
@@ -405,24 +405,24 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
             onClick={() => setExploreMode('sql')}
             className={`flex items-center gap-3.5 p-3.5 text-left rounded-xl transition-all cursor-pointer border ${
               exploreMode === 'sql'
-                ? 'bg-[#141517] border-[#FF4B3E]/60 ring-1 ring-[#FF4B3E]/30 text-white shadow-sm'
-                : 'bg-zinc-900/50 hover:bg-zinc-850/80 border-zinc-800 hover:border-zinc-700 text-zinc-300'
+                ? 'bg-[var(--bg-surface)] border-[#FF4B3E]/60 ring-1 ring-[#FF4B3E]/30 text-[var(--text-primary)] shadow-sm'
+                : 'bg-[var(--bg-surface)]/60 hover:bg-[var(--bg-hover)] border-[var(--border-hairline)] hover:border-[var(--border-strong)] text-[var(--text-secondary)]'
             }`}
           >
             <div className={`w-10 h-10 rounded-lg flex items-center justify-center shrink-0 transition-colors ${
               exploreMode === 'sql'
                 ? 'bg-[#FF4B3E] text-white shadow-xs'
-                : 'bg-zinc-800 border border-zinc-750 text-zinc-400'
+                : 'bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-muted)]'
             }`}>
               <Terminal className="w-5 h-5" />
             </div>
             <div className="min-w-0 flex-1">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <span className={`text-sm sm:text-base font-semibold ${exploreMode === 'sql' ? 'text-white' : 'text-zinc-200'}`}>
+                  <span className={`text-sm sm:text-base font-semibold ${exploreMode === 'sql' ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>
                     SQL Query Box
                   </span>
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide bg-zinc-800 text-zinc-300 border border-zinc-700">
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase tracking-wide bg-[var(--bg-subtle)] text-[var(--text-secondary)] border border-[var(--border-hairline)]">
                     DuckDB
                   </span>
                 </div>
@@ -432,12 +432,12 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
                     Active
                   </span>
                 ) : (
-                  <span className="text-[11px] font-medium text-zinc-500 hover:text-zinc-300">
+                  <span className="text-[11px] font-medium text-[var(--text-muted)] hover:text-[var(--text-primary)]">
                     Switch ↵
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-400 mt-0.5 line-clamp-1">
+              <p className="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-1">
                 Direct read-only SQL editor · Starter templates & CSV export
               </p>
             </div>
