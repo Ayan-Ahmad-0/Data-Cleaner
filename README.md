@@ -4,11 +4,18 @@ Vectorized multi-format profiling, cleaning, exploration, and visualization pipe
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.1+-FFF000?style=flat&logo=duckdb&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=flat&logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?style=flat&logo=fastapi&logoColor=white)
+![Pydantic](https://img.shields.io/badge/Pydantic-v2.7+-E92063?style=flat&logo=pydantic&logoColor=white)
+![Apache Arrow](https://img.shields.io/badge/Apache%20Arrow-16.0+-E05A47?style=flat&logo=apachearrow&logoColor=white)
+![Apache Parquet](https://img.shields.io/badge/Apache%20Parquet-Columnar-3776AB?style=flat&logo=apacheparquet&logoColor=white)
+![sqlglot](https://img.shields.io/badge/sqlglot-30.0+-ED8B00?style=flat&logo=sqlite&logoColor=white)
+![Google Gemini](https://img.shields.io/badge/Google%20Gemini-Flash%20Preview-4285F4?style=flat&logo=google&logoColor=white)
 ![React](https://img.shields.io/badge/React-19.0+-61DAFB?style=flat&logo=react&logoColor=black)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?style=flat&logo=typescript&logoColor=white)
-![Google Gemini](https://img.shields.io/badge/Google%20Gemini-Flash%20Preview-4285F4?style=flat&logo=google&logoColor=white)
-![sqlglot](https://img.shields.io/badge/sqlglot-30.0+-ED8B00?style=flat&logo=sqlite&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-8.0+-646CFF?style=flat&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-3.0+-3F4F75?style=flat&logo=plotly&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
+![Pytest](https://img.shields.io/badge/Pytest-8.0+-0A9EDC?style=flat&logo=pytest&logoColor=white)
 
 ---
 
