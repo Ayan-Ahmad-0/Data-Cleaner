@@ -1,0 +1,468 @@
+import React, { useEffect, useState } from 'react';
+import {
+  type ChartColumnStats,
+  type ChartSpec,
+  type FieldRef,
+  type Filter,
+  type TweakOptionsResponse,
+  getTweakOptions,
+} from '../../lib/api';
+import { Button } from '../ui/Button';
+import {
+  Sliders,
+  X,
+  RotateCcw,
+  Plus,
+  Trash2,
+  Check,
+} from 'lucide-react';
+
+interface ChartTweakPanelProps {
+  jobId: string;
+  initialSpec: ChartSpec;
+  originalSpec: ChartSpec;
+  columns: ChartColumnStats[];
+  isOpen: boolean;
+  onClose: () => void;
+  onApply: (updatedSpec: ChartSpec) => void;
+  onReset: () => void;
+}
+
+const CHART_TYPES: { id: ChartSpec['chart_type']; label: string }[] = [
+  { id: 'bar', label: 'Bar' },
+  { id: 'hbar', label: 'H-Bar' },
+  { id: 'line', label: 'Line' },
+  { id: 'area', label: 'Area' },
+  { id: 'histogram', label: 'Histogram' },
+  { id: 'scatter', label: 'Scatter' },
+  { id: 'pie', label: 'Pie' },
+  { id: 'box', label: 'Box' },
+  { id: 'heatmap', label: 'Heatmap' },
+  { id: 'big_number', label: 'Metric' },
+];
+
+const AGGREGATIONS = [
+  { id: 'count', label: 'Count' },
+  { id: 'count_distinct', label: 'Count Distinct' },
+  { id: 'sum', label: 'Sum' },
+  { id: 'avg', label: 'Average' },
+  { id: 'min', label: 'Min' },
+  { id: 'max', label: 'Max' },
+  { id: 'median', label: 'Median' },
+  { id: 'none', label: 'None' },
+];
+
+const TIME_BUCKETS = ['day', 'week', 'month', 'quarter', 'year', 'hour', 'hour_of_day', 'day_of_week'];
+
+export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
+  jobId,
+  initialSpec,
+  originalSpec,
+  columns,
+  isOpen,
+  onClose,
+  onApply,
+  onReset,
+}) => {
+  const [spec, setSpec] = useState<ChartSpec>(initialSpec);
+  const [tweakOptions, setTweakOptions] = useState<TweakOptionsResponse | null>(null);
+
+  useEffect(() => {
+    setSpec(initialSpec);
+  }, [initialSpec]);
+
+  useEffect(() => {
+    if (isOpen) {
+      getTweakOptions(jobId, spec)
+        .then((opts) => setTweakOptions(opts))
+        .catch((err) => console.error('Failed to load tweak options:', err));
+    }
+  }, [isOpen, jobId]);
+
+  if (!isOpen) return null;
+
+  const handleChartTypeChange = (chartType: ChartSpec['chart_type']) => {
+    const updated = { ...spec, chart_type: chartType };
+    setSpec(updated);
+    // Refresh options for disabled aggregations
+    getTweakOptions(jobId, updated).then(setTweakOptions).catch(() => {});
+  };
+
+  const handleColumnChange = (role: 'x' | 'y' | 'color', colName: string) => {
+    const field: FieldRef | undefined = colName ? { column: colName } : undefined;
+    const updated = { ...spec, [role]: field };
+    setSpec(updated);
+    getTweakOptions(jobId, updated).then(setTweakOptions).catch(() => {});
+  };
+
+  const handleCastChange = (role: 'x' | 'y', castAs: any) => {
+    const current = spec[role];
+    if (!current) return;
+    const updated = {
+      ...spec,
+      [role]: { ...current, cast_as: castAs || undefined },
+    };
+    setSpec(updated);
+  };
+
+  const handleTimeBucketChange = (bucket: any) => {
+    if (!spec.x) return;
+    setSpec({
+      ...spec,
+      x: { ...spec.x, time_bucket: bucket || undefined },
+    });
+  };
+
+  const handleAddFilter = () => {
+    if ((spec.filters || []).length >= 10) return;
+    const firstCol = columns[0]?.name || '';
+    const newFilters: Filter[] = [...(spec.filters || []), { column: firstCol, op: '=', value: '' }];
+    setSpec({ ...spec, filters: newFilters });
+  };
+
+  const handleRemoveFilter = (index: number) => {
+    const newFilters = (spec.filters || []).filter((_, i) => i !== index);
+    setSpec({ ...spec, filters: newFilters });
+  };
+
+  const handleFilterChange = (index: number, key: keyof Filter, val: any) => {
+    const newFilters = [...(spec.filters || [])];
+    newFilters[index] = { ...newFilters[index], [key]: val };
+    setSpec({ ...spec, filters: newFilters });
+  };
+
+  const isEdited = JSON.stringify(spec) !== JSON.stringify(originalSpec);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-[var(--radius-xl)] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)]">
+          <div className="flex items-center gap-2.5">
+            <Sliders className="w-5 h-5 text-[var(--accent)]" />
+            <div>
+              <h3 className="text-base font-semibold text-[var(--text-primary)]">Tweak Chart</h3>
+              <p className="text-xs text-[var(--text-muted)]">
+                Modify chart type, axes, aggregation, and filters. Changes apply to this card.
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-app)] transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        {/* Content form */}
+        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs sm:text-sm">
+          {/* Title */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+              Chart Title
+            </label>
+            <input
+              type="text"
+              value={spec.title || ''}
+              maxLength={120}
+              placeholder="Enter chart title..."
+              onChange={(e) => setSpec({ ...spec, title: e.target.value })}
+              className="w-full px-3 py-2 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-md)] text-xs text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-hidden"
+            />
+          </div>
+
+          {/* Chart Type Selector */}
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+              Chart Type
+            </label>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {CHART_TYPES.map((ct) => {
+                const disabledReason = tweakOptions?.disabled_chart_types?.[ct.id];
+                const isSelected = spec.chart_type === ct.id;
+                return (
+                  <button
+                    key={ct.id}
+                    disabled={!!disabledReason}
+                    title={disabledReason || ct.label}
+                    onClick={() => handleChartTypeChange(ct.id)}
+                    className={`py-2 px-2.5 rounded-[var(--radius-md)] text-xs font-medium border text-center transition-all ${
+                      isSelected
+                        ? 'border-[var(--accent)] bg-[var(--accent-subtle)] text-[var(--accent)] font-semibold'
+                        : disabledReason
+                        ? 'border-[var(--border-hairline)] bg-[var(--bg-app)] text-[var(--text-muted)] opacity-50 cursor-not-allowed'
+                        : 'border-[var(--border-hairline)] bg-[var(--bg-surface)] text-[var(--text-secondary)] hover:border-[var(--border-strong)]'
+                    }`}
+                  >
+                    {ct.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Axes & Columns Selection */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* X Axis */}
+            {spec.chart_type !== 'big_number' && (
+              <div className="space-y-1.5 p-3 rounded-[var(--radius-lg)] bg-[var(--bg-subtle)] border border-[var(--border-hairline)]">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-xs text-[var(--text-primary)]">X Axis Column</label>
+                  {spec.x && (
+                    <select
+                      value={spec.x.cast_as || ''}
+                      onChange={(e) => handleCastChange('x', e.target.value)}
+                      className="text-[10px] bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-1.5 py-0.5 text-[var(--text-secondary)]"
+                    >
+                      <option value="">Default type</option>
+                      <option value="number">Read as Number</option>
+                      <option value="date">Read as Date</option>
+                      <option value="timestamp">Read as Timestamp</option>
+                      <option value="text">Read as Text</option>
+                    </select>
+                  )}
+                </div>
+                <select
+                  value={spec.x?.column || ''}
+                  onChange={(e) => handleColumnChange('x', e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-[var(--radius-md)] text-xs"
+                >
+                  <option value="">(Select column)</option>
+                  {columns.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name} ({c.type}) {c.null_pct > 0 ? `· ${c.null_pct}% null` : ''}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Time bucket option if date or line/area */}
+                {(spec.chart_type === 'line' || spec.chart_type === 'area' || spec.x?.cast_as === 'date') && (
+                  <div className="pt-2 flex items-center justify-between text-[11px]">
+                    <span className="text-[var(--text-secondary)]">Time bucket:</span>
+                    <select
+                      value={spec.x?.time_bucket || ''}
+                      onChange={(e) => handleTimeBucketChange(e.target.value)}
+                      className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-2 py-0.5 text-[11px]"
+                    >
+                      <option value="">None (exact)</option>
+                      {TIME_BUCKETS.map((tb) => (
+                        <option key={tb} value={tb}>{tb}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Y Axis */}
+            {spec.chart_type !== 'histogram' && (
+              <div className="space-y-1.5 p-3 rounded-[var(--radius-lg)] bg-[var(--bg-subtle)] border border-[var(--border-hairline)]">
+                <div className="flex items-center justify-between">
+                  <label className="font-semibold text-xs text-[var(--text-primary)]">Y Axis Column</label>
+                  {spec.y && (
+                    <select
+                      value={spec.y.cast_as || ''}
+                      onChange={(e) => handleCastChange('y', e.target.value)}
+                      className="text-[10px] bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-1.5 py-0.5 text-[var(--text-secondary)]"
+                    >
+                      <option value="">Default type</option>
+                      <option value="number">Read as Number</option>
+                      <option value="text">Read as Text</option>
+                    </select>
+                  )}
+                </div>
+                <select
+                  value={spec.y?.column || ''}
+                  onChange={(e) => handleColumnChange('y', e.target.value)}
+                  className="w-full px-2.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-[var(--radius-md)] text-xs"
+                >
+                  <option value="">(None / Row Count)</option>
+                  {columns.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name} ({c.type}) {c.null_pct > 0 ? `· ${c.null_pct}% null` : ''}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Aggregation */}
+                <div className="pt-2 flex items-center justify-between text-[11px]">
+                  <span className="text-[var(--text-secondary)]">Aggregation:</span>
+                  <select
+                    value={spec.aggregation}
+                    onChange={(e) => setSpec({ ...spec, aggregation: e.target.value as any })}
+                    className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-2 py-0.5 text-[11px]"
+                  >
+                    {AGGREGATIONS.map((a) => {
+                      const disabledReason = tweakOptions?.disabled_aggregations?.[a.id];
+                      return (
+                        <option key={a.id} value={a.id} disabled={!!disabledReason}>
+                          {a.label} {disabledReason ? '(!)' : ''}
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Grouping / Bins / Top N */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Color / Grouping */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-medium text-[var(--text-secondary)]">Color / Grouping</label>
+              <select
+                value={spec.color?.column || ''}
+                onChange={(e) => handleColumnChange('color', e.target.value)}
+                className="w-full px-2 py-1 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded text-xs"
+              >
+                <option value="">(None)</option>
+                {columns.map((c) => (
+                  <option key={c.name} value={c.name}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+
+            {/* Top N */}
+            {(spec.chart_type === 'bar' || spec.chart_type === 'hbar' || spec.chart_type === 'pie') && (
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-[var(--text-secondary)]">Top N items</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={spec.top_n || 20}
+                  onChange={(e) => setSpec({ ...spec, top_n: parseInt(e.target.value) || 20 })}
+                  className="w-full px-2 py-1 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded text-xs"
+                />
+              </div>
+            )}
+
+            {/* Sort */}
+            {spec.chart_type !== 'big_number' && (
+              <div className="space-y-1">
+                <label className="text-[11px] font-medium text-[var(--text-secondary)]">Sort Order</label>
+                <select
+                  value={spec.sort}
+                  onChange={(e) => setSpec({ ...spec, sort: e.target.value as any })}
+                  className="w-full px-2 py-1 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded text-xs"
+                >
+                  <option value="y_desc">Highest first (Y Desc)</option>
+                  <option value="y_asc">Lowest first (Y Asc)</option>
+                  <option value="x">Category / Date (X)</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {/* Filters List */}
+          <div className="space-y-2 pt-2 border-t border-[var(--border-hairline)]">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                Filters ({(spec.filters || []).length}/10)
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                leftIcon={<Plus className="w-3.5 h-3.5" />}
+                onClick={handleAddFilter}
+                disabled={(spec.filters || []).length >= 10}
+                className="text-[11px] py-1 h-7"
+              >
+                Add Filter
+              </Button>
+            </div>
+
+            {(spec.filters || []).length === 0 ? (
+              <p className="text-xs text-[var(--text-muted)] italic">No filters applied to this chart.</p>
+            ) : (
+              <div className="space-y-2">
+                {(spec.filters || []).map((flt, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-[var(--bg-app)] p-2 rounded-[var(--radius-md)] border border-[var(--border-hairline)]">
+                    <select
+                      value={flt.column}
+                      onChange={(e) => handleFilterChange(idx, 'column', e.target.value)}
+                      className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-2 py-1 text-xs max-w-[130px]"
+                    >
+                      {columns.map((c) => (
+                        <option key={c.name} value={c.name}>{c.name}</option>
+                      ))}
+                    </select>
+
+                    <select
+                      value={flt.op}
+                      onChange={(e) => handleFilterChange(idx, 'op', e.target.value)}
+                      className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-1.5 py-1 text-xs"
+                    >
+                      <option value="=">=</option>
+                      <option value="!=">!=</option>
+                      <option value=">">&gt;</option>
+                      <option value=">=">&gt;=</option>
+                      <option value="<">&lt;</option>
+                      <option value="<=">&lt;=</option>
+                      <option value="not_null">Not Null</option>
+                      <option value="is_null">Is Null</option>
+                    </select>
+
+                    {flt.op !== 'not_null' && flt.op !== 'is_null' && (
+                      <input
+                        type="text"
+                        value={String(flt.value ?? '')}
+                        placeholder="Value..."
+                        onChange={(e) => handleFilterChange(idx, 'value', e.target.value)}
+                        className="flex-1 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-2 py-1 text-xs"
+                      />
+                    )}
+
+                    <button
+                      onClick={() => handleRemoveFilter(idx)}
+                      className="p-1 text-[var(--text-muted)] hover:text-red-500 rounded"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="flex items-center justify-between px-6 py-3.5 border-t border-[var(--border-hairline)] bg-[var(--bg-subtle)]">
+          <Button
+            variant="ghost"
+            size="sm"
+            leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+            onClick={() => {
+              setSpec(originalSpec);
+              onReset();
+            }}
+            disabled={!isEdited}
+            className="text-xs"
+          >
+            Reset to Original
+          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button variant="secondary" size="sm" onClick={onClose} className="text-xs">
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Check className="w-3.5 h-3.5" />}
+              onClick={() => {
+                onApply(spec);
+                onClose();
+              }}
+              className="text-xs"
+            >
+              Apply Changes
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};

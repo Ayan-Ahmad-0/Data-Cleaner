@@ -359,6 +359,9 @@ export interface ChartFilter {
   value?: any;
 }
 
+export type FieldRef = ChartFieldRef;
+export type Filter = ChartFilter;
+
 export interface ChartSpec {
   chart_type: 'bar' | 'hbar' | 'line' | 'area' | 'histogram' | 'scatter' | 'pie' | 'box' | 'heatmap' | 'big_number';
   x?: ChartFieldRef | null;
@@ -384,6 +387,75 @@ export interface ChartDataResponse {
   elapsed_seconds: number;
 }
 
+export interface PageDataOptions {
+  cast_overrides: Record<string, string>;
+  exclude_missing: boolean;
+  hide_outliers: boolean;
+}
+
+export interface TweakColumnOption {
+  name: string;
+  type: string;
+  kind: string;
+  null_pct: number;
+  distinct_approx?: number | null;
+}
+
+export interface TweakOptionsResponse {
+  allowed_chart_types: string[];
+  disabled_chart_types: Record<string, string>;
+  allowed_aggregations: string[];
+  disabled_aggregations: Record<string, string>;
+  columns: TweakColumnOption[];
+  disabled_reasons: Record<string, string>;
+}
+
+export interface ChartRecommendation {
+  id: string;
+  spec: ChartSpec;
+  title: string;
+  question_answered: string;
+  why: string;
+  caveats: string[];
+  priority: number;
+  source: 'ai' | 'standard';
+}
+
+export interface DataPrepTip {
+  column?: string | null;
+  tip: string;
+  action: 'cast_as_date' | 'cast_as_number' | 'exclude_missing' | 'hide_outliers' | 'none';
+}
+
+export interface VisualizationPlan {
+  summary: string;
+  recommendations: ChartRecommendation[];
+  prep_tips: DataPrepTip[];
+  avoid: string[];
+  used_fallback: boolean;
+  elapsed_seconds: number;
+}
+
+export interface ChartFromTextResult {
+  status: 'ok' | 'needs_clarification' | 'cannot_chart' | 'error';
+  request: string;
+  spec?: ChartSpec | null;
+  title?: string | null;
+  explanation?: string | null;
+  assumptions: string[];
+  clarification_question?: string | null;
+  message?: string | null;
+  data?: ChartDataResponse | null;
+  retried: boolean;
+  elapsed_seconds: number;
+}
+
+export interface AutoVisualizeItem {
+  recommendation: ChartRecommendation;
+  data?: ChartDataResponse | null;
+  error?: string | null;
+}
+
 export async function getColumnStats(jobId: string): Promise<ChartColumnStats[]> {
   const res = await fetch(`${API_BASE}/api/charts/${jobId}/stats`);
   if (!res.ok) {
@@ -392,6 +464,29 @@ export async function getColumnStats(jobId: string): Promise<ChartColumnStats[]>
   }
   const data = await res.json();
   return data.columns || [];
+}
+
+export async function getStarterSpec(jobId: string): Promise<ChartSpec> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/starter-spec`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to fetch starter chart spec.');
+  }
+  const data = await res.json();
+  return data.spec;
+}
+
+export async function getTweakOptions(jobId: string, spec?: ChartSpec): Promise<TweakOptionsResponse> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/tweak-options`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ spec }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to fetch tweak options.');
+  }
+  return res.json();
 }
 
 export async function getChartSuggestions(jobId: string): Promise<ChartSpec[]> {
@@ -407,12 +502,13 @@ export async function getChartSuggestions(jobId: string): Promise<ChartSpec[]> {
 export async function buildChart(
   jobId: string,
   spec: ChartSpec,
+  pageOptions?: PageDataOptions,
   signal?: AbortSignal,
 ): Promise<ChartDataResponse> {
   const res = await fetch(`${API_BASE}/api/charts/${jobId}/build`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ spec }),
+    body: JSON.stringify({ spec, page_options: pageOptions }),
     signal,
   });
   if (!res.ok) {
@@ -441,6 +537,67 @@ export async function exportChartCsv(jobId: string, spec: ChartSpec): Promise<vo
   a.click();
   a.remove();
   window.URL.revokeObjectURL(url);
+}
+
+export async function getChartAiStatus(jobId: string): Promise<{ enabled: boolean; model: string }> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/ai/status`);
+  if (!res.ok) {
+    return { enabled: false, model: '' };
+  }
+  return res.json();
+}
+
+export async function getVisualizationPlan(
+  jobId: string,
+  pageOptions?: PageDataOptions,
+  forceRefresh: boolean = false,
+): Promise<VisualizationPlan> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/ai/plan`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ page_options: pageOptions, force_refresh: forceRefresh }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to generate visualization plan.');
+  }
+  return res.json();
+}
+
+export async function autoVisualizeCharts(
+  jobId: string,
+  pageOptions?: PageDataOptions,
+  maxCharts: number = 6,
+  forceRefresh: boolean = false,
+): Promise<AutoVisualizeItem[]> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/ai/auto`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ page_options: pageOptions, max_charts: maxCharts, force_refresh: forceRefresh }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to auto-visualize charts.');
+  }
+  const data = await res.json();
+  return data.items || [];
+}
+
+export async function askChartFromText(
+  jobId: string,
+  request: string,
+  pageOptions?: PageDataOptions,
+): Promise<ChartFromTextResult> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/ai/ask`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ request, page_options: pageOptions }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to ask for chart.');
+  }
+  return res.json();
 }
 
 

@@ -106,10 +106,13 @@ def suggest_charts(
     return suggest_charts_from_stats(stats, row_count=row_count, max_suggestions=max_suggestions)
 
 
+from charts.page_options import PageDataOptions, apply_page_options
+
 def build_chart(
     job_id: str,
     user_id: str = "anonymous",
     spec: Optional[ChartSpec] = None,
+    page_options: Optional[PageDataOptions] = None,
     storage: Optional[JobStorage] = None,
     limits: Optional[ChartLimits] = None,
 ) -> ChartData:
@@ -118,13 +121,6 @@ def build_chart(
         raise InvalidChartSpecError("No ChartSpec provided.")
 
     lim = limits or ChartLimits()
-    cache_key = _get_spec_hash(job_id, spec)
-    now = time.time()
-
-    if cache_key in _chart_cache:
-        cached_time, cached_chart = _chart_cache[cache_key]
-        if now - cached_time < lim.chart_cache_ttl_seconds:
-            return cached_chart
 
     # Resolve dataset paths
     clean_pq, orig_pq = resolve_job_parquet_paths(job_id, user_id=user_id, storage=storage)
@@ -139,9 +135,30 @@ def build_chart(
     finally:
         con_meta.close()
 
+    # Apply page options if provided
+    if page_options:
+        spec = apply_page_options(spec, page_options, schema)
+
+    cache_key = _get_spec_hash(job_id, spec)
+    now = time.time()
+
+    if cache_key in _chart_cache:
+        cached_time, cached_chart = _chart_cache[cache_key]
+        if now - cached_time < lim.chart_cache_ttl_seconds:
+            return cached_chart
+
     # 2. Compile to SQL
     sql, params, notes = compile_spec(spec, schema, limits=lim)
     warnings: List[str] = []
+
+    if page_options:
+        if page_options.exclude_missing:
+            notes.append("Exclude missing values: on")
+        if page_options.hide_outliers:
+            notes.append("Hide outliers: on (1st-99th percentile)")
+        for col, cast_t in page_options.cast_overrides.items():
+            if (spec.x and spec.x.column == col) or (spec.y and spec.y.column == col):
+                notes.append(f"'{col}' read as {cast_t}")
 
     # 3. Check for cast failure warnings if cast_as is used
     cast_fields = [f for f in (spec.x, spec.y) if f and f.cast_as in ("number", "date", "timestamp")]

@@ -3,6 +3,7 @@
 from __future__ import annotations
 import json
 import logging
+import os
 import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
@@ -597,11 +598,44 @@ from charts import (
     get_column_stats,
     suggest_charts,
 )
+from charts.page_options import PageDataOptions
+from charts.tweak import default_starter_spec, get_tweak_options
+from charts_ai import (
+    auto_visualize,
+    chart_from_text,
+    plan_visualization,
+)
+from charts.service import ChartData
 
 
 class BuildChartRequest(BaseModel):
     spec: Dict[str, Any]
     user_id: Optional[str] = "anonymous"
+    page_options: Optional[Dict[str, Any]] = None
+
+
+class TweakOptionsRequest(BaseModel):
+    spec: Optional[Dict[str, Any]] = None
+    user_id: Optional[str] = "anonymous"
+
+
+class AIPlanRequest(BaseModel):
+    user_id: Optional[str] = "anonymous"
+    page_options: Optional[Dict[str, Any]] = None
+    force_refresh: bool = False
+
+
+class AIAutoRequest(BaseModel):
+    user_id: Optional[str] = "anonymous"
+    page_options: Optional[Dict[str, Any]] = None
+    max_charts: int = 6
+    force_refresh: bool = False
+
+
+class AIAskRequest(BaseModel):
+    request: str
+    user_id: Optional[str] = "anonymous"
+    page_options: Optional[Dict[str, Any]] = None
 
 
 @app.get("/api/charts/{job_id}/stats")
@@ -615,6 +649,40 @@ def get_dataset_column_stats(job_id: str, user_id: str = "anonymous"):
     except Exception as e:
         logger.exception("Failed to retrieve column stats for %s: %s", job_id, e)
         raise HTTPException(status_code=500, detail=f"Failed to compute column statistics: {e}")
+
+
+@app.get("/api/charts/{job_id}/starter-spec")
+def get_starter_chart_spec(job_id: str, user_id: str = "anonymous"):
+    """Generate deterministic starter spec for 'Add chart' button."""
+    try:
+        stats = get_column_stats(job_id=job_id, user_id=user_id, storage=storage)
+        schema = {s.name: s.type for s in stats}
+        spec = default_starter_spec(schema, stats)
+        return {"job_id": job_id, "spec": spec.model_dump()}
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to get starter spec for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to get starter spec: {e}")
+
+
+@app.post("/api/charts/{job_id}/tweak-options")
+def get_dataset_tweak_options(job_id: str, payload: TweakOptionsRequest):
+    """Retrieve allowed types, aggregations, and column options for Tweak panel."""
+    try:
+        spec_obj = ChartSpec.model_validate(payload.spec) if payload.spec else None
+        options = get_tweak_options(
+            job_id=job_id,
+            user_id=payload.user_id or "anonymous",
+            spec=spec_obj,
+            storage=storage,
+        )
+        return options.model_dump()
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to get tweak options for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to get tweak options: {e}")
 
 
 @app.get("/api/charts/{job_id}/suggest")
@@ -635,10 +703,12 @@ def build_dataset_chart(job_id: str, payload: BuildChartRequest):
     """Compile and execute a ChartSpec against the sandboxed dataset."""
     try:
         spec = ChartSpec.model_validate(payload.spec)
+        po = PageDataOptions.model_validate(payload.page_options) if payload.page_options else None
         chart_data = build_chart(
             job_id=job_id,
             user_id=payload.user_id or "anonymous",
             spec=spec,
+            page_options=po,
             storage=storage,
         )
         return chart_data.to_dict()
@@ -678,6 +748,91 @@ def export_dataset_chart(job_id: str, payload: BuildChartRequest):
     except Exception as e:
         logger.exception("Failed to export chart for %s: %s", job_id, e)
         raise HTTPException(status_code=500, detail=f"Failed to export chart data: {e}")
+
+
+# ============================================================================
+# Chart AI Endpoints (Plan, Auto-Visualize, Ask for a Chart)
+# ============================================================================
+
+@app.get("/api/charts/{job_id}/ai/status")
+def get_chart_ai_status(job_id: str):
+    """Return whether Chart AI features are available on this server."""
+    api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
+    enabled = bool(api_key) and os.getenv("CHARTS_AI_ENABLED", "true").lower() in ("true", "1", "yes")
+    return {
+        "enabled": enabled,
+        "model": os.getenv("CHARTS_AI_MODEL", os.getenv("GEMINI_MODEL", "gemini-2.5-flash")),
+    }
+
+
+@app.post("/api/charts/{job_id}/ai/plan")
+def get_visualization_plan(job_id: str, payload: AIPlanRequest):
+    """Generate AI-assisted visualization plan and advice."""
+    try:
+        po = PageDataOptions.model_validate(payload.page_options) if payload.page_options else None
+        plan = plan_visualization(
+            job_id=job_id,
+            user_id=payload.user_id or "anonymous",
+            storage=storage,
+            page_options=po,
+            force_refresh=payload.force_refresh,
+        )
+        return plan.to_dict()
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to generate visualization plan for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to generate visualization plan: {e}")
+
+
+@app.post("/api/charts/{job_id}/ai/auto")
+def auto_visualize_charts(job_id: str, payload: AIAutoRequest):
+    """Generate and build top AI-recommended charts."""
+    try:
+        po = PageDataOptions.model_validate(payload.page_options) if payload.page_options else None
+        charts = auto_visualize(
+            job_id=job_id,
+            user_id=payload.user_id or "anonymous",
+            storage=storage,
+            page_options=po,
+            max_charts=payload.max_charts,
+            force_refresh=payload.force_refresh,
+        )
+        return {
+            "items": [
+                {
+                    "recommendation": rec.to_dict(),
+                    "data": d.to_dict() if isinstance(d, ChartData) else None,
+                    "error": str(d) if isinstance(d, Exception) else None,
+                }
+                for rec, d in charts
+            ]
+        }
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to auto-visualize for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to auto-visualize: {e}")
+
+
+@app.post("/api/charts/{job_id}/ai/ask")
+def ask_chart_from_text(job_id: str, payload: AIAskRequest):
+    """Translate natural-language plain text into a validated chart."""
+    try:
+        po = PageDataOptions.model_validate(payload.page_options) if payload.page_options else None
+        result = chart_from_text(
+            job_id=job_id,
+            user_id=payload.user_id or "anonymous",
+            request=payload.request,
+            storage=storage,
+            page_options=po,
+        )
+        return result.to_dict()
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed to process chart text request for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to process chart request: {e}")
 
 
 # Mount built frontend assets if present
