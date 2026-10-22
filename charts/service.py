@@ -201,9 +201,14 @@ def build_chart(
             rel = con.execute(sql, params)
             col_names = [str(d[0]) for d in rel.description]
             raw_rows = rel.fetchall()
-        except duckdb.TimeoutException:
-            raise ChartTimeoutError(lim.chart_query_timeout_seconds)
+        except (duckdb.InterruptException, duckdb.OutOfMemoryException) as e:
+            if isinstance(e, duckdb.InterruptException):
+                raise ChartTimeoutError(lim.chart_query_timeout_seconds)
+            raise ChartTooLargeError(f"Query memory limit exceeded: {e}")
         except Exception as e:
+            err_msg = str(e).lower()
+            if "timeout" in err_msg or "interrupted" in err_msg:
+                raise ChartTimeoutError(lim.chart_query_timeout_seconds)
             logger.exception("Error executing chart query for job %s: %s", job_id, e)
             raise ChartError(f"Chart query execution failed: {e}")
         finally:

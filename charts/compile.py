@@ -22,12 +22,25 @@ def quote_identifier(col: str) -> str:
     return f'"{escaped}"'
 
 
+def _is_numeric_type_str(col_type: str) -> bool:
+    """Check if DuckDB column type string represents a numeric type."""
+    t = col_type.upper()
+    return any(k in t for k in ("INT", "DOUBLE", "FLOAT", "DECIMAL", "REAL", "NUMERIC", "HUGEINT"))
+
+
+def _is_datetime_type_str(col_type: str) -> bool:
+    """Check if DuckDB column type string represents a date or timestamp type."""
+    t = col_type.upper()
+    return any(k in t for k in ("DATE", "TIME", "TIMESTAMP"))
+
+
 def _render_field_expr(field_ref: FieldRef, schema: Dict[str, str]) -> Tuple[str, Optional[str]]:
     """Render a column reference into SQL with optional TRY_CAST and time_bucket.
     
     Returns (sql_expr, failure_count_sql_expr).
     """
     col_quoted = quote_identifier(field_ref.column)
+    col_type = schema.get(field_ref.column, "")
 
     # 1. Cast expression
     if field_ref.cast_as == "number":
@@ -48,6 +61,10 @@ def _render_field_expr(field_ref: FieldRef, schema: Dict[str, str]) -> Tuple[str
 
     # 2. Time bucket expression
     if field_ref.time_bucket:
+        # If the column is not already date/timestamp, cast to TIMESTAMP first
+        if not field_ref.cast_as and not _is_datetime_type_str(col_type):
+            expr = f"TRY_CAST({expr} AS TIMESTAMP)"
+
         tb = field_ref.time_bucket
         if tb == "hour":
             expr = f"date_trunc('hour', {expr})"
@@ -67,6 +84,19 @@ def _render_field_expr(field_ref: FieldRef, schema: Dict[str, str]) -> Tuple[str
             expr = f"EXTRACT(DOW FROM {expr})"
 
     return expr, fail_expr
+
+
+def _render_y_expr(field_ref: Optional[FieldRef], schema: Dict[str, str], agg: str) -> str:
+    """Render the Y-axis column expression, ensuring TRY_CAST to DOUBLE if aggregating numerically."""
+    if not field_ref:
+        return "*"
+    expr, _ = _render_field_expr(field_ref, schema)
+    if agg in ("avg", "sum", "median"):
+        col_type = schema.get(field_ref.column, "")
+        if not _is_numeric_type_str(col_type) or field_ref.cast_as == "number":
+            col_quoted = quote_identifier(field_ref.column)
+            expr = f"TRY_CAST({col_quoted} AS DOUBLE)"
+    return expr
 
 
 def _render_agg_expr(agg: str, expr: str) -> str:
@@ -142,11 +172,14 @@ def compile_spec(
 
     # Hide outliers toggle (for numeric y)
     if spec.hide_outliers and spec.y:
-        y_q = quote_identifier(spec.y.column)
-        # Note in chart annotations
+        col_type = schema.get(spec.y.column, "")
+        if not _is_numeric_type_str(col_type) or spec.y.cast_as == "number":
+            y_eval = f"TRY_CAST({quote_identifier(spec.y.column)} AS DOUBLE)"
+        else:
+            y_eval = quote_identifier(spec.y.column)
         notes.append(f"Trimmed 1st..99th percentile outliers on '{spec.y.column}'.")
         where_clauses.append(
-            f"{y_q} >= (SELECT quantile_cont({y_q}, 0.01) FROM data) AND {y_q} <= (SELECT quantile_cont({y_q}, 0.99) FROM data)"
+            f"({y_eval} IS NOT NULL AND {y_eval} >= (SELECT quantile_cont({y_eval}, 0.01) FROM data WHERE {y_eval} IS NOT NULL) AND {y_eval} <= (SELECT quantile_cont({y_eval}, 0.99) FROM data WHERE {y_eval} IS NOT NULL))"
         )
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
@@ -155,7 +188,7 @@ def compile_spec(
 
     # 1. BIG NUMBER
     if ctype == "big_number":
-        y_expr = quote_identifier(spec.y.column) if spec.y else "*"
+        y_expr = _render_y_expr(spec.y, schema, spec.aggregation)
         agg_sql = _render_agg_expr(spec.aggregation, y_expr)
         sql = f"SELECT {agg_sql} AS value FROM data {where_sql} LIMIT 1"
         return sql, params, notes
@@ -166,6 +199,8 @@ def compile_spec(
         bins = spec.x.bins or lim.histogram_default_bins
         bins = min(max(5, bins), lim.histogram_max_bins)
         x_expr, _ = _render_field_expr(spec.x, schema)
+        if not _is_numeric_type_str(schema.get(spec.x.column, "")) or spec.x.cast_as == "number":
+            x_expr = f"TRY_CAST({quote_identifier(spec.x.column)} AS DOUBLE)"
         
         # We compute histogram buckets in DuckDB using width_bucket
         non_null_where = f"{x_expr} IS NOT NULL"
@@ -208,6 +243,10 @@ LIMIT {bins + 5}
         sample_size = lim.scatter_sample_size
         x_expr, _ = _render_field_expr(spec.x, schema)
         y_expr, _ = _render_field_expr(spec.y, schema)
+        if not _is_numeric_type_str(schema.get(spec.x.column, "")) or spec.x.cast_as == "number":
+            x_expr = f"TRY_CAST({quote_identifier(spec.x.column)} AS DOUBLE)"
+        if not _is_numeric_type_str(schema.get(spec.y.column, "")) or spec.y.cast_as == "number":
+            y_expr = f"TRY_CAST({quote_identifier(spec.y.column)} AS DOUBLE)"
         
         # Color column if present
         color_select = f", {quote_identifier(spec.color.column)} AS color" if spec.color else ""
@@ -225,6 +264,8 @@ LIMIT {sample_size}
     if ctype == "box":
         assert spec.y is not None
         y_expr, _ = _render_field_expr(spec.y, schema)
+        if not _is_numeric_type_str(schema.get(spec.y.column, "")) or spec.y.cast_as == "number":
+            y_expr = f"TRY_CAST({quote_identifier(spec.y.column)} AS DOUBLE)"
         
         if spec.x:
             x_expr, _ = _render_field_expr(spec.x, schema)
@@ -240,7 +281,7 @@ SELECT
     MAX({y_expr}) AS max
 FROM data
 {where_sql}
-GROUP BY {x_expr}
+GROUP BY 1
 ORDER BY n DESC
 LIMIT {top_n}
 """.strip()
@@ -277,7 +318,7 @@ SELECT
     COUNT(*) AS value
 FROM data
 {where_sql}
-GROUP BY {x_expr}, {y_expr}
+GROUP BY 1, 2
 ORDER BY value DESC
 LIMIT {max_cells}
 """.strip()
@@ -288,8 +329,8 @@ LIMIT {max_cells}
     if ctype in ("bar", "hbar", "pie"):
         assert spec.x is not None
         x_expr, _ = _render_field_expr(spec.x, schema)
-        y_col_expr = quote_identifier(spec.y.column) if spec.y else "*"
-        agg_sql = _render_agg_expr(spec.aggregation, y_col_expr)
+        y_expr = _render_y_expr(spec.y, schema, spec.aggregation)
+        agg_sql = _render_agg_expr(spec.aggregation, y_expr)
         
         top_n = spec.top_n or (lim.max_pie_slices if ctype == "pie" else 20)
         top_n = min(top_n, lim.max_pie_slices if ctype == "pie" else lim.max_categories_bar)
@@ -302,7 +343,7 @@ LIMIT {max_cells}
 
         # Color grouping if specified and not pie
         if spec.color and ctype != "pie":
-            color_expr = quote_identifier(spec.color.column)
+            color_expr, _ = _render_field_expr(spec.color, schema)
             sql = f"""
 SELECT 
     {x_expr} AS category,
@@ -310,36 +351,53 @@ SELECT
     {agg_sql} AS value
 FROM data
 {where_sql}
-GROUP BY {x_expr}, {color_expr}
+GROUP BY 1, 2
 ORDER BY {order_by}
 LIMIT {top_n * lim.max_series_color}
 """.strip()
             notes.append(f"Grouped by '{spec.x.column}' and '{spec.color.column}'.")
             return sql, params, notes
 
+        # Other bucket aggregation: if spec.aggregation is avg or median, average the remaining values
+        other_agg = (
+            "AVG(value)" if spec.aggregation in ("avg", "median")
+            else "MIN(value)" if spec.aggregation == "min"
+            else "MAX(value)" if spec.aggregation == "max"
+            else "SUM(value)"
+        )
+
         # Standard bar/pie with Top N and "Other" bucket
         sql = f"""
-WITH ranked AS (
+WITH grouped AS (
     SELECT 
         COALESCE(CAST({x_expr} AS VARCHAR), '(Null)') AS category,
-        {agg_sql} AS value,
-        ROW_NUMBER() OVER (ORDER BY {agg_sql} DESC) AS rnk
+        {agg_sql} AS value
     FROM data
     {where_sql}
-    GROUP BY category
+    GROUP BY 1
+),
+ranked AS (
+    SELECT 
+        category,
+        value,
+        ROW_NUMBER() OVER (ORDER BY value DESC) AS rnk
+    FROM grouped
 ),
 top_rows AS (
     SELECT category, value FROM ranked WHERE rnk <= {top_n}
 ),
 other_row AS (
-    SELECT 'Other' AS category, SUM(value) AS value
+    SELECT 'Other' AS category, {other_agg} AS value
     FROM ranked
     WHERE rnk > {top_n}
     HAVING COUNT(*) > 0
 )
-SELECT category, value FROM top_rows
-UNION ALL
-SELECT category, value FROM other_row
+SELECT category, value FROM (
+    SELECT category, value, 0 AS is_other FROM top_rows
+    UNION ALL
+    SELECT category, value, 1 AS is_other FROM other_row
+)
+ORDER BY is_other ASC, {order_by}
 LIMIT {top_n + 1}
 """.strip()
         notes.append(f"Top {top_n} categories shown; remaining grouped into 'Other'.")
@@ -349,13 +407,13 @@ LIMIT {top_n + 1}
     if ctype in ("line", "area"):
         assert spec.x is not None
         x_expr, _ = _render_field_expr(spec.x, schema)
-        y_col_expr = quote_identifier(spec.y.column) if spec.y else "*"
-        agg_sql = _render_agg_expr(spec.aggregation, y_col_expr)
+        y_expr = _render_y_expr(spec.y, schema, spec.aggregation)
+        agg_sql = _render_agg_expr(spec.aggregation, y_expr)
         
         max_points = lim.max_points_line
         color_expr = f", {quote_identifier(spec.color.column)} AS series" if spec.color else ""
-        group_by = f"GROUP BY {x_expr}" + (f", {quote_identifier(spec.color.column)}" if spec.color else "")
-        order_by = f"ORDER BY {x_expr} ASC"
+        group_by = f"GROUP BY 1" + (f", 2" if spec.color else "")
+        order_by = f"ORDER BY 1 ASC"
 
         sql = f"""
 SELECT 

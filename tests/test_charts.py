@@ -101,3 +101,51 @@ def test_chart_from_result_shapes():
     assert s3.spec.chart_type == "line"
     assert s3.spec.x.column == "dt"
     assert s3.spec.y.column == "price"
+
+
+def test_compile_spec_numeric_aggregation_on_varchar():
+    """Verify numeric aggregation (avg, sum, median) on VARCHAR column compiles and runs in DuckDB."""
+    import duckdb
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE data (order_date VARCHAR, order_hour VARCHAR)")
+    con.execute("INSERT INTO data VALUES ('2026-01-01', '14'), ('2026-01-01', '08'), ('2026-01-02', '12')")
+    
+    schema = {"order_date": "VARCHAR", "order_hour": "VARCHAR"}
+    spec = ChartSpec(
+        chart_type="line",
+        x=FieldRef(column="order_date", time_bucket="day", cast_as="timestamp"),
+        y=FieldRef(column="order_hour", cast_as="number"),
+        aggregation="avg",
+    )
+    sql, params, notes = compile_spec(spec, schema)
+    assert "AVG(TRY_CAST" in sql
+    res = con.execute(sql, params).fetchall()
+    assert len(res) == 2
+    con.close()
+
+
+def test_compile_spec_bar_with_category_column_in_schema():
+    """Verify bar chart on country runs even when table has an existing column named category."""
+    import duckdb
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE data (country VARCHAR, category VARCHAR, amount VARCHAR)")
+    con.execute("INSERT INTO data VALUES ('US', 'Electronics', '100'), ('UK', 'Clothing', '50'), ('US', 'Clothing', '75')")
+
+    schema = {"country": "VARCHAR", "category": "VARCHAR", "amount": "VARCHAR"}
+    spec = ChartSpec(
+        chart_type="hbar",
+        x=FieldRef(column="country"),
+        y=FieldRef(column="amount", cast_as="number"),
+        aggregation="sum",
+    )
+    sql, params, notes = compile_spec(spec, schema)
+    assert "WITH grouped AS" in sql
+    assert "GROUP BY 1" in sql
+    res = con.execute(sql, params).fetchall()
+    assert len(res) == 2
+    # Check US is 175.0, UK is 50.0
+    val_map = {row[0]: row[1] for row in res}
+    assert val_map["US"] == 175.0
+    assert val_map["UK"] == 50.0
+    con.close()
+
