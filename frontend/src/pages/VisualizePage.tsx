@@ -24,6 +24,7 @@ import { ChartCard, type ChartCardItem } from '../components/explore/ChartCard';
 import { DataOptionsPanel } from '../components/explore/DataOptionsPanel';
 import { DescribeChartBar } from '../components/explore/DescribeChartBar';
 import { VisualizationAdviceModal } from '../components/explore/VisualizationAdviceModal';
+import { DEFAULT_CHART_COLOR } from '../components/explore/chartColors';
 import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
 import {
@@ -58,6 +59,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     exclude_missing: false,
     hide_outliers: false,
   });
+  const [globalChartColor, setGlobalChartColor] = useState<string>(DEFAULT_CHART_COLOR);
 
   // AI status & Advice modal state
   const [aiEnabled, setAiEnabled] = useState(false);
@@ -375,9 +377,35 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     setCards((prev) => [newCard, ...prev]);
   };
 
-  // Update card spec from Tweak panel
+  // Update card spec from Tweak panel or color picker
   const handleUpdateCardSpec = async (id: string, updatedSpec: ChartSpec) => {
     if (!datasetInfo) return;
+    const existing = cards.find((c) => c.id === id);
+    if (!existing) return;
+
+    // Check if ONLY visual fields (like custom_color or title) changed
+    const queryFieldsChanged =
+      existing.spec.chart_type !== updatedSpec.chart_type ||
+      JSON.stringify(existing.spec.x) !== JSON.stringify(updatedSpec.x) ||
+      JSON.stringify(existing.spec.y) !== JSON.stringify(updatedSpec.y) ||
+      JSON.stringify(existing.spec.color) !== JSON.stringify(updatedSpec.color) ||
+      existing.spec.aggregation !== updatedSpec.aggregation ||
+      JSON.stringify(existing.spec.filters) !== JSON.stringify(updatedSpec.filters) ||
+      existing.spec.sort !== updatedSpec.sort ||
+      existing.spec.top_n !== updatedSpec.top_n ||
+      existing.spec.log_y !== updatedSpec.log_y;
+
+    if (!queryFieldsChanged && existing.data) {
+      // Instant local update with 0ms latency!
+      const updatedData = { ...existing.data, spec: updatedSpec };
+      setCards((prev) =>
+        prev.map((c) =>
+          c.id === id ? { ...c, spec: updatedSpec, data: updatedData, isEdited: true } : c
+        )
+      );
+      return;
+    }
+
     setCards((prev) =>
       prev.map((c) => (c.id === id ? { ...c, spec: updatedSpec, loading: true, isEdited: true } : c))
     );
@@ -639,6 +667,8 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
             loadingAdvice={loadingAdvice}
             onAddChart={handleAddChart}
             isAddingChart={isAddingChart}
+            globalColor={globalChartColor}
+            onGlobalColorChange={setGlobalChartColor}
           />
 
           {/* Active Chart Cards Grid */}
@@ -653,6 +683,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
                   onUpdateSpec={handleUpdateCardSpec}
                   onResetSpec={handleResetCardSpec}
                   onRemove={handleRemoveCard}
+                  globalColor={globalChartColor}
                 />
               ))}
             </div>

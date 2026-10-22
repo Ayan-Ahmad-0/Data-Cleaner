@@ -90,6 +90,7 @@ class ChartSpec(BaseModel):
     title: Optional[str] = Field(None, max_length=120)
     exclude_nulls: bool = False
     hide_outliers: bool = False  # Clip numeric axes to 1st..99th percentile
+    custom_color: Optional[str] = Field(None, max_length=32)
 
     @field_validator("filters")
     @classmethod

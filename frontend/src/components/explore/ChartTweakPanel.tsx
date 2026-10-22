@@ -16,6 +16,7 @@ import {
   Trash2,
   Check,
 } from 'lucide-react';
+import { CHART_COLOR_SWATCHES, DEFAULT_CHART_COLOR } from './chartColors';
 
 interface ChartTweakPanelProps {
   jobId: string;
@@ -199,6 +200,69 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* Chart Color / Accent */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                Chart Color / Accent
+              </label>
+              {spec.custom_color && (
+                <button
+                  type="button"
+                  onClick={() => setSpec({ ...spec, custom_color: null })}
+                  className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
+                >
+                  Reset to default
+                </button>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 p-2.5 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-md)]">
+              {CHART_COLOR_SWATCHES.map((swatch) => {
+                const currentHex = spec.custom_color || DEFAULT_CHART_COLOR;
+                const isSelected = currentHex.toLowerCase() === swatch.hex.toLowerCase();
+                return (
+                  <button
+                    key={swatch.id}
+                    type="button"
+                    onClick={() => setSpec({ ...spec, custom_color: swatch.hex })}
+                    className={`w-7 h-7 rounded-md flex items-center justify-center transition-all cursor-pointer relative hover:scale-105 ${
+                      isSelected
+                        ? 'ring-2 ring-offset-2 ring-[var(--accent)] dark:ring-offset-zinc-900 scale-105'
+                        : 'hover:opacity-90'
+                    }`}
+                    style={{ backgroundColor: swatch.hex }}
+                    title={swatch.label}
+                  >
+                    {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
+                  </button>
+                );
+              })}
+
+              <div className="h-5 w-px bg-[var(--border-hairline)] mx-1" />
+
+              {/* Custom Color Input */}
+              <label className="relative cursor-pointer flex items-center gap-1.5">
+                <input
+                  type="color"
+                  value={
+                    spec.custom_color && spec.custom_color.startsWith('#') && spec.custom_color.length === 7
+                      ? spec.custom_color
+                      : '#FD4233'
+                  }
+                  onChange={(e) => setSpec({ ...spec, custom_color: e.target.value })}
+                  className="w-6 h-6 rounded cursor-pointer border-0 p-0 opacity-0 absolute inset-0"
+                />
+                <div
+                  className="w-6 h-6 rounded-md border border-[var(--border-hairline)] shadow-2xs"
+                  style={{ backgroundColor: spec.custom_color || DEFAULT_CHART_COLOR }}
+                />
+                <span className="text-xs text-[var(--text-muted)] font-mono">
+                  {spec.custom_color || 'Default'}
+                </span>
+              </label>
             </div>
           </div>
 

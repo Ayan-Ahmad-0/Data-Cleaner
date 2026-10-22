@@ -8,6 +8,10 @@ import {
 import { ChartTweakPanel } from './ChartTweakPanel';
 import { PlotlyChartRenderer } from './PlotlyChartRenderer';
 import {
+  CHART_COLOR_SWATCHES,
+  DEFAULT_CHART_COLOR,
+} from './chartColors';
+import {
   Sliders,
   Download,
   Trash2,
@@ -18,6 +22,8 @@ import {
   ChevronUp,
   Loader2,
   Info,
+  Palette,
+  Check,
 } from 'lucide-react';
 
 export interface ChartCardItem {
@@ -43,6 +49,7 @@ interface ChartCardProps {
   onUpdateSpec: (id: string, updatedSpec: ChartSpec) => void;
   onResetSpec: (id: string) => void;
   onRemove: (id: string) => void;
+  globalColor?: string;
 }
 
 export const ChartCard: React.FC<ChartCardProps> = ({
@@ -52,10 +59,12 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   onUpdateSpec,
   onResetSpec,
   onRemove,
+  globalColor,
 }) => {
   const [isTweakOpen, setIsTweakOpen] = useState(false);
   const [isWhyOpen, setIsWhyOpen] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [isColorPickerOpen, setIsColorPickerOpen] = useState(false);
 
   const handleExport = async () => {
     setIsExporting(true);
@@ -71,6 +80,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const hasWhyDetails =
     item.questionAnswered || item.why || (item.caveats && item.caveats.length > 0) || item.explanation;
   const isKpi = item.spec.chart_type === 'big_number';
+  const activeColor = item.spec.custom_color || globalColor || DEFAULT_CHART_COLOR;
 
   // KPI card value extraction
   const kpiRaw = item.data?.rows?.length && item.data.rows[0]?.length ? item.data.rows[0][0] : 0;
@@ -108,6 +118,98 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 
         {/* Compact Utility Action Buttons */}
         <div className="flex items-center gap-1 shrink-0">
+          {/* Quick Color Picker Trigger & Popover */}
+          <div className="relative">
+            <button
+              onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
+              className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer flex items-center gap-1"
+              title="Change chart color"
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span
+                className="w-2 h-2 rounded-full border border-black/20 dark:border-white/20 inline-block shrink-0 shadow-2xs"
+                style={{ backgroundColor: activeColor }}
+              />
+            </button>
+
+            {isColorPickerOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setIsColorPickerOpen(false)}
+                />
+                <div className="absolute right-0 top-full mt-1.5 z-50 p-2.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl shadow-xl w-48 space-y-2 animate-in fade-in zoom-in-95 duration-100">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-primary)] px-0.5">
+                    <span>Chart Color</span>
+                    {item.spec.custom_color && (
+                      <button
+                        onClick={() => {
+                          onUpdateSpec(item.id, { ...item.spec, custom_color: null });
+                          setIsColorPickerOpen(false);
+                        }}
+                        className="text-[10px] text-[var(--accent)] hover:underline font-normal cursor-pointer"
+                      >
+                        Reset
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-4 gap-1.5 pt-0.5">
+                    {CHART_COLOR_SWATCHES.map((swatch) => {
+                      const isSelected = activeColor.toLowerCase() === swatch.hex.toLowerCase();
+                      return (
+                        <button
+                          key={swatch.id}
+                          type="button"
+                          onClick={() => {
+                            onUpdateSpec(item.id, { ...item.spec, custom_color: swatch.hex });
+                            setIsColorPickerOpen(false);
+                          }}
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer relative hover:scale-105 ${
+                            isSelected
+                              ? 'ring-2 ring-offset-2 ring-[var(--accent)] dark:ring-offset-zinc-900 scale-105'
+                              : 'hover:opacity-90'
+                          }`}
+                          style={{ backgroundColor: swatch.hex }}
+                          title={swatch.label}
+                        >
+                          {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Custom color input row */}
+                  <div className="pt-1.5 border-t border-[var(--border-hairline)]/70 flex items-center gap-2">
+                    <label className="relative cursor-pointer shrink-0">
+                      <input
+                        type="color"
+                        value={activeColor.startsWith('#') && activeColor.length === 7 ? activeColor : '#FD4233'}
+                        onChange={(e) => {
+                          onUpdateSpec(item.id, { ...item.spec, custom_color: e.target.value });
+                        }}
+                        className="w-6 h-6 rounded cursor-pointer border-0 p-0 opacity-0 absolute inset-0"
+                      />
+                      <div
+                        className="w-6 h-6 rounded-md border border-[var(--border-hairline)] shadow-2xs"
+                        style={{ backgroundColor: activeColor }}
+                      />
+                    </label>
+                    <input
+                      type="text"
+                      value={activeColor}
+                      onChange={(e) => {
+                        onUpdateSpec(item.id, { ...item.spec, custom_color: e.target.value });
+                      }}
+                      placeholder="#hex"
+                      className="flex-1 text-[11px] font-mono px-2 py-0.5 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded text-[var(--text-primary)] uppercase focus:outline-none focus:border-[var(--accent)]"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+
           <button
             onClick={() => setIsTweakOpen(true)}
             className="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
@@ -152,9 +254,12 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           </div>
         ) : item.data ? (
           isKpi ? (
-            /* Sleek KPI Card Display (No redundant inner framing) */
+            /* Sleek KPI Card Display with dynamic custom color */
             <div className="py-8 px-4 flex flex-col items-center justify-center text-center w-full">
-              <span className="text-5xl sm:text-6xl font-extrabold font-mono tracking-tight text-[var(--accent)]">
+              <span
+                className="text-5xl sm:text-6xl font-extrabold font-mono tracking-tight"
+                style={{ color: activeColor }}
+              >
                 {kpiFormatted}
               </span>
               <span className="text-xs text-[var(--text-muted)] font-medium mt-2 uppercase tracking-wider">
@@ -162,7 +267,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               </span>
             </div>
           ) : (
-            <PlotlyChartRenderer data={item.data} height={310} />
+            <PlotlyChartRenderer data={item.data} height={310} customColor={activeColor} />
           )
         ) : (
           <div className="text-xs text-[var(--text-muted)]">No data available</div>

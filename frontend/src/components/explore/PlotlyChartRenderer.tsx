@@ -1,32 +1,25 @@
 import React, { useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import type { ChartDataResponse } from '../../lib/api';
-
-// Brand / Primary Accent (CleanFlow Orange) and Harmonious Palette
-const BRAND_ORANGE = '#FD4233';
-const BRAND_ORANGE_DARK = '#E53628';
-
-const THEME_PALETTE = [
-  '#FD4233', // 1. Brand CleanFlow Orange
-  '#F97316', // 2. Warm Tangerine
-  '#F59E0B', // 3. Amber Gold
-  '#10B981', // 4. Emerald Green
-  '#8B5CF6', // 5. Soft Violet
-  '#06B6D4', // 6. Cyan Teal
-  '#EC4899', // 7. Coral Rose
-  '#64748B', // 8. Cool Slate
-];
+import {
+  DEFAULT_CHART_COLOR,
+  adjustBrightness,
+  buildPaletteWithPrimary,
+  hexToRgba,
+} from './chartColors';
 
 interface PlotlyChartRendererProps {
   data: ChartDataResponse;
   height?: number;
   className?: string;
+  customColor?: string;
 }
 
 export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
   data,
   height = 420,
   className = '',
+  customColor,
 }) => {
   const { spec, columns, rows } = data;
   const isDark = document.documentElement.classList.contains('dark');
@@ -39,12 +32,16 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
     const paperBg = 'transparent';
     const plotBg = 'transparent';
 
+    const primaryColor = spec.custom_color || customColor || DEFAULT_CHART_COLOR;
+    const primaryDark = adjustBrightness(primaryColor, -15);
+    const activePalette = buildPaletteWithPrimary(primaryColor);
+
     const baseLayout: any = {
       autosize: true,
       height,
       paper_bgcolor: paperBg,
       plot_bgcolor: plotBg,
-      colorway: THEME_PALETTE,
+      colorway: activePalette,
       margin: { l: 48, r: 18, t: 14, b: 38 },
       font: {
         family: 'IBM Plex Sans, sans-serif',
@@ -84,6 +81,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       return {
         isBigNumber: true,
         bigNumberValue: formatted,
+        primaryColor,
         title: spec.title || 'Summary Value',
         traces: [],
         layout: baseLayout,
@@ -100,8 +98,8 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           x: xLabels,
           y: yValues,
           marker: {
-            color: 'rgba(253, 66, 51, 0.85)',
-            line: { color: BRAND_ORANGE_DARK, width: 1.5 },
+            color: hexToRgba(primaryColor, 0.85),
+            line: { color: primaryDark, width: 1.5 },
           },
           hoverinfo: 'x+y',
         },
@@ -112,7 +110,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         xaxis: { ...baseLayout.xaxis, type: 'category' },
         yaxis: { ...baseLayout.yaxis, type: spec.log_y ? 'log' : 'linear' },
       };
-      return { isBigNumber: false, traces, layout: histLayout };
+      return { isBigNumber: false, primaryColor, traces, layout: histLayout };
     }
 
     // 3. Scatter Plot
@@ -126,10 +124,10 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           x: xValues,
           y: yValues,
           marker: {
-            color: BRAND_ORANGE,
+            color: primaryColor,
             size: 7,
             opacity: 0.75,
-            line: { color: BRAND_ORANGE_DARK, width: 1 },
+            line: { color: primaryDark, width: 1 },
           },
         },
       ];
@@ -138,13 +136,13 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         xaxis: { ...baseLayout.xaxis, type: 'linear' },
         yaxis: { ...baseLayout.yaxis, type: spec.log_y ? 'log' : 'linear' },
       };
-      return { isBigNumber: false, traces, layout: scatterLayout };
+      return { isBigNumber: false, primaryColor, traces, layout: scatterLayout };
     }
 
     // 4. Box Plot
     if (spec.chart_type === 'box') {
       const traces: any[] = rows.map((r, idx) => {
-        const color = THEME_PALETTE[idx % THEME_PALETTE.length];
+        const color = activePalette[idx % activePalette.length];
         return {
           type: 'box',
           name: String(r[0]),
@@ -155,7 +153,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           upperfence: [r[6]],
           marker: { color },
           line: { color, width: 1.5 },
-          fillcolor: isDark ? 'rgba(253, 66, 51, 0.18)' : 'rgba(253, 66, 51, 0.1)',
+          fillcolor: isDark ? hexToRgba(primaryColor, 0.18) : hexToRgba(primaryColor, 0.1),
         };
       });
       const boxLayout = {
@@ -163,7 +161,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         xaxis: { ...baseLayout.xaxis, type: 'category' },
         yaxis: { ...baseLayout.yaxis, type: spec.log_y ? 'log' : 'linear' },
       };
-      return { isBigNumber: false, traces, layout: boxLayout };
+      return { isBigNumber: false, primaryColor, traces, layout: boxLayout };
     }
 
     // 5. Heatmap
@@ -189,15 +187,15 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           colorscale: isDark
             ? [
                 [0, '#1c1917'],
-                [0.3, '#7c2d12'],
-                [0.7, '#ea580c'],
-                [1, '#fd4233'],
+                [0.3, adjustBrightness(primaryColor, -40)],
+                [0.7, adjustBrightness(primaryColor, -15)],
+                [1, primaryColor],
               ]
             : [
                 [0, '#fff5f4'],
-                [0.25, '#fed7aa'],
-                [0.65, '#fb923c'],
-                [1, '#fd4233'],
+                [0.25, hexToRgba(primaryColor, 0.35)],
+                [0.65, hexToRgba(primaryColor, 0.7)],
+                [1, primaryColor],
               ],
         },
       ];
@@ -207,7 +205,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         xaxis: { ...baseLayout.xaxis, type: 'category' },
         yaxis: { ...baseLayout.yaxis, type: 'category' },
       };
-      return { isBigNumber: false, traces, layout: heatLayout };
+      return { isBigNumber: false, primaryColor, traces, layout: heatLayout };
     }
 
     // 6. Pie Chart
@@ -223,12 +221,12 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           textinfo: 'label+percent',
           hoverinfo: 'label+value+percent',
           marker: {
-            colors: THEME_PALETTE,
+            colors: activePalette,
             line: { color: isDark ? '#18181b' : '#ffffff', width: 2 },
           },
         },
       ];
-      return { isBigNumber: false, traces, layout: baseLayout };
+      return { isBigNumber: false, primaryColor, traces, layout: baseLayout };
     }
 
     // 7. Horizontal Bar
@@ -242,8 +240,8 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           x: values,
           y: categories,
           marker: {
-            color: BRAND_ORANGE,
-            line: { color: BRAND_ORANGE_DARK, width: 1 },
+            color: primaryColor,
+            line: { color: primaryDark, width: 1 },
           },
         },
       ];
@@ -267,7 +265,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           automargin: true,
         },
       };
-      return { isBigNumber: false, traces, layout: hbarLayout };
+      return { isBigNumber: false, primaryColor, traces, layout: hbarLayout };
     }
 
     // 8. Vertical Bar
@@ -297,7 +295,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         const groups = Array.from(new Set(rows.map((r) => String(r[1]))));
         const categories = Array.from(new Set(rows.map((r) => String(r[0]))));
         const traces: any[] = groups.map((grp, idx) => {
-          const color = THEME_PALETTE[idx % THEME_PALETTE.length];
+          const color = activePalette[idx % activePalette.length];
           const yVals = categories.map((cat) => {
             const found = rows.find((r) => String(r[0]) === cat && String(r[1]) === grp);
             return found ? Number(found[2]) || 0 : 0;
@@ -310,7 +308,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
             marker: { color },
           };
         });
-        return { isBigNumber: false, traces, layout: barLayout };
+        return { isBigNumber: false, primaryColor, traces, layout: barLayout };
       } else {
         const categories = rows.map((r) => String(r[0]));
         const values = rows.map((r) => Number(r[1]) || 0);
@@ -320,12 +318,12 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
             x: categories,
             y: values,
             marker: {
-              color: BRAND_ORANGE,
-              line: { color: BRAND_ORANGE_DARK, width: 1 },
+              color: primaryColor,
+              line: { color: primaryDark, width: 1 },
             },
           },
         ];
-        return { isBigNumber: false, traces, layout: barLayout };
+        return { isBigNumber: false, primaryColor, traces, layout: barLayout };
       }
     }
 
@@ -354,7 +352,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       const seriesNames = Array.from(new Set(rows.map((r) => String(r[1]))));
       const traces: any[] = seriesNames.map((sName, idx) => {
         const sRows = rows.filter((r) => String(r[1]) === sName);
-        const color = THEME_PALETTE[idx % THEME_PALETTE.length];
+        const color = activePalette[idx % activePalette.length];
         return {
           type: 'scatter',
           mode: 'lines+markers',
@@ -366,7 +364,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           marker: { color, size: 4 },
         };
       });
-      return { isBigNumber: false, traces, layout: lineLayout };
+      return { isBigNumber: false, primaryColor, traces, layout: lineLayout };
     }
 
     const xVals = rows.map((r) => r[0]);
@@ -379,20 +377,23 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         y: yVals,
         fill: isArea ? 'tozeroy' : undefined,
         fillcolor: isArea
-          ? (isDark ? 'rgba(253, 66, 51, 0.22)' : 'rgba(253, 66, 51, 0.12)')
+          ? (isDark ? hexToRgba(primaryColor, 0.22) : hexToRgba(primaryColor, 0.12))
           : undefined,
-        line: { color: BRAND_ORANGE, width: 2.5 },
-        marker: { color: BRAND_ORANGE, size: 5 },
+        line: { color: primaryColor, width: 2.5 },
+        marker: { color: primaryColor, size: 5 },
       },
     ];
 
-    return { isBigNumber: false, traces, layout: lineLayout };
-  }, [data, isDark, height, spec, columns, rows]);
+    return { isBigNumber: false, primaryColor, traces, layout: lineLayout };
+  }, [data, isDark, height, spec, columns, rows, customColor]);
 
   if (plotConfig.isBigNumber) {
     return (
       <div className={`flex flex-col items-center justify-center py-6 px-4 w-full text-center ${className}`}>
-        <span className="text-4xl sm:text-5xl font-extrabold font-mono tracking-tight text-[var(--accent)]">
+        <span
+          className="text-4xl sm:text-5xl font-extrabold font-mono tracking-tight"
+          style={{ color: plotConfig.primaryColor }}
+        >
           {plotConfig.bigNumberValue}
         </span>
       </div>

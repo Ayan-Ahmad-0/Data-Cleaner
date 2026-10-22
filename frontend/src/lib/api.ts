@@ -375,6 +375,7 @@ export interface ChartSpec {
   title?: string | null;
   exclude_nulls?: boolean;
   hide_outliers?: boolean;
+  custom_color?: string | null;
 }
 
 export interface ChartDataResponse {
