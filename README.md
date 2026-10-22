@@ -79,7 +79,7 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX, SQLite) → Format Stager → Canon
 
 ---
 
-## Pipeline Flow
+## Pipeline Flow   
 
 ```
 Input File (CSV, Parquet, JSON, NDJSON, XLSX, SQLite)
