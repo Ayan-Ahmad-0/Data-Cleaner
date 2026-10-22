@@ -145,7 +145,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
   return (
     <div className="container-shell py-8 sm:py-12 space-y-8">
       {/* Header section */}
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 pb-6 hairline-b">
+      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
         <div className="space-y-2">
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
