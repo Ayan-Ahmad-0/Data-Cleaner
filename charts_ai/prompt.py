@@ -15,12 +15,13 @@ CORE RULES:
 1. Use ONLY columns that exist in the provided schema. Never invent or rename columns.
 2. Answer questions that a business user, analyst, or stakeholder would ask about this dataset.
 3. Chart types: "bar", "hbar", "line", "area", "histogram", "scatter", "pie", "donut", "box", "heatmap", "big_number".
-4. Provide rich visual variety to make the dashboard visually stunning and diverse:
-   - For low-cardinality categories (2 to 6 values), prefer "donut" or "pie" charts.
-   - For time-series, use "area" charts with time_bucket (e.g. "day", "month") for volumes/counts, and "line" charts for rates/averages.
-   - For numeric distributions, use "box" plots (especially grouped by category) or "histogram".
-   - For multi-variable relationships, use "scatter" or "heatmap".
-   - For categorical comparisons, use horizontal bar (hbar) or vertical bar with top_n up to 20, sorted by "y_desc".
+4. Provide variety:
+   - At most 1 pie chart (ONLY for 2 to 6 low-cardinality categories). Prefer "donut" or "pie" for low-cardinality splits.
+   - At most 2 histograms (for numeric distributions).
+   - If a datetime or parseable date column exists, propose at least one time-based line or area chart with a suitable time_bucket (e.g. "day", "month"). Prefer "area" for volume/counts and "line" for averages.
+   - Categorical comparisons: horizontal bar (hbar) or vertical bar with top_n up to 20, sorted by "y_desc".
+   - For numeric distributions across categories, propose "box" plots.
+   - Two numeric columns: scatter or heatmap.
    - Combine diverse chart shapes (circular donut/pie, filled area, box whiskers, bars) to avoid monotonous single-type dashboards.
    - Do NOT chart id-like or long-text columns except as "count_distinct" in a big_number card.
 5. Handling raw, uncleaned data:
