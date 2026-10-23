@@ -115,8 +115,11 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
 
     // 3. Scatter Plot
     if (spec.chart_type === 'scatter') {
-      const xValues = rows.map((r) => r[0]);
-      const yValues = rows.map((r) => r[1]);
+      const validRows = rows.filter(
+        (r) => r && r[0] != null && r[1] != null && Number.isFinite(Number(r[0])) && Number.isFinite(Number(r[1]))
+      );
+      const xValues = validRows.map((r) => Number(r[0]));
+      const yValues = validRows.map((r) => Number(r[1]));
       const traces: any[] = [
         {
           type: 'scatter',
