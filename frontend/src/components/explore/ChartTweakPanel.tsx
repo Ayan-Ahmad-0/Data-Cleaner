@@ -245,6 +245,12 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
 
   const handleColumnChange = (role: 'x' | 'y' | 'color', colName: string) => {
     let field: FieldRef | undefined = colName ? { column: colName } : undefined;
+    if (field && role === 'x' && (spec.chart_type === 'line' || spec.chart_type === 'area')) {
+      const colObj = columns.find((c) => c.name === colName);
+      if (colObj && (colObj.kind === 'datetime' || /date|time/i.test(colObj.type))) {
+        field = { ...field, time_bucket: 'week' };
+      }
+    }
     if (field && role === 'y' && (spec.aggregation === 'sum' || spec.aggregation === 'avg' || spec.aggregation === 'median')) {
       const colObj = columns.find((c) => c.name === colName);
       if (colObj && !isNumericCol(colObj)) {
