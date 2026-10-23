@@ -3,6 +3,7 @@ import Plot from 'react-plotly.js';
 import type { ChartDataResponse } from '../../lib/api';
 import {
   DEFAULT_CHART_COLOR,
+  getDefaultChartColor,
   adjustBrightness,
   buildPaletteWithPrimary,
   hexToRgba,
@@ -32,7 +33,8 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
     const paperBg = 'transparent';
     const plotBg = 'transparent';
 
-    const primaryColor = spec.custom_color || customColor || DEFAULT_CHART_COLOR;
+    const defaultColor = getDefaultChartColor(spec?.chart_type);
+    const primaryColor = spec?.custom_color || customColor || defaultColor;
     const primaryDark = adjustBrightness(primaryColor, -15);
     const activePalette = buildPaletteWithPrimary(primaryColor);
 
