@@ -305,27 +305,55 @@ export interface QueryUploadResult {
   detected_format?: string;
 }
 
-export async function uploadForQuery(
+export function uploadForQuery(
   file: File,
   options?: Record<string, any>,
+  onProgress?: (loaded: number, total: number) => void,
 ): Promise<QueryUploadResult> {
-  const formData = new FormData();
-  formData.append('file', file);
-  if (options) {
-    formData.append('options', JSON.stringify(options));
-  }
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/api/query/upload`);
 
-  const res = await fetch(`${API_BASE}/api/query/upload`, {
-    method: 'POST',
-    body: formData,
+    if (onProgress && xhr.upload) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(e.loaded, e.total);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new Error('Invalid response received from server.'));
+        }
+      } else {
+        try {
+          const errData = JSON.parse(xhr.responseText);
+          reject(new Error(errData.detail || 'Failed to upload dataset for querying.'));
+        } catch {
+          reject(new Error(`Upload failed with HTTP status ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Network error during upload. Ensure the backend server is running.'));
+    };
+
+    xhr.onabort = () => {
+      reject(new Error('Upload was aborted.'));
+    };
+
+    const formData = new FormData();
+    formData.append('file', file);
+    if (options) {
+      formData.append('options', JSON.stringify(options));
+    }
+    xhr.send(formData);
   });
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'Failed to upload dataset for querying.');
-  }
-
-  return res.json();
 }
 
 // =========================================================================
