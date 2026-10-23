@@ -22,8 +22,10 @@ import {
   Terminal,
   UploadCloud,
   BarChart3,
+  Database,
 } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
+import { ConnectorModal } from '../components/connectors/ConnectorModal';
 
 interface ConvertPageProps {
   onHandoffToClean: (jobId: string, filename: string) => void;
@@ -64,6 +66,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
   const [uploadProgressPct, setUploadProgressPct] = useState<number>(0);
   const [convertResult, setConvertResult] = useState<ConvertResultResponse | null>(null);
   const [showExplore, setShowExplore] = useState<boolean>(false);
+  const [showConnectorModal, setShowConnectorModal] = useState<boolean>(false);
   const [exploreInitialMode, setExploreInitialMode] = useState<'sql' | 'ask_ai'>('ask_ai');
   const [error, setError] = useState<{ message: string; recovery: string } | null>(null);
 
@@ -284,13 +287,22 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
                 </span>
               </div>
 
-              <div className="pt-2">
+              <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                 <Button
                   variant="primary"
                   size="lg"
                   onClick={() => fileInputRef.current?.click()}
                 >
                   Select File to Convert
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  onClick={() => setShowConnectorModal(true)}
+                  leftIcon={<Database className="w-5 h-5 text-[#FF4B3E]" />}
+                >
+                  Connect S3 / PostgreSQL
                 </Button>
               </div>
             </div>
@@ -742,6 +754,16 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
           )}
         </div>
       )}
+
+      {/* Cloud & Database Connector Ingestion Modal */}
+      <ConnectorModal
+        isOpen={showConnectorModal}
+        onClose={() => setShowConnectorModal(false)}
+        mode="import"
+        onImportSuccess={(info) => {
+          onHandoffToClean(info.id, info.name);
+        }}
+      />
     </div>
   );
 };
