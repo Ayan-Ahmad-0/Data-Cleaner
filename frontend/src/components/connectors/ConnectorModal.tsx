@@ -15,8 +15,6 @@ import {
   Loader2,
   X,
   ArrowRight,
-  ExternalLink,
-  ShieldCheck,
   Server,
 } from 'lucide-react';
 
