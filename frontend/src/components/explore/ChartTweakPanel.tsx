@@ -355,7 +355,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
             <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
               Chart Type
             </label>
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2">
               {CHART_TYPES.map((ct) => {
                 const disabledReason = tweakOptions?.disabled_chart_types?.[ct.id];
                 const isSelected = spec.chart_type === ct.id;
@@ -449,7 +449,17 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
             {spec.chart_type !== 'big_number' && (
               <div className="space-y-1.5 p-3 rounded-[var(--radius-lg)] bg-[var(--bg-subtle)] border border-[var(--border-hairline)]">
                 <div className="flex items-center justify-between">
-                  <label className="font-semibold text-xs text-[var(--text-primary)]">X Axis Column</label>
+                  <label className="font-semibold text-xs text-[var(--text-primary)]">
+                    {spec.chart_type === 'box'
+                      ? 'X Axis (Category - Optional)'
+                      : spec.chart_type === 'heatmap'
+                      ? 'X Axis Column (Required)'
+                      : spec.chart_type === 'scatter'
+                      ? 'X Axis Column (Numeric Required)'
+                      : spec.chart_type === 'histogram'
+                      ? 'Numeric Column (X)'
+                      : 'X Axis Column'}
+                  </label>
                   {spec.x && (
                     <select
                       value={spec.x.cast_as || ''}
@@ -469,7 +479,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                   onChange={(e) => handleColumnChange('x', e.target.value)}
                   className="w-full px-2.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-[var(--radius-md)] text-xs"
                 >
-                  <option value="">(Select column)</option>
+                  <option value="">{spec.chart_type === 'box' ? '(None / All Data)' : '(Select column)'}</option>
                   {columns.map((c) => (
                     <option key={c.name} value={c.name}>
                       {c.name} ({c.type}) {c.null_pct > 0 ? `· ${c.null_pct}% null` : ''}
@@ -500,7 +510,15 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
             {spec.chart_type !== 'histogram' && (
               <div className="space-y-1.5 p-3 rounded-[var(--radius-lg)] bg-[var(--bg-subtle)] border border-[var(--border-hairline)]">
                 <div className="flex items-center justify-between">
-                  <label className="font-semibold text-xs text-[var(--text-primary)]">Y Axis Column</label>
+                  <label className="font-semibold text-xs text-[var(--text-primary)]">
+                    {spec.chart_type === 'box'
+                      ? 'Y Axis Column (Numeric Required)'
+                      : spec.chart_type === 'heatmap'
+                      ? 'Y Axis Column (Required)'
+                      : spec.chart_type === 'scatter'
+                      ? 'Y Axis Column (Numeric Required)'
+                      : 'Y Axis Column'}
+                  </label>
                   {spec.y && (
                     <select
                       value={spec.y.cast_as || ''}
@@ -518,7 +536,11 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                   onChange={(e) => handleColumnChange('y', e.target.value)}
                   className="w-full px-2.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-[var(--radius-md)] text-xs"
                 >
-                  <option value="">(None / Row Count)</option>
+                  <option value="">
+                    {spec.chart_type === 'box' || spec.chart_type === 'heatmap' || spec.chart_type === 'scatter'
+                      ? '(Select column)'
+                      : '(None / Row Count)'}
+                  </option>
                   {columns.map((c) => (
                     <option key={c.name} value={c.name}>
                       {c.name} ({c.type}) {c.null_pct > 0 ? `· ${c.null_pct}% null` : ''}
@@ -527,23 +549,35 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                 </select>
 
                 {/* Aggregation */}
-                <div className="pt-2 flex items-center justify-between text-[11px]">
-                  <span className="text-[var(--text-secondary)]">Aggregation:</span>
-                  <select
-                    value={spec.aggregation}
-                    onChange={(e) => setSpec({ ...spec, aggregation: e.target.value as any })}
-                    className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-2 py-0.5 text-[11px]"
-                  >
-                    {AGGREGATIONS.map((a) => {
-                      const disabledReason = tweakOptions?.disabled_aggregations?.[a.id];
-                      return (
-                        <option key={a.id} value={a.id} disabled={!!disabledReason}>
-                          {a.label} {disabledReason ? '(!)' : ''}
-                        </option>
-                      );
-                    })}
-                  </select>
-                </div>
+                {spec.chart_type !== 'box' && spec.chart_type !== 'scatter' && (
+                  <div className="pt-2 flex items-center justify-between text-[11px]">
+                    <span className="text-[var(--text-secondary)]">Aggregation:</span>
+                    <select
+                      value={spec.aggregation}
+                      onChange={(e) => setSpec({ ...spec, aggregation: e.target.value as any })}
+                      className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-2 py-0.5 text-[11px]"
+                    >
+                      {AGGREGATIONS.map((a) => {
+                        const disabledReason = tweakOptions?.disabled_aggregations?.[a.id];
+                        return (
+                          <option key={a.id} value={a.id} disabled={!!disabledReason}>
+                            {a.label} {disabledReason ? '(!)' : ''}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
+                {spec.chart_type === 'box' && (
+                  <div className="pt-2 text-[11px] text-[var(--text-muted)] italic">
+                    Five-number summary (min, Q1, median, Q3, max)
+                  </div>
+                )}
+                {spec.chart_type === 'scatter' && (
+                  <div className="pt-2 text-[11px] text-[var(--text-muted)] italic">
+                    Sampled data points (no aggregation)
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -566,23 +600,27 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
             </div>
 
             {/* Top N */}
-            {(spec.chart_type === 'bar' || spec.chart_type === 'hbar' || spec.chart_type === 'pie') && (
+            {(spec.chart_type === 'bar' || spec.chart_type === 'hbar' || spec.chart_type === 'pie' || spec.chart_type === 'donut') && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
                   <label className="text-[11px] font-medium text-[var(--text-secondary)]">
-                    {spec.chart_type === 'pie' ? 'Max slices (max 6)' : 'Top N items'}
+                    {spec.chart_type === 'pie' || spec.chart_type === 'donut' ? 'Max slices (max 6)' : 'Top N items'}
                   </label>
-                  {spec.chart_type === 'pie' && (
+                  {(spec.chart_type === 'pie' || spec.chart_type === 'donut') && (
                     <span className="text-[10px] text-[var(--text-muted)] font-mono">1–6</span>
                   )}
                 </div>
                 <input
                   type="number"
                   min={1}
-                  max={spec.chart_type === 'pie' ? 6 : 50}
-                  value={spec.chart_type === 'pie' ? Math.min(spec.top_n || 6, 6) : (spec.top_n || 20)}
+                  max={spec.chart_type === 'pie' || spec.chart_type === 'donut' ? 6 : 50}
+                  value={
+                    spec.chart_type === 'pie' || spec.chart_type === 'donut'
+                      ? Math.min(spec.top_n || 6, 6)
+                      : (spec.top_n || 20)
+                  }
                   onChange={(e) => {
-                    const maxAllowed = spec.chart_type === 'pie' ? 6 : 50;
+                    const maxAllowed = spec.chart_type === 'pie' || spec.chart_type === 'donut' ? 6 : 50;
                     const parsed = parseInt(e.target.value) || 1;
                     const clamped = Math.min(Math.max(parsed, 1), maxAllowed);
                     setSpec({ ...spec, top_n: clamped });
