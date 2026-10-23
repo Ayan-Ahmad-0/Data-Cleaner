@@ -91,7 +91,7 @@ def get_tweak_options(
 
     all_chart_types = [
         "bar", "hbar", "line", "area", "histogram", "scatter",
-        "pie", "box", "heatmap", "big_number"
+        "pie", "donut", "box", "heatmap", "big_number"
     ]
     all_aggregations = ["count", "count_distinct", "sum", "avg", "min", "max", "median", "none"]
 
@@ -116,8 +116,8 @@ def get_tweak_options(
     for ct in all_chart_types:
         if ct in ("histogram", "scatter", "box") and not has_numeric:
             disabled_types[ct] = f"{ct.capitalize()} requires at least one numeric column in dataset."
-        elif ct == "pie" and not has_categorical and not any(s.distinct_approx and s.distinct_approx <= 10 for s in stats):
-            disabled_types[ct] = "Pie chart requires a categorical column with few distinct values."
+        elif ct in ("pie", "donut") and not has_categorical and not any(s.distinct_approx and s.distinct_approx <= 10 for s in stats):
+            disabled_types[ct] = f"{ct.capitalize()} chart requires a categorical column with few distinct values."
         else:
             allowed_types.append(ct)
 

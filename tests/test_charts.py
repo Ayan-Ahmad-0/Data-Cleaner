@@ -149,3 +149,37 @@ def test_compile_spec_bar_with_category_column_in_schema():
     assert val_map["UK"] == 50.0
     con.close()
 
+
+def test_compile_spec_donut():
+    """Verify donut chart compiles to valid SQL with max pie slices."""
+    schema = {"payment_method": "VARCHAR", "amount": "DOUBLE"}
+    spec = ChartSpec(chart_type="donut", x=FieldRef(column="payment_method"), aggregation="count")
+    sql, params, notes = compile_spec(spec, schema)
+    assert "WITH grouped AS" in sql
+    assert "LIMIT 7" in sql
+
+
+def test_compile_spec_box_and_heatmap():
+    """Verify box plot and heatmap compile and execute properly in DuckDB."""
+    import duckdb
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE data (currency VARCHAR, amount DOUBLE, payment_method VARCHAR)")
+    con.execute("INSERT INTO data VALUES ('USD', 100.0, 'card'), ('EUR', 80.0, 'paypal'), ('USD', 150.0, 'card')")
+    schema = {"currency": "VARCHAR", "amount": "DOUBLE", "payment_method": "VARCHAR"}
+
+    # Box plot
+    box_spec = ChartSpec(chart_type="box", x=FieldRef(column="currency"), y=FieldRef(column="amount"))
+    box_sql, _, _ = compile_spec(box_spec, schema)
+    assert "quantile_cont" in box_sql
+    box_res = con.execute(box_sql).fetchall()
+    assert len(box_res) == 2
+
+    # Heatmap
+    heat_spec = ChartSpec(chart_type="heatmap", x=FieldRef(column="currency"), y=FieldRef(column="payment_method"))
+    heat_sql, _, _ = compile_spec(heat_spec, schema)
+    assert "GROUP BY 1, 2" in heat_sql
+    heat_res = con.execute(heat_sql).fetchall()
+    assert len(heat_res) > 0
+    con.close()
+
+

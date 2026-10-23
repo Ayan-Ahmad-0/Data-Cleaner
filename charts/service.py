@@ -152,6 +152,62 @@ def build_chart(
     finally:
         con_meta.close()
 
+    # Auto-adapt / heal spec for target chart type to prevent user errors when switching types
+    from charts.spec import FieldRef, _is_numeric_type
+    ctype = spec.chart_type
+    if ctype in ("pie", "donut"):
+        if spec.top_n and spec.top_n > lim.max_pie_slices:
+            spec.top_n = lim.max_pie_slices
+        elif not spec.top_n:
+            spec.top_n = lim.max_pie_slices
+        if spec.aggregation == "none":
+            spec.aggregation = "count"
+        if not spec.x and schema:
+            spec.x = FieldRef(column=list(schema.keys())[0])
+    elif ctype == "box":
+        if not spec.y or not _is_numeric_type(schema.get(spec.y.column, ""), spec.y.cast_as):
+            for col_name, col_type in schema.items():
+                if _is_numeric_type(col_type, None):
+                    spec.y = FieldRef(column=col_name)
+                    break
+    elif ctype == "heatmap":
+        cols = list(schema.keys())
+        if not spec.x and cols:
+            spec.x = FieldRef(column=cols[0])
+        if not spec.y or (spec.x and spec.y.column == spec.x.column):
+            for c in cols:
+                if not spec.x or c != spec.x.column:
+                    spec.y = FieldRef(column=c)
+                    break
+            if not spec.y and cols:
+                spec.y = FieldRef(column=cols[0])
+        spec.aggregation = "count"
+    elif ctype == "histogram":
+        if not spec.x or not _is_numeric_type(schema.get(spec.x.column, ""), spec.x.cast_as):
+            for col_name, col_type in schema.items():
+                if _is_numeric_type(col_type, None):
+                    spec.x = FieldRef(column=col_name)
+                    break
+        spec.y = None
+    elif ctype == "scatter":
+        num_cols = [c for c, t in schema.items() if _is_numeric_type(t, None)]
+        if not spec.x or not _is_numeric_type(schema.get(spec.x.column, ""), spec.x.cast_as):
+            if num_cols:
+                spec.x = FieldRef(column=num_cols[0])
+        if not spec.y or not _is_numeric_type(schema.get(spec.y.column, ""), spec.y.cast_as):
+            if len(num_cols) > 1:
+                spec.y = FieldRef(column=num_cols[1])
+            elif num_cols:
+                spec.y = FieldRef(column=num_cols[0])
+        spec.aggregation = "none"
+    elif ctype == "big_number":
+        spec.x = None
+        if spec.aggregation == "none":
+            spec.aggregation = "count"
+    elif ctype in ("bar", "hbar", "line", "area"):
+        if not spec.x and schema:
+            spec.x = FieldRef(column=list(schema.keys())[0])
+
     # Apply page options if provided
     if page_options:
         spec = apply_page_options(spec, page_options, schema)

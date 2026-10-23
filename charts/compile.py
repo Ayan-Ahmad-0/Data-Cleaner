@@ -136,7 +136,7 @@ def compile_spec(
         (sql_query, bound_parameters, notes)
     """
     lim = limits or ChartLimits()
-    if spec.chart_type == "pie":
+    if spec.chart_type in ("pie", "donut"):
         if spec.top_n and spec.top_n > lim.max_pie_slices:
             spec.top_n = lim.max_pie_slices
         elif not spec.top_n:
@@ -332,15 +332,16 @@ LIMIT {max_cells}
         notes.append(f"Aggregated top {max_cells} heatmap cells.")
         return sql, params, notes
 
-    # 6. BAR / HBAR / PIE
-    if ctype in ("bar", "hbar", "pie"):
+    # 6. BAR / HBAR / PIE / DONUT
+    if ctype in ("bar", "hbar", "pie", "donut"):
         assert spec.x is not None
         x_expr, _ = _render_field_expr(spec.x, schema)
         y_expr = _render_y_expr(spec.y, schema, spec.aggregation)
         agg_sql = _render_agg_expr(spec.aggregation, y_expr)
         
-        top_n = spec.top_n or (lim.max_pie_slices if ctype == "pie" else 20)
-        top_n = min(top_n, lim.max_pie_slices if ctype == "pie" else lim.max_categories_bar)
+        is_pie_like = ctype in ("pie", "donut")
+        top_n = spec.top_n or (lim.max_pie_slices if is_pie_like else 20)
+        top_n = min(top_n, lim.max_pie_slices if is_pie_like else lim.max_categories_bar)
 
         order_by = {
             "y_desc": "value DESC",
@@ -348,8 +349,8 @@ LIMIT {max_cells}
             "x": "category ASC",
         }.get(spec.sort, "value DESC")
 
-        # Color grouping if specified and not pie
-        if spec.color and ctype != "pie":
+        # Color grouping if specified and not pie/donut
+        if spec.color and not is_pie_like:
             color_expr, _ = _render_field_expr(spec.color, schema)
             sql = f"""
 SELECT 
