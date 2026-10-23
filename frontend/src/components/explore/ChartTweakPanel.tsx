@@ -38,10 +38,129 @@ const CHART_TYPES: { id: ChartSpec['chart_type']; label: string }[] = [
   { id: 'histogram', label: 'Histogram' },
   { id: 'scatter', label: 'Scatter' },
   { id: 'pie', label: 'Pie' },
+  { id: 'donut', label: 'Donut' },
   { id: 'box', label: 'Box' },
   { id: 'heatmap', label: 'Heatmap' },
   { id: 'big_number', label: 'Metric' },
 ];
+
+export const isNumericCol = (c?: ChartColumnStats | null): boolean => {
+  if (!c) return false;
+  return c.kind === 'numeric' || /(int|float|double|decimal|num|real)/i.test(c.type);
+};
+
+export function adaptSpecForChartType(
+  current: ChartSpec,
+  targetType: ChartSpec['chart_type'],
+  columns: ChartColumnStats[]
+): ChartSpec {
+  const colMap = new Map<string, ChartColumnStats>();
+  columns.forEach((c) => colMap.set(c.name, c));
+
+  const numCols = columns.filter((c) => isNumericCol(c));
+  const catCols = columns.filter((c) => !isNumericCol(c));
+  const firstNum = numCols[0]?.name;
+  const secondNum = numCols[1]?.name || firstNum;
+  const firstCat = catCols[0]?.name || columns[0]?.name;
+  const allCols = columns.map((c) => c.name);
+
+  const updated: ChartSpec = { ...current, chart_type: targetType };
+
+  if (targetType === 'box') {
+    // Box plot requires a numeric Y axis column. X is optional category group.
+    const currentYIsNum = current.y && (current.y.cast_as === 'number' || isNumericCol(colMap.get(current.y.column)));
+    const currentXIsNum = current.x && (current.x.cast_as === 'number' || isNumericCol(colMap.get(current.x.column)));
+
+    if (currentYIsNum) {
+      updated.y = current.y;
+    } else if (currentXIsNum) {
+      updated.y = current.x;
+      updated.x = undefined;
+    } else if (firstNum) {
+      updated.y = { column: firstNum };
+    }
+
+    if (updated.x && updated.y && updated.x.column === updated.y.column) {
+      updated.x = undefined;
+    }
+    updated.aggregation = 'none';
+  } else if (targetType === 'heatmap') {
+    // Heatmap requires both X and Y axis columns.
+    if (!updated.x && allCols.length > 0) {
+      updated.x = { column: allCols[0] };
+    }
+    if (!updated.y || (updated.x && updated.y.column === updated.x.column)) {
+      const distinctCol = allCols.find((c) => !updated.x || c !== updated.x.column) || allCols[0];
+      if (distinctCol) {
+        updated.y = { column: distinctCol };
+      }
+    }
+    updated.aggregation = 'count';
+  } else if (targetType === 'scatter') {
+    // Scatter requires both X and Y to be numeric.
+    const currentXIsNum = current.x && (current.x.cast_as === 'number' || isNumericCol(colMap.get(current.x.column)));
+    const currentYIsNum = current.y && (current.y.cast_as === 'number' || isNumericCol(colMap.get(current.y.column)));
+
+    if (!currentXIsNum && firstNum) {
+      updated.x = { column: firstNum };
+    }
+    if (!currentYIsNum) {
+      if (secondNum && (!updated.x || secondNum !== updated.x.column)) {
+        updated.y = { column: secondNum };
+      } else if (firstNum) {
+        updated.y = { column: firstNum };
+      }
+    }
+    updated.aggregation = 'none';
+  } else if (targetType === 'histogram') {
+    // Histogram requires numeric X, no Y.
+    const currentXIsNum = current.x && (current.x.cast_as === 'number' || isNumericCol(colMap.get(current.x.column)));
+    const currentYIsNum = current.y && (current.y.cast_as === 'number' || isNumericCol(colMap.get(current.y.column)));
+
+    if (currentXIsNum) {
+      updated.x = current.x;
+    } else if (currentYIsNum) {
+      updated.x = current.y;
+    } else if (firstNum) {
+      updated.x = { column: firstNum };
+    }
+    updated.y = undefined;
+    updated.aggregation = 'count';
+  } else if (targetType === 'pie' || targetType === 'donut') {
+    updated.top_n = Math.min(updated.top_n || 6, 6);
+    if (!updated.x && (firstCat || allCols[0])) {
+      updated.x = { column: firstCat || allCols[0] };
+    }
+    if (updated.aggregation === 'none') {
+      updated.aggregation = 'count';
+    }
+  } else if (targetType === 'big_number') {
+    updated.x = undefined;
+    if (updated.aggregation === 'none') {
+      updated.aggregation = 'count';
+    }
+    if (!updated.y && firstNum) {
+      updated.y = { column: firstNum };
+    }
+  } else if (targetType === 'bar' || targetType === 'hbar') {
+    if (!updated.x && (firstCat || allCols[0])) {
+      updated.x = { column: firstCat || allCols[0] };
+    }
+    if (updated.aggregation === 'none') {
+      updated.aggregation = 'count';
+    }
+  } else if (targetType === 'line' || targetType === 'area') {
+    if (!updated.x) {
+      const dtCol = columns.find((c) => c.kind === 'datetime' || /date|time/i.test(c.type));
+      updated.x = { column: dtCol ? dtCol.name : (allCols[0] || '') };
+    }
+    if (updated.aggregation === 'none') {
+      updated.aggregation = 'count';
+    }
+  }
+
+  return updated;
+}
 
 const AGGREGATIONS = [
   { id: 'count', label: 'Count' },
@@ -82,13 +201,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   }, [isOpen, jobId, spec]);
 
   const handleApply = () => {
-    let sanitized = { ...spec };
-    if (sanitized.chart_type === 'pie') {
-      sanitized.top_n = Math.min(sanitized.top_n || 6, 6);
-      if (sanitized.aggregation === 'none') {
-        sanitized.aggregation = 'count';
-      }
-    }
+    const sanitized = adaptSpecForChartType(spec, spec.chart_type, columns);
     onApply(sanitized);
     onClose();
   };
@@ -111,15 +224,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   }, [isOpen, spec]);
 
   const handleChartTypeChange = (chartType: ChartSpec['chart_type']) => {
-    let newTopN = spec.top_n;
-    let newAgg = spec.aggregation;
-    if (chartType === 'pie') {
-      newTopN = Math.min(newTopN || 6, 6);
-      if (newAgg === 'none') {
-        newAgg = 'count';
-      }
-    }
-    const updated = { ...spec, chart_type: chartType, top_n: newTopN, aggregation: newAgg };
+    const updated = adaptSpecForChartType(spec, chartType, columns);
     setSpec(updated);
     // Refresh options for disabled aggregations
     getTweakOptions(jobId, updated).then(setTweakOptions).catch(() => {});
