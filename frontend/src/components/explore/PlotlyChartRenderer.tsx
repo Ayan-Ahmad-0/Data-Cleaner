@@ -346,20 +346,24 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       yaxis: {
         ...baseLayout.yaxis,
         type: spec.log_y ? 'log' : 'linear',
+        rangemode: isArea ? 'tozero' : 'normal',
       },
     };
 
     if (spec.color && columns.length >= 3) {
-      const seriesNames = Array.from(new Set(rows.map((r) => String(r[1]))));
+      const validRows = rows.filter(
+        (r) => r && r[0] != null && r[0] !== '' && r[2] != null && Number.isFinite(Number(r[2]))
+      );
+      const seriesNames = Array.from(new Set(validRows.map((r) => String(r[1]))));
       const traces: any[] = seriesNames.map((sName, idx) => {
-        const sRows = rows.filter((r) => String(r[1]) === sName);
+        const sRows = validRows.filter((r) => String(r[1]) === sName);
         const color = activePalette[idx % activePalette.length];
         return {
           type: 'scatter',
           mode: 'lines+markers',
           name: sName,
           x: sRows.map((r) => r[0]),
-          y: sRows.map((r) => r[2]),
+          y: sRows.map((r) => Number(r[2])),
           fill: isArea ? 'tozeroy' : undefined,
           line: { color, width: 2.5 },
           marker: { color, size: 4 },
@@ -368,8 +372,11 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       return { isBigNumber: false, primaryColor, traces, layout: lineLayout };
     }
 
-    const xVals = rows.map((r) => r[0]);
-    const yVals = rows.map((r) => (r.length > 1 ? r[1] : 0));
+    const validRows = rows.filter(
+      (r) => r && r[0] != null && r[0] !== '' && r[1] != null && Number.isFinite(Number(r[1]))
+    );
+    const xVals = validRows.map((r) => r[0]);
+    const yVals = validRows.map((r) => Number(r[1]));
     const traces: any[] = [
       {
         type: 'scatter',
