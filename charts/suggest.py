@@ -9,24 +9,22 @@ from charts.stats import ColumnStats
 
 
 def _pick_adaptive_time_bucket(col: ColumnStats) -> str:
-    """Choose an optimal time bucket (month, week, day, hour) based on the column's date range."""
+    """Choose an optimal time bucket based on the column's date range, defaulting to week."""
     if not col.min or not col.max:
-        return "day"
+        return "week"
     try:
         from dateutil import parser
         d_min = parser.parse(str(col.min), fuzzy=True)
         d_max = parser.parse(str(col.max), fuzzy=True)
         days = abs((d_max - d_min).days)
-        if days > 365:
+        if days > 730:
             return "month"
-        elif days > 60:
-            return "week"
-        elif days > 2:
+        elif days <= 3:
             return "day"
         else:
-            return "hour"
+            return "week"
     except Exception:
-        return "day"
+        return "week"
 
 
 def suggest_charts_from_stats(
