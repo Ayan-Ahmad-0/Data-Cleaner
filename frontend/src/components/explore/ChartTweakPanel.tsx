@@ -140,7 +140,9 @@ export function adaptSpecForChartType(
       updated.aggregation = 'count';
     }
     if (!updated.y && firstNum) {
-      updated.y = { column: firstNum };
+      const firstNumCol = colMap.get(firstNum);
+      const castAs = firstNumCol && !isNumericCol(firstNumCol) ? 'number' : undefined;
+      updated.y = { column: firstNum, cast_as: castAs };
     }
   } else if (targetType === 'bar' || targetType === 'hbar') {
     if (!updated.x && (firstCat || allCols[0])) {
