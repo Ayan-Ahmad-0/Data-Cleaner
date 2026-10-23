@@ -49,7 +49,7 @@ def chart_from_result(
     1. 1 row, 1 numeric column: big number.
     2. 1 categorical + 1 numeric column: bar (or pie when 6 or fewer rows).
     3. 1 date/time + 1 or more numeric columns: line (one series per numeric column).
-    4. 2 numeric columns: scatter.
+    4. 2 numeric columns: horizontal bar.
     5. 1 numeric column only: histogram (if not truncated).
     6. 2 categorical + 1 numeric: grouped bar or heatmap.
     7. Otherwise: manual selection.
