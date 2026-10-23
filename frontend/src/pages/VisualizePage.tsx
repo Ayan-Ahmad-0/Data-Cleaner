@@ -496,6 +496,12 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
         specToBuild.aggregation = 'count';
       }
     }
+    if (specToBuild.y && (specToBuild.aggregation === 'sum' || specToBuild.aggregation === 'avg' || specToBuild.aggregation === 'median')) {
+      const colObj = columns.find((c) => c.name === specToBuild.y?.column);
+      if (colObj && colObj.type.toUpperCase() === 'VARCHAR' && !specToBuild.y.cast_as) {
+        specToBuild.y = { ...specToBuild.y, cast_as: 'number' };
+      }
+    }
 
     setCards((prev) =>
       prev.map((c) => (c.id === id ? { ...c, spec: specToBuild, loading: true, error: null, isEdited: true } : c))
@@ -525,6 +531,12 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
       }
       if (retrySpec.aggregation === 'none') {
         retrySpec.aggregation = 'count';
+      }
+    }
+    if (retrySpec.y && (retrySpec.aggregation === 'sum' || retrySpec.aggregation === 'avg' || retrySpec.aggregation === 'median')) {
+      const colObj = columns.find((c) => c.name === retrySpec.y?.column);
+      if (colObj && colObj.type.toUpperCase() === 'VARCHAR' && !retrySpec.y.cast_as) {
+        retrySpec.y = { ...retrySpec.y, cast_as: 'number' };
       }
     }
 
