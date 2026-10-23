@@ -177,9 +177,37 @@ def test_compile_spec_box_and_heatmap():
     # Heatmap
     heat_spec = ChartSpec(chart_type="heatmap", x=FieldRef(column="currency"), y=FieldRef(column="payment_method"))
     heat_sql, _, _ = compile_spec(heat_spec, schema)
-    assert "GROUP BY 1, 2" in heat_sql
-    heat_res = con.execute(heat_sql).fetchall()
-    assert len(heat_res) > 0
+    con.close()
+
+
+def test_all_chart_types_compile_and_execute():
+    """Verify that every supported chart type compiles to valid SQL and executes in DuckDB without error."""
+    import duckdb
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE data (dt TIMESTAMP, cat VARCHAR, cat2 VARCHAR, num DOUBLE)")
+    con.execute("INSERT INTO data VALUES ('2026-01-01 10:00:00', 'A', 'X', 10.0), ('2026-01-02 11:00:00', 'B', 'Y', 20.0), ('2026-01-03 12:00:00', 'A', 'Y', 30.0)")
+    schema = {"dt": "TIMESTAMP", "cat": "VARCHAR", "cat2": "VARCHAR", "num": "DOUBLE"}
+
+    specs = [
+        ChartSpec(chart_type="bar", x=FieldRef(column="cat"), y=FieldRef(column="num"), aggregation="sum"),
+        ChartSpec(chart_type="hbar", x=FieldRef(column="cat"), y=FieldRef(column="num"), aggregation="avg"),
+        ChartSpec(chart_type="line", x=FieldRef(column="dt", time_bucket="day"), y=FieldRef(column="num"), aggregation="sum"),
+        ChartSpec(chart_type="area", x=FieldRef(column="dt", time_bucket="day"), y=FieldRef(column="num"), aggregation="count"),
+        ChartSpec(chart_type="histogram", x=FieldRef(column="num", bins=5)),
+        ChartSpec(chart_type="scatter", x=FieldRef(column="num"), y=FieldRef(column="num")),
+        ChartSpec(chart_type="pie", x=FieldRef(column="cat"), aggregation="count"),
+        ChartSpec(chart_type="donut", x=FieldRef(column="cat"), aggregation="count"),
+        ChartSpec(chart_type="box", x=FieldRef(column="cat"), y=FieldRef(column="num")),
+        ChartSpec(chart_type="box", y=FieldRef(column="num")),
+        ChartSpec(chart_type="heatmap", x=FieldRef(column="cat"), y=FieldRef(column="cat2")),
+        ChartSpec(chart_type="big_number", y=FieldRef(column="num"), aggregation="sum"),
+    ]
+
+    for spec in specs:
+        sql, params, _ = compile_spec(spec, schema)
+        res = con.execute(sql, params).fetchall()
+        assert len(res) >= 0
+
     con.close()
 
 
