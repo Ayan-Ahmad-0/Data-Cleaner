@@ -452,14 +452,24 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
       return;
     }
 
+    let specToBuild = { ...updatedSpec };
+    if (specToBuild.chart_type === 'pie') {
+      if (!specToBuild.top_n || specToBuild.top_n > 6) {
+        specToBuild.top_n = 6;
+      }
+      if (specToBuild.aggregation === 'none') {
+        specToBuild.aggregation = 'count';
+      }
+    }
+
     setCards((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, spec: updatedSpec, loading: true, error: null, isEdited: true } : c))
+      prev.map((c) => (c.id === id ? { ...c, spec: specToBuild, loading: true, error: null, isEdited: true } : c))
     );
 
     try {
-      const data = await buildChart(datasetInfo.query_id, updatedSpec, pageOptions);
+      const data = await buildChart(datasetInfo.query_id, specToBuild, pageOptions);
       setCards((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, data, loading: false, error: null } : c))
+        prev.map((c) => (c.id === id ? { ...c, spec: specToBuild, data, loading: false, error: null } : c))
       );
     } catch (err: any) {
       setCards((prev) =>
@@ -473,14 +483,24 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     const card = cards.find((c) => c.id === id);
     if (!card || !datasetInfo) return;
 
+    let retrySpec = { ...card.spec };
+    if (retrySpec.chart_type === 'pie') {
+      if (!retrySpec.top_n || retrySpec.top_n > 6) {
+        retrySpec.top_n = 6;
+      }
+      if (retrySpec.aggregation === 'none') {
+        retrySpec.aggregation = 'count';
+      }
+    }
+
     setCards((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, loading: true, error: null } : c))
+      prev.map((c) => (c.id === id ? { ...c, spec: retrySpec, loading: true, error: null } : c))
     );
 
     try {
-      const data = await buildChart(datasetInfo.query_id, card.spec, pageOptions);
+      const data = await buildChart(datasetInfo.query_id, retrySpec, pageOptions);
       setCards((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, data, loading: false, error: null } : c))
+        prev.map((c) => (c.id === id ? { ...c, spec: retrySpec, data, loading: false, error: null } : c))
       );
     } catch (err: any) {
       setCards((prev) =>
