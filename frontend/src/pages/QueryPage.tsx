@@ -16,6 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
+import { MAX_FILE_SIZE_BYTES } from '../config';
 
 interface QueryPageProps {
   onHandoffToClean: (jobId: string, filename: string) => void;
@@ -32,6 +33,9 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
   const [dragActive, setDragActive] = useState<boolean>(false);
   const [isUploading, setIsUploading] = useState<boolean>(false);
   const [uploadProgress, setUploadProgress] = useState<number>(0);
+  const [uploadedBytes, setUploadedBytes] = useState<number>(0);
+  const [totalBytes, setTotalBytes] = useState<number>(0);
+  const [uploadStage, setUploadStage] = useState<'inspecting' | 'uploading' | 'converting'>('uploading');
   const [error, setError] = useState<string | null>(null);
 
   const [queryResult, setQueryResult] = useState<QueryUploadResult | null>(null);
@@ -69,6 +73,9 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
     setSelectedSheet('');
     setTableNames([]);
     setSelectedTable('');
+    setTotalBytes(file.size);
+    setUploadedBytes(0);
+    setUploadProgress(0);
 
     const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
     const supportedExts = ['.csv', '.tsv', '.parquet', '.json', '.ndjson', '.jsonl', '.xlsx', '.db', '.sqlite'];
@@ -78,9 +85,23 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
       return;
     }
 
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(`File size (${formatBytes(file.size)}) exceeds the maximum allowed limit of 10 GB.`);
+      return;
+    }
+
+    // Direct staging for tabular files (CSV, TSV, Parquet, JSON, NDJSON)
+    const requiresInspection = ['.xlsx', '.db', '.sqlite'].includes(ext);
+    if (!requiresInspection) {
+      await processAndStageFile(file);
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadStage('inspecting');
     try {
-      // Fast format detection to sniff sheets or tables
       const detectRes = await detectFormat(file);
+      setIsUploading(false);
       setDetectedFormat(detectRes.format);
 
       if (detectRes.sheets && detectRes.sheets.length > 1) {
@@ -90,11 +111,10 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
         setTableNames(detectRes.tables);
         setSelectedTable(detectRes.tables[0]);
       } else {
-        // Direct staging if no sheet/table disambiguation needed
         await processAndStageFile(file);
       }
     } catch {
-      // If sniff fails, proceed with default direct staging
+      setIsUploading(false);
       await processAndStageFile(file);
     }
   };
@@ -105,23 +125,30 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
   ) => {
     setError(null);
     setIsUploading(true);
-    setUploadProgress(20);
-
-    const timer = setInterval(() => {
-      setUploadProgress((prev) => (prev < 85 ? prev + 15 : prev));
-    }, 200);
+    setUploadStage('uploading');
+    setTotalBytes(file.size);
+    setUploadedBytes(0);
+    setUploadProgress(0);
 
     try {
       const options = customOptions || (
         selectedSheet ? { sheet: selectedSheet } : selectedTable ? { table: selectedTable } : undefined
       );
 
-      const res = await uploadForQuery(file, options);
-      clearInterval(timer);
+      const res = await uploadForQuery(file, options, (loaded, total) => {
+        setUploadedBytes(loaded);
+        const actualTotal = total || file.size;
+        setTotalBytes(actualTotal);
+        const pct = Math.min(99, Math.round((loaded / actualTotal) * 100));
+        setUploadProgress(pct);
+        if (pct >= 99) {
+          setUploadStage('converting');
+        }
+      });
+
       setUploadProgress(100);
       setQueryResult(res);
     } catch (err: any) {
-      clearInterval(timer);
       setError(err.message || 'Failed to stage dataset for querying.');
     } finally {
       setIsUploading(false);
@@ -134,6 +161,11 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
     setDetectedFormat('');
     setSheetNames([]);
     setTableNames([]);
+    setSelectedSheet('');
+    setSelectedTable('');
+    setUploadedBytes(0);
+    setTotalBytes(0);
+    setUploadProgress(0);
     setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
