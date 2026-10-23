@@ -116,3 +116,73 @@ def test_postgres_export_success_mock(tmp_path: Path):
         assert res.details["schema"] == "analytics"
         assert res.details["mode"] == "overwrite"
         mock_con.close.assert_called_once()
+
+
+def test_postgres_import_table_mock(tmp_path: Path):
+    connector = PostgresConnector()
+    target_pq = tmp_path / "imported_pg.parquet"
+
+    mock_con = MagicMock()
+    mock_con.execute.return_value.fetchone.return_value = [850]
+
+    with patch("duckdb.connect", return_value=mock_con):
+        res = connector.import_dataset(
+            config={
+                "host": "localhost",
+                "database": "sales_db",
+                "username": "postgres",
+                "password": "secret",
+                "schema_name": "public",
+                "table_name": "orders",
+            },
+            target_parquet_path=target_pq,
+        )
+
+        assert isinstance(res, SyncResult)
+        assert res.success is True
+        assert res.rows_transferred == 850
+        assert "orders" in res.destination_uri
+        mock_con.close.assert_called_once()
+
+
+def test_postgres_import_custom_query_mock(tmp_path: Path):
+    connector = PostgresConnector()
+    target_pq = tmp_path / "imported_query.parquet"
+
+    mock_con = MagicMock()
+    mock_con.execute.return_value.fetchone.return_value = [120]
+
+    with patch("duckdb.connect", return_value=mock_con):
+        res = connector.import_dataset(
+            config={
+                "host": "localhost",
+                "database": "sales_db",
+                "username": "postgres",
+                "password": "secret",
+                "query": "SELECT id, amount, customer FROM orders WHERE status = 'COMPLETED'",
+            },
+            target_parquet_path=target_pq,
+        )
+
+        assert isinstance(res, SyncResult)
+        assert res.success is True
+        assert res.rows_transferred == 120
+        assert "custom query" in res.destination_uri
+        mock_con.close.assert_called_once()
+
+
+def test_postgres_import_missing_table_and_query_raises(tmp_path: Path):
+    connector = PostgresConnector()
+    target_pq = tmp_path / "imported.parquet"
+
+    with pytest.raises(RuntimeError, match="Either table_name or query must be provided"):
+        connector.import_dataset(
+            config={
+                "host": "localhost",
+                "database": "sales_db",
+                "username": "postgres",
+                "password": "secret",
+            },
+            target_parquet_path=target_pq,
+        )
+
