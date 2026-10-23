@@ -427,7 +427,8 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
             </div>
             <div className="flex flex-wrap items-center gap-2 p-2.5 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-md)]">
               {CHART_COLOR_SWATCHES.map((swatch) => {
-                const currentHex = spec.custom_color || DEFAULT_CHART_COLOR;
+                const defaultColor = getDefaultChartColor(spec.chart_type);
+                const currentHex = spec.custom_color || defaultColor;
                 const isSelected = currentHex.toLowerCase() === swatch.hex.toLowerCase();
                 return (
                   <button
@@ -456,14 +457,14 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                   value={
                     spec.custom_color && spec.custom_color.startsWith('#') && spec.custom_color.length === 7
                       ? spec.custom_color
-                      : '#FD4233'
+                      : getDefaultChartColor(spec.chart_type)
                   }
                   onChange={(e) => setSpec({ ...spec, custom_color: e.target.value })}
                   className="w-6 h-6 rounded cursor-pointer border-0 p-0 opacity-0 absolute inset-0"
                 />
                 <div
                   className="w-6 h-6 rounded-md border border-[var(--border-hairline)] shadow-2xs"
-                  style={{ backgroundColor: spec.custom_color || DEFAULT_CHART_COLOR }}
+                  style={{ backgroundColor: spec.custom_color || getDefaultChartColor(spec.chart_type) }}
                 />
                 <span className="text-xs text-[var(--text-muted)] font-mono">
                   {spec.custom_color || 'Default'}
