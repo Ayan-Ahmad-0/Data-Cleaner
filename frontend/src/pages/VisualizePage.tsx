@@ -37,6 +37,7 @@ import {
   Sparkles,
   ShieldCheck,
 } from 'lucide-react';
+import { MAX_FILE_SIZE_BYTES } from '../config';
 
 interface VisualizePageProps {
   initialDataset?: QueryUploadResult | null;
@@ -53,6 +54,10 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStage, setUploadStage] = useState<'inspecting' | 'uploading' | 'converting' | 'generating'>('uploading');
+  const [uploadFileName, setUploadFileName] = useState('');
+  const [uploadedBytes, setUploadedBytes] = useState(0);
+  const [totalBytes, setTotalBytes] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
 
