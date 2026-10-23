@@ -17,7 +17,11 @@ import {
   Trash2,
   Check,
 } from 'lucide-react';
-import { CHART_COLOR_SWATCHES, DEFAULT_CHART_COLOR } from './chartColors';
+import {
+  CHART_COLOR_SWATCHES,
+  DEFAULT_CHART_COLOR,
+  getDefaultChartColor,
+} from './chartColors';
 
 interface ChartTweakPanelProps {
   jobId: string;
