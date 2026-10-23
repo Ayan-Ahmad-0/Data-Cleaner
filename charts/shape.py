@@ -108,16 +108,17 @@ def chart_from_result(
             warnings=warnings,
         )
 
-    # 4. 2 Numeric columns: Scatter
+    # 4. 2 Numeric columns: Horizontal Bar
     if len(num_cols) == 2 and len(columns) == 2:
         spec = ChartSpec(
-            chart_type="scatter",
+            chart_type="hbar",
             x=FieldRef(column=num_cols[0]),
             y=FieldRef(column=num_cols[1]),
             aggregation="none",
-            title=f"{num_cols[0]} vs {num_cols[1]}",
+            sort="y_desc",
+            title=f"{num_cols[1]} by {num_cols[0]}",
         )
-        return ChartSuggestion(spec=spec, reason="Two numeric variables detected.", warnings=warnings)
+        return ChartSuggestion(spec=spec, reason="Horizontal bar ranking of two numeric variables.", warnings=warnings)
 
     # 5. 1 Numeric column only: Histogram
     if len(num_cols) == 1 and len(columns) == 1:
