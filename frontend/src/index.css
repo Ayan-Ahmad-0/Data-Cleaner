@@ -65,14 +65,15 @@ html, body {
   border-right: 1px solid var(--border-hairline);
 }
 
-/* Layout Container - High-Density Fluid Canvas (max-w-[1600px]) */
+/* Layout Container - High-Density Fluid Canvas (Full-Width) */
 .container-shell {
   width: 100%;
-  max-width: var(--max-content-width);
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
   padding-left: 16px;
   padding-right: 16px;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
@@ -82,26 +83,19 @@ html, body {
   }
 }
 
-@media (min-width: 768px) {
-  .container-shell {
-    padding-left: 40px;
-    padding-right: 40px;
-  }
-}
-
 @media (min-width: 1024px) {
   .container-shell {
-    padding-left: 48px;
-    padding-right: 48px;
+    padding-left: 32px;
+    padding-right: 32px;
   }
 }
 
-/* Header Shell - Synchronized with High-Density Canvas */
+/* Header Shell - Full-Width Edge-to-Edge */
 .header-shell {
   width: 100%;
-  max-width: var(--max-content-width);
-  margin-left: auto;
-  margin-right: auto;
+  max-width: 100%;
+  margin-left: 0;
+  margin-right: 0;
   height: var(--header-height);
   padding-left: 16px;
   padding-right: 16px;
@@ -115,17 +109,10 @@ html, body {
   }
 }
 
-@media (min-width: 768px) {
-  .header-shell {
-    padding-left: 40px;
-    padding-right: 40px;
-  }
-}
-
 @media (min-width: 1024px) {
   .header-shell {
-    padding-left: 48px;
-    padding-right: 48px;
+    padding-left: 32px;
+    padding-right: 32px;
   }
 }
 
