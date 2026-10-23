@@ -570,6 +570,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                   <div className="pt-2 flex items-center justify-between text-[11px]">
                     <span className="text-[var(--text-secondary)]">Aggregation:</span>
                     <select
+                      value={spec.aggregation}
                       onChange={(e) => {
                         const newAgg = e.target.value as any;
                         let updatedY = spec.y ? { ...spec.y } : undefined;
