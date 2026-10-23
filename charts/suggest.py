@@ -219,15 +219,29 @@ def suggest_charts_from_stats(
         )
 
     # Rule 9: Key KPI Metric -> Big Number Card
-    add_spec(
-        ChartSpec(
-            chart_type="big_number",
-            y=FieldRef(column=numerics[0].name) if numerics else None,
-            aggregation="sum" if numerics else "count",
-            title=f"Total {numerics[0].name.replace('_', ' ').title()}" if numerics else "Total Records In Dataset",
-        ),
-        "kpi_metric",
-    )
+    if numerics:
+        num = numerics[0]
+        num_cast = "number" if num.type.upper() == "VARCHAR" else None
+        num_label = num.name.replace("_", " ").title()
+        add_spec(
+            ChartSpec(
+                chart_type="big_number",
+                y=FieldRef(column=num.name, cast_as=num_cast),
+                aggregation="sum",
+                title=f"Total {num_label}",
+            ),
+            "kpi_metric",
+        )
+    else:
+        add_spec(
+            ChartSpec(
+                chart_type="big_number",
+                y=None,
+                aggregation="count",
+                title="Total Records In Dataset",
+            ),
+            "kpi_metric",
+        )
 
     # Rule 10: Additional Categoricals -> Vertical Bar charts (fill remaining slots)
     for cat in all_categoricals:

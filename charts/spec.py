@@ -155,10 +155,13 @@ def validate_spec(spec: ChartSpec, schema: Dict[str, str], limits: Optional[Char
         y_type = schema[spec.y.column]
         is_num = _is_numeric_type(y_type, spec.y.cast_as)
         if spec.aggregation in ("sum", "avg", "median") and not is_num:
-            cast_hint = f"; try cast_as='number'" if spec.y.cast_as != "number" else ""
-            raise InvalidChartSpecError(
-                f"Aggregation '{spec.aggregation}' requires a numeric column, but '{spec.y.column}' is '{y_type}'{cast_hint}."
-            )
+            if y_type.upper() == "VARCHAR":
+                spec.y.cast_as = "number"
+                is_num = True
+            else:
+                raise InvalidChartSpecError(
+                    f"Aggregation '{spec.aggregation}' requires a numeric column, but '{spec.y.column}' is '{y_type}'."
+                )
 
     # 3. Time bucket requires datetime (or cast_as date/timestamp)
     for field_ref, role in ((spec.x, "X axis"), (spec.y, "Y axis")):
@@ -196,22 +199,31 @@ def validate_spec(spec: ChartSpec, schema: Dict[str, str], limits: Optional[Char
         x_type = schema[spec.x.column]
         y_type = schema[spec.y.column]
         if not _is_numeric_type(x_type, spec.x.cast_as):
-            raise InvalidChartSpecError(
-                f"Scatter plot requires a numeric X column, but '{spec.x.column}' is '{x_type}'."
-            )
+            if x_type.upper() == "VARCHAR":
+                spec.x.cast_as = "number"
+            else:
+                raise InvalidChartSpecError(
+                    f"Scatter plot requires a numeric X column, but '{spec.x.column}' is '{x_type}'."
+                )
         if not _is_numeric_type(y_type, spec.y.cast_as):
-            raise InvalidChartSpecError(
-                f"Scatter plot requires a numeric Y column, but '{spec.y.column}' is '{y_type}'."
-            )
+            if y_type.upper() == "VARCHAR":
+                spec.y.cast_as = "number"
+            else:
+                raise InvalidChartSpecError(
+                    f"Scatter plot requires a numeric Y column, but '{spec.y.column}' is '{y_type}'."
+                )
 
     elif ctype == "box":
         if spec.y is None:
             raise InvalidChartSpecError("Box plot requires a numeric Y axis column.")
         y_type = schema[spec.y.column]
         if not _is_numeric_type(y_type, spec.y.cast_as):
-            raise InvalidChartSpecError(
-                f"Box plot requires a numeric Y axis column, but '{spec.y.column}' is '{y_type}'."
-            )
+            if y_type.upper() == "VARCHAR":
+                spec.y.cast_as = "number"
+            else:
+                raise InvalidChartSpecError(
+                    f"Box plot requires a numeric Y axis column, but '{spec.y.column}' is '{y_type}'."
+                )
 
     elif ctype == "heatmap":
         if spec.x is None or spec.y is None:
