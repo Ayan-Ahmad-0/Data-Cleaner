@@ -461,13 +461,25 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
             {/* Top N */}
             {(spec.chart_type === 'bar' || spec.chart_type === 'hbar' || spec.chart_type === 'pie') && (
               <div className="space-y-1">
-                <label className="text-[11px] font-medium text-[var(--text-secondary)]">Top N items</label>
+                <div className="flex items-center justify-between">
+                  <label className="text-[11px] font-medium text-[var(--text-secondary)]">
+                    {spec.chart_type === 'pie' ? 'Max slices (max 6)' : 'Top N items'}
+                  </label>
+                  {spec.chart_type === 'pie' && (
+                    <span className="text-[10px] text-[var(--text-muted)] font-mono">1–6</span>
+                  )}
+                </div>
                 <input
                   type="number"
                   min={1}
-                  max={50}
-                  value={spec.top_n || 20}
-                  onChange={(e) => setSpec({ ...spec, top_n: parseInt(e.target.value) || 20 })}
+                  max={spec.chart_type === 'pie' ? 6 : 50}
+                  value={spec.chart_type === 'pie' ? Math.min(spec.top_n || 6, 6) : (spec.top_n || 20)}
+                  onChange={(e) => {
+                    const maxAllowed = spec.chart_type === 'pie' ? 6 : 50;
+                    const parsed = parseInt(e.target.value) || 1;
+                    const clamped = Math.min(Math.max(parsed, 1), maxAllowed);
+                    setSpec({ ...spec, top_n: clamped });
+                  }}
                   className="w-full px-2 py-1 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded text-xs"
                 />
               </div>
