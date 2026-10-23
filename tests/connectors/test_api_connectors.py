@@ -87,3 +87,89 @@ def test_api_export_success_flow(tmp_path):
             assert "s3://target-bucket/output.parquet" in data["destination_uri"]
     finally:
         storage.cleanup_job(job_id)
+
+
+def test_api_import_unknown_connector():
+    res = client.post(
+        "/api/connectors/import",
+        json={
+            "connector_type": "invalid_engine",
+            "config": {},
+        },
+    )
+    assert res.status_code == 400
+    assert "Unknown connector type" in res.json()["detail"]
+
+
+def test_api_import_s3_success():
+    from app.orchestrator import get_orchestrator
+
+    mock_sync = SyncResult(
+        success=True,
+        rows_transferred=2500,
+        destination_uri="s3://lake/events.parquet",
+        elapsed_seconds=0.6,
+        message="Imported 2,500 rows",
+    )
+
+    with patch("connectors.s3.S3Connector.import_dataset", return_value=mock_sync), \
+         patch("app.orchestrator.JobOrchestrator.run_profile_and_ai_draft"):
+        res = client.post(
+            "/api/connectors/import",
+            json={
+                "connector_type": "s3",
+                "config": {"source_uri": "s3://lake/events.parquet"},
+                "filename": "imported_events.parquet",
+                "privacy_mode": True,
+            },
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert "job_id" in data
+        assert data["filename"] == "imported_events.parquet"
+        assert data["rows_imported"] == 2500
+        assert data["status"] == "UPLOADED"
+        assert data["sync_result"]["success"] is True
+
+        # Clean up created job
+        orch = get_orchestrator()
+        orch.storage.cleanup_job(data["job_id"])
+
+
+def test_api_import_postgres_success():
+    from app.orchestrator import get_orchestrator
+
+    mock_sync = SyncResult(
+        success=True,
+        rows_transferred=1800,
+        destination_uri="postgresql://localhost:5432/analytics/public.customers",
+        elapsed_seconds=0.35,
+        message="Imported 1,800 rows",
+    )
+
+    with patch("connectors.postgres.PostgresConnector.import_dataset", return_value=mock_sync), \
+         patch("app.orchestrator.JobOrchestrator.run_profile_and_ai_draft"):
+        res = client.post(
+            "/api/connectors/import",
+            json={
+                "connector_type": "postgres",
+                "config": {
+                    "host": "localhost",
+                    "database": "analytics",
+                    "username": "pguser",
+                    "password": "secret",
+                    "table_name": "customers",
+                },
+            },
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert "job_id" in data
+        assert data["filename"] == "customers.parquet"
+        assert data["rows_imported"] == 1800
+        assert data["status"] == "UPLOADED"
+
+        # Clean up created job
+        orch = get_orchestrator()
+        orch.storage.cleanup_job(data["job_id"])
+

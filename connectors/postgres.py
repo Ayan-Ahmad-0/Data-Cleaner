@@ -97,9 +97,10 @@ class PostgresConnector(BaseConnector):
             con = duckdb.connect(":memory:")
             con.execute("INSTALL postgres; LOAD postgres;")
             conn_str = self._build_connection_string(cfg)
+            conn_str_sql = conn_str.replace("'", "''")
 
             alias = f"pg_test_{int(time.time())}"
-            con.execute(f"ATTACH '{conn_str}' AS {alias} (TYPE POSTGRES);")
+            con.execute(f"ATTACH '{conn_str_sql}' AS {alias} (TYPE POSTGRES);")
             
             # Run test query
             con.execute(f"SELECT 1 FROM {alias}.information_schema.tables LIMIT 1;")
@@ -143,10 +144,11 @@ class PostgresConnector(BaseConnector):
         con.execute("INSTALL postgres; LOAD postgres;")
 
         conn_str = self._build_connection_string(cfg)
+        conn_str_sql = conn_str.replace("'", "''")
         alias = "pg_target"
 
         try:
-            con.execute(f"ATTACH '{conn_str}' AS {alias} (TYPE POSTGRES);")
+            con.execute(f"ATTACH '{conn_str_sql}' AS {alias} (TYPE POSTGRES);")
 
             src_path_str = str(source_parquet_path.resolve()).replace("\\", "/")
             row_count_res = con.execute(f"SELECT count(*) FROM read_parquet('{src_path_str}')").fetchone()
@@ -198,6 +200,16 @@ class PostgresConnector(BaseConnector):
         start_time = time.perf_counter()
         cfg = PostgresConnectorConfig.model_validate(config)
 
+        import_query = cfg.query or (options or {}).get("query")
+        if import_query:
+            source_desc = "custom query"
+        else:
+            if not cfg.table_name:
+                raise ValueError("Either table_name or query must be provided for PostgreSQL import.")
+            schema = self._sanitize_identifier(cfg.schema_name, "schema_name")
+            table = self._sanitize_identifier(cfg.table_name, "table_name")
+            source_desc = f"{schema}.{table}"
+
         target_parquet_path.parent.mkdir(parents=True, exist_ok=True)
         target_path_str = str(target_parquet_path.resolve()).replace("\\", "/")
 
@@ -205,23 +217,16 @@ class PostgresConnector(BaseConnector):
         con.execute("INSTALL postgres; LOAD postgres;")
 
         conn_str = self._build_connection_string(cfg)
+        conn_str_sql = conn_str.replace("'", "''")
         alias = "pg_source"
 
         try:
-            con.execute(f"ATTACH '{conn_str}' AS {alias} (TYPE POSTGRES);")
+            con.execute(f"ATTACH '{conn_str_sql}' AS {alias} (TYPE POSTGRES);")
 
-            import_query = cfg.query or (options or {}).get("query")
             if import_query:
-                # Custom SQL select query
                 source_expr = f"({import_query})"
-                source_desc = "custom query"
             else:
-                if not cfg.table_name:
-                    raise ValueError("Either table_name or query must be provided for PostgreSQL import.")
-                schema = self._sanitize_identifier(cfg.schema_name, "schema_name")
-                table = self._sanitize_identifier(cfg.table_name, "table_name")
                 source_expr = f"{alias}.{schema}.{table}"
-                source_desc = f"{schema}.{table}"
 
             con.execute(f"COPY (SELECT * FROM {source_expr}) TO '{target_path_str}' (FORMAT PARQUET, COMPRESSION 'ZSTD');")
 
