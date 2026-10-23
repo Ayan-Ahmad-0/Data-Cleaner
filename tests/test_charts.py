@@ -243,6 +243,11 @@ def test_suggest_charts_diverse_types():
     assert "box" not in chart_types
     assert "scatter" not in chart_types
 
+    area_spec = next(s for s in suggestions if s.chart_type == "area")
+    assert area_spec.custom_color == "#0284C7"
+    line_spec = next(s for s in suggestions if s.chart_type == "line")
+    assert line_spec.custom_color == "#E11D48"
+
 
 def test_compile_spec_sum_on_varchar_auto_promotes_number_cast():
     """Verify sum on VARCHAR column without explicit cast_as auto-casts to number and compiles."""
