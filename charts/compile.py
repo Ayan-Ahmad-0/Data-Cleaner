@@ -261,12 +261,13 @@ LIMIT {bins + 5}
         scatter_where = list(where_clauses)
         scatter_where.append(f"{x_expr} IS NOT NULL")
         scatter_where.append(f"{y_expr} IS NOT NULL")
-        scatter_where_sql = "WHERE " + " AND ".join(scatter_where)
+        scatter_where_sql = ("WHERE " + " AND ".join(scatter_where)) if scatter_where else ""
 
         sql = f"""
 SELECT {x_expr} AS x, {y_expr} AS y{color_select}
-FROM data USING SAMPLE {sample_size} (reservoir, 42)
+FROM data
 {scatter_where_sql}
+USING SAMPLE {sample_size} (reservoir, 42)
 LIMIT {sample_size}
 """.strip()
         notes.append(f"Sampled {sample_size:,} points (repeatable seed 42) for interactive performance.")
