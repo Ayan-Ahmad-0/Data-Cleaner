@@ -136,6 +136,13 @@ def compile_spec(
         (sql_query, bound_parameters, notes)
     """
     lim = limits or ChartLimits()
+    if spec.chart_type == "pie":
+        if spec.top_n and spec.top_n > lim.max_pie_slices:
+            spec.top_n = lim.max_pie_slices
+        elif not spec.top_n:
+            spec.top_n = lim.max_pie_slices
+        if spec.aggregation == "none":
+            spec.aggregation = "count"
     validate_spec(spec, schema, limits=lim)
 
     params: List[Any] = []
