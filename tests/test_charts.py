@@ -211,3 +211,26 @@ def test_all_chart_types_compile_and_execute():
     con.close()
 
 
+def test_suggest_charts_diverse_types():
+    """Verify that suggest_charts_from_stats proposes donut, pie, area, and box charts when data supports it."""
+    from charts.stats import ColumnStats
+    from charts.suggest import suggest_charts_from_stats
+
+    stats = [
+        ColumnStats(name="status", type="VARCHAR", null_pct=0.0, distinct_approx=3, kind="categorical"),
+        ColumnStats(name="tier", type="VARCHAR", null_pct=0.0, distinct_approx=4, kind="categorical"),
+        ColumnStats(name="created_at", type="TIMESTAMP", null_pct=0.0, distinct_approx=500, kind="datetime"),
+        ColumnStats(name="revenue", type="DOUBLE", null_pct=0.0, distinct_approx=800, kind="numeric"),
+        ColumnStats(name="cost", type="DOUBLE", null_pct=0.0, distinct_approx=750, kind="numeric"),
+        ColumnStats(name="city", type="VARCHAR", null_pct=0.0, distinct_approx=20, kind="categorical"),
+    ]
+
+    suggestions = suggest_charts_from_stats(stats, row_count=1000, max_suggestions=8)
+    chart_types = [s.chart_type for s in suggestions]
+
+    assert "donut" in chart_types
+    assert "pie" in chart_types
+    assert "area" in chart_types
+    assert "box" in chart_types
+
+

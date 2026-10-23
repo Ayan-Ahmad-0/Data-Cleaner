@@ -34,8 +34,8 @@ def post_process_recommendations(
             continue
 
         # Variety caps
-        if rec.spec.chart_type == "pie":
-            if pie_count >= 1:
+        if rec.spec.chart_type in ("pie", "donut"):
+            if pie_count >= 2:
                 continue
             pie_count += 1
         elif rec.spec.chart_type == "histogram":
