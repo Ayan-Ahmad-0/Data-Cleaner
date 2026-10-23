@@ -344,4 +344,24 @@ def test_suggest_charts_adaptive_time_bucket():
     assert area_short.x.time_bucket == "day"
 
 
+def test_suggest_charts_adaptive_time_bucket_without_dateutil(monkeypatch):
+    """Verify adaptive time bucketing works cleanly without dateutil module present."""
+    import sys
+    from charts.stats import ColumnStats
+    from charts.suggest import suggest_charts_from_stats
+
+    # Block dateutil import
+    monkeypatch.setitem(sys.modules, "dateutil", None)
+    monkeypatch.setitem(sys.modules, "dateutil.parser", None)
+
+    stats_long = [
+        ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=900, min="2023-01-01", max="2026-05-15", kind="datetime"),
+        ColumnStats(name="amount", type="DOUBLE", null_pct=0.0, distinct_approx=800, kind="numeric"),
+    ]
+    sug = suggest_charts_from_stats(stats_long, row_count=5000)
+    area = next(s for s in sug if s.chart_type == "area")
+    assert area.x.time_bucket == "month"
+
+
+
 
