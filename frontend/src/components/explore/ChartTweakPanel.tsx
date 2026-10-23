@@ -203,7 +203,16 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   }, [isOpen, jobId, spec]);
 
   const handleApply = () => {
-    const sanitized = adaptSpecForChartType(spec, spec.chart_type, columns);
+    let sanitized = adaptSpecForChartType(spec, spec.chart_type, columns);
+    if (sanitized.y && (sanitized.aggregation === 'sum' || sanitized.aggregation === 'avg' || sanitized.aggregation === 'median')) {
+      const colObj = columns.find((c) => c.name === sanitized.y?.column);
+      if (colObj && !isNumericCol(colObj) && !sanitized.y.cast_as) {
+        sanitized = {
+          ...sanitized,
+          y: { ...sanitized.y, cast_as: 'number' },
+        };
+      }
+    }
     onApply(sanitized);
     onClose();
   };
@@ -233,7 +242,13 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   };
 
   const handleColumnChange = (role: 'x' | 'y' | 'color', colName: string) => {
-    const field: FieldRef | undefined = colName ? { column: colName } : undefined;
+    let field: FieldRef | undefined = colName ? { column: colName } : undefined;
+    if (field && role === 'y' && (spec.aggregation === 'sum' || spec.aggregation === 'avg' || spec.aggregation === 'median')) {
+      const colObj = columns.find((c) => c.name === colName);
+      if (colObj && !isNumericCol(colObj)) {
+        field = { ...field, cast_as: 'number' };
+      }
+    }
     const updated = { ...spec, [role]: field };
     setSpec(updated);
     getTweakOptions(jobId, updated).then(setTweakOptions).catch(() => {});
