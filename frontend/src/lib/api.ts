@@ -363,7 +363,7 @@ export type FieldRef = ChartFieldRef;
 export type Filter = ChartFilter;
 
 export interface ChartSpec {
-  chart_type: 'bar' | 'hbar' | 'line' | 'area' | 'histogram' | 'scatter' | 'pie' | 'box' | 'heatmap' | 'big_number';
+  chart_type: 'bar' | 'hbar' | 'line' | 'area' | 'histogram' | 'scatter' | 'pie' | 'donut' | 'box' | 'heatmap' | 'big_number';
   x?: ChartFieldRef | null;
   y?: ChartFieldRef | null;
   color?: ChartFieldRef | null;

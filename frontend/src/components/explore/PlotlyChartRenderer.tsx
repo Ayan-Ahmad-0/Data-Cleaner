@@ -208,16 +208,17 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       return { isBigNumber: false, primaryColor, traces, layout: heatLayout };
     }
 
-    // 6. Pie Chart
-    if (spec.chart_type === 'pie') {
+    // 6. Pie & Donut Chart
+    if (spec.chart_type === 'pie' || spec.chart_type === 'donut') {
       const labels = rows.map((r) => String(r[0]));
       const values = rows.map((r) => Number(r[1]) || 0);
+      const isDonut = spec.chart_type === 'donut';
       const traces: any[] = [
         {
           type: 'pie',
           labels,
           values,
-          hole: 0.38,
+          hole: isDonut ? 0.55 : 0,
           textinfo: 'label+percent',
           hoverinfo: 'label+value+percent',
           marker: {
