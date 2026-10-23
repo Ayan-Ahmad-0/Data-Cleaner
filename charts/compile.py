@@ -258,10 +258,15 @@ LIMIT {bins + 5}
         # Color column if present
         color_select = f", {quote_identifier(spec.color.column)} AS color" if spec.color else ""
         
+        scatter_where = list(where_clauses)
+        scatter_where.append(f"{x_expr} IS NOT NULL")
+        scatter_where.append(f"{y_expr} IS NOT NULL")
+        scatter_where_sql = "WHERE " + " AND ".join(scatter_where)
+
         sql = f"""
 SELECT {x_expr} AS x, {y_expr} AS y{color_select}
 FROM data USING SAMPLE {sample_size} (reservoir, 42)
-{where_sql}
+{scatter_where_sql}
 LIMIT {sample_size}
 """.strip()
         notes.append(f"Sampled {sample_size:,} points (repeatable seed 42) for interactive performance.")
@@ -274,8 +279,13 @@ LIMIT {sample_size}
         if not _is_numeric_type_str(schema.get(spec.y.column, "")) or spec.y.cast_as == "number":
             y_expr = f"TRY_CAST({quote_identifier(spec.y.column)} AS DOUBLE)"
         
+        box_where = list(where_clauses)
+        box_where.append(f"{y_expr} IS NOT NULL")
+
         if spec.x:
             x_expr, _ = _render_field_expr(spec.x, schema)
+            box_where.append(f"{x_expr} IS NOT NULL")
+            box_where_sql = "WHERE " + " AND ".join(box_where)
             top_n = spec.top_n or 15
             sql = f"""
 SELECT 
@@ -287,13 +297,14 @@ SELECT
     quantile_cont({y_expr}, 0.75) AS q3,
     MAX({y_expr}) AS max
 FROM data
-{where_sql}
+{box_where_sql}
 GROUP BY 1
 ORDER BY n DESC
 LIMIT {top_n}
 """.strip()
             notes.append(f"Computed five-number summary for top {top_n} categories.")
         else:
+            box_where_sql = "WHERE " + " AND ".join(box_where)
             sql = f"""
 SELECT 
     'All Data' AS category,
@@ -304,7 +315,7 @@ SELECT
     quantile_cont({y_expr}, 0.75) AS q3,
     MAX({y_expr}) AS max
 FROM data
-{where_sql}
+{box_where_sql}
 LIMIT 1
 """.strip()
             notes.append("Computed five-number summary across entire dataset.")
@@ -318,13 +329,18 @@ LIMIT 1
         y_expr, _ = _render_field_expr(spec.y, schema)
         max_cells = lim.heatmap_max_cells
         
+        heat_where = list(where_clauses)
+        heat_where.append(f"{x_expr} IS NOT NULL")
+        heat_where.append(f"{y_expr} IS NOT NULL")
+        heat_where_sql = "WHERE " + " AND ".join(heat_where)
+
         sql = f"""
 SELECT 
     {x_expr} AS x,
     {y_expr} AS y,
     COUNT(*) AS value
 FROM data
-{where_sql}
+{heat_where_sql}
 GROUP BY 1, 2
 ORDER BY value DESC
 LIMIT {max_cells}
