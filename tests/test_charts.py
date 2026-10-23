@@ -102,6 +102,13 @@ def test_chart_from_result_shapes():
     assert s3.spec.x.column == "dt"
     assert s3.spec.y.column == "price"
 
+    # 2 numeric columns: defaults to hbar instead of scatter
+    s4 = chart_from_result(
+        [{"name": "score", "type": "INTEGER"}, {"name": "salary", "type": "DOUBLE"}],
+        [[85, 90000.0], [92, 120000.0]],
+    )
+    assert s4.spec.chart_type == "hbar"
+
 
 def test_compile_spec_numeric_aggregation_on_varchar():
     """Verify numeric aggregation (avg, sum, median) on VARCHAR column compiles and runs in DuckDB."""
