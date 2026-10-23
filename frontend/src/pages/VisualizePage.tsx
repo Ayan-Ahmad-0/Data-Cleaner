@@ -24,6 +24,7 @@ import { ChartCard, type ChartCardItem } from '../components/explore/ChartCard';
 import { DataOptionsPanel } from '../components/explore/DataOptionsPanel';
 import { DescribeChartBar } from '../components/explore/DescribeChartBar';
 import { VisualizationAdviceModal } from '../components/explore/VisualizationAdviceModal';
+import { ConnectorModal } from '../components/connectors/ConnectorModal';
 import { DEFAULT_CHART_COLOR } from '../components/explore/chartColors';
 import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
@@ -60,6 +61,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
   const [totalBytes, setTotalBytes] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [showConnectorModal, setShowConnectorModal] = useState(false);
 
   const [datasetInfo, setDatasetInfo] = useState<QueryUploadResult | null>(null);
   const [columns, setColumns] = useState<ChartColumnStats[]>([]);
@@ -839,7 +841,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
                     </span>
                   </div>
 
-                  <div className="pt-1">
+                  <div className="pt-1 flex flex-wrap items-center justify-center gap-3">
                     <Button
                       variant="primary"
                       size="lg"
@@ -851,6 +853,18 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
                       className="shadow-[0_2px_12px_rgba(253,66,51,0.18)] hover:shadow-[0_4px_20px_rgba(253,66,51,0.25)] transition-shadow duration-200"
                     >
                       Select Dataset File
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      size="lg"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowConnectorModal(true);
+                      }}
+                      leftIcon={<Database className="w-5 h-5 text-[#FF4B3E]" />}
+                    >
+                      Connect S3 / PostgreSQL
                     </Button>
                   </div>
                 </div>
@@ -995,6 +1009,22 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
           />
         </div>
       )}
+
+      {/* Cloud & Database Connector Ingestion Modal */}
+      <ConnectorModal
+        isOpen={showConnectorModal}
+        onClose={() => setShowConnectorModal(false)}
+        mode="import"
+        onImportSuccess={(info) => {
+          setDatasetInfo({
+            query_id: info.id,
+            filename: info.name,
+            file_size_bytes: 0,
+            row_count: parseInt(info.rowCount.replace(/[^0-9]/g, '')) || 0,
+            columns: [],
+          });
+        }}
+      />
     </div>
   );
 };
