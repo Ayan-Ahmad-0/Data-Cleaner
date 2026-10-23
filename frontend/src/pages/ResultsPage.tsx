@@ -3,8 +3,9 @@ import { getDownloadUrl, type JobDetailResponse } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
 import { formatNumber, formatPercent } from '../lib/format';
-import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal, Bot, BarChart3 } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal, Bot, BarChart3, Database } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
+import { ConnectorModal } from '../components/connectors/ConnectorModal';
 
 interface ResultsPageProps {
   jobData: JobDetailResponse | null;
@@ -15,6 +16,7 @@ interface ResultsPageProps {
 
 export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, onGoToUpload, onHandoffToVisualize }) => {
   const [showExplore, setShowExplore] = useState<boolean>(false);
+  const [showExportModal, setShowExportModal] = useState<boolean>(false);
   const [exploreInitialMode, setExploreInitialMode] = useState<'ask_ai' | 'sql'>('ask_ai');
   const verification = jobData?.verification;
   const comparison = verification?.comparison;
@@ -153,6 +155,16 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
             <FileText className="w-4 h-4 shrink-0 text-[var(--text-muted)]" />
             <span>Audit JSON</span>
           </a>
+
+          {/* Cloud Storage & Database Export */}
+          <Button
+            variant="secondary"
+            onClick={() => setShowExportModal(true)}
+            className="h-11 px-4 gap-2 border-[var(--border-hairline)]"
+            leftIcon={<Database className="w-4 h-4 text-[#FF4B3E]" />}
+          >
+            Export to Cloud / DB
+          </Button>
         </div>
       </div>
 
@@ -501,6 +513,14 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
           Clean Another File
         </Button>
       </div>
+
+      {/* Cloud & Database Connector Export Modal */}
+      <ConnectorModal
+        mode="export"
+        jobId={jobId}
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+      />
     </div>
   );
 };
