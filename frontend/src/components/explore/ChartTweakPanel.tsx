@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   type ChartColumnStats,
   type ChartSpec,
@@ -169,12 +170,13 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <div
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      style={{ zIndex: 9999 }}
     >
       <div className="bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-[var(--radius-xl)] shadow-2xl w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col min-h-0 overflow-hidden">
         {/* Header */}
@@ -613,6 +615,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };

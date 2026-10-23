@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 import {
   type ChartRecommendation,
   type DataPrepTip,
@@ -33,12 +34,13 @@ export const VisualizationAdviceModal: React.FC<VisualizationAdviceModalProps> =
 }) => {
   if (!isOpen || !plan) return null;
 
-  return (
+  return createPortal(
     <div
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+      style={{ zIndex: 9999 }}
     >
       <div className="bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-[var(--radius-xl)] shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col min-h-0 overflow-hidden">
         {/* Header */}
@@ -202,6 +204,7 @@ export const VisualizationAdviceModal: React.FC<VisualizationAdviceModalProps> =
           </Button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
