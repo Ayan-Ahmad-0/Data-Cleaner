@@ -28,10 +28,10 @@ Vectorized multi-format profiling, cleaning, exploration, and visualization pipe
 5. **Compile** parameterized recipes into unified vectorized Common Table Expression (CTE) SQL chains executed entirely in-process by DuckDB at over 1,300,000 rows per second.
 6. **Verify** cleaned datasets through post-execution re-profiling, constraint assertions, and exact row-level reconciliation deltas.
 7. **Query Interactively** via the integrated AI Analyst (translates natural English questions into sandboxed DuckDB SQL with auto-correction) or the direct SQL Query Studio guarded by sqlglot AST parsing and resource ceilings.
-8. **Visualize Instantly** via vectorized DuckDB chart SQL compilation, AI Auto-Visualize dashboard generation, natural language chart drafting ("Describe chart..."), interactive tweak controls, 20 curated modern analytics color palettes, 10-query per-user concurrency with queue buffering, and inline one-click render retries.
+8. **Visualize Instantly** via vectorized DuckDB chart SQL compilation across 11 chart types (including Donut, Box plots, and Heatmaps), AI Auto-Visualize dashboard generation, natural language chart drafting ("Describe chart..."), interactive tweak controls, 20 curated modern analytics color palettes, 10-query per-user concurrency with queue buffering, and inline one-click render retries.
 9. **Handoff Seamlessly** between pipelines: post-clean results and stream conversion outputs provide 1-click downstream handoffs into AI Analyst queries, direct SQL exploration, or the visual analytics dashboard targeting verified cleaned datasets (`cleaned.parquet`).
 
-Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 100% PII masking and 100% injection defense across 223 passing automated tests. Deployed locally via Docker Compose and FastAPI.
+Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 100% PII masking and 100% injection defense across 226 passing automated tests. Deployed locally via Docker Compose and FastAPI.
 
 ---
 
