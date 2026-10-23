@@ -79,7 +79,7 @@
   --space-12: 48px;
 
   /* Layout Boundaries */
-  --max-content-width: 1600px;
+  --max-content-width: 100%;
 
   /* Header Dimensions & Insets */
   --header-height: 66px;
