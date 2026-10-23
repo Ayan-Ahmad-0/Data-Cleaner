@@ -88,29 +88,41 @@ class JobOrchestrator:
             raw_file = self.storage.raw_file_path(job_id, job.filename)
             staged_pq = self.storage.staged_parquet_path(job_id)
 
-            # Auto-detect format if not explicitly specified
-            if not job.detected_format:
-                det_fmt, confidence = detect_format(raw_file)
-                job.detected_format = det_fmt
-                job.detected_confidence = confidence
+            if not raw_file.exists() and staged_pq.exists():
+                # Direct Parquet staging (e.g. from cloud/warehouse connector import or convert handoff)
+                con = duckdb.connect(":memory:")
+                res = con.execute("SELECT count(*) FROM read_parquet(?)", [str(staged_pq.resolve())]).fetchone()
+                row_cnt = int(res[0]) if res else 0
+                con.close()
+                job.row_count = row_cnt
+                job.detected_format = "parquet"
+                conv_report = {"format": "parquet", "rows": row_cnt, "flattened": False}
+                job.conversion_report = conv_report
+                self.job_conversion_reports[job_id] = conv_report
+            else:
+                # Auto-detect format if not explicitly specified
+                if not job.detected_format:
+                    det_fmt, confidence = detect_format(raw_file)
+                    job.detected_format = det_fmt
+                    job.detected_confidence = confidence
 
-            # Convert to canonical Parquet
-            conv_res = convert_to_parquet(
-                raw_file,
-                staged_pq,
-                format_id=job.detected_format if job.detected_format != "unknown" else None,
-                options=self.job_adapter_options.get(job_id),
-            )
-            job.row_count = conv_res.rows
-            job.conversion_report = conv_res.to_dict()
-            self.job_conversion_reports[job_id] = conv_res.to_dict()
+                # Convert to canonical Parquet
+                conv_res = convert_to_parquet(
+                    raw_file,
+                    staged_pq,
+                    format_id=job.detected_format if job.detected_format != "unknown" else None,
+                    options=self.job_adapter_options.get(job_id),
+                )
+                job.row_count = conv_res.rows
+                job.conversion_report = conv_res.to_dict()
+                self.job_conversion_reports[job_id] = conv_res.to_dict()
 
             # 2. Single-pass Profiling
             job.status = JobStatus.PROFILING
             job.current_stage = "Computing statistical profile and data anomalies"
             job.progress_pct = 50.0
 
-            profile = self.profiler.profile_parquet(staged_pq, source_csv_path=raw_file)
+            profile = self.profiler.profile_parquet(staged_pq, source_csv_path=raw_file if raw_file.exists() else None)
             p_dict = profile.to_dict()
             self.job_profiles[job_id] = p_dict
 
@@ -302,3 +314,15 @@ class JobOrchestrator:
             export_options=export_opts,
             download_urls=download_urls,
         )
+
+
+_default_orchestrator: Optional[JobOrchestrator] = None
+
+
+def get_orchestrator(storage: Optional[JobStorage] = None) -> JobOrchestrator:
+    """Retrieve or initialize the global shared orchestrator instance."""
+    global _default_orchestrator
+    if _default_orchestrator is None:
+        _default_orchestrator = JobOrchestrator(storage=storage)
+    return _default_orchestrator
+

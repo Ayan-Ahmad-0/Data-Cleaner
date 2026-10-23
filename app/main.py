@@ -12,7 +12,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
 from app.models import JobDetailResponse, JobMetadata
-from app.orchestrator import JobOrchestrator
+from app.orchestrator import JobOrchestrator, get_orchestrator
 from app.storage import JobStorage
 from connectors import connectors_router
 
@@ -53,7 +53,7 @@ app.add_middleware(
 )
 
 storage = JobStorage()
-orchestrator = JobOrchestrator(storage=storage)
+orchestrator = get_orchestrator(storage=storage)
 
 
 @app.get("/api/health")
