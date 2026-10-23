@@ -44,7 +44,7 @@ export const ChartThisResultModal: React.FC<ChartThisResultModalProps> = ({
       xCol = dtCols[0];
       yCol = numCols[0];
     } else if (numCols.length === 2 && colNames.length === 2) {
-      chartType = 'scatter';
+      chartType = 'hbar';
       xCol = numCols[0];
       yCol = numCols[1];
     } else if (catCols.length >= 1 && numCols.length >= 1) {
