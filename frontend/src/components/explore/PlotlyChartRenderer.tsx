@@ -2,7 +2,6 @@ import React, { useMemo } from 'react';
 import Plot from 'react-plotly.js';
 import type { ChartDataResponse } from '../../lib/api';
 import {
-  DEFAULT_CHART_COLOR,
   getDefaultChartColor,
   adjustBrightness,
   buildPaletteWithPrimary,
