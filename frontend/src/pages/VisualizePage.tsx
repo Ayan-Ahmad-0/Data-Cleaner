@@ -583,6 +583,10 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     setSelectedSheet('');
     setTableNames([]);
     setSelectedTable('');
+    setUploadFileName('');
+    setUploadedBytes(0);
+    setTotalBytes(0);
+    setUploadProgress(0);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -624,6 +628,9 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
             className="hidden"
             accept=".csv,.tsv,.parquet,.json,.ndjson,.jsonl,.xlsx,.db,.sqlite"
             onChange={handleFileInputChange}
+            onClick={(e) => {
+              (e.target as HTMLInputElement).value = '';
+            }}
             id="visualize-file-input"
           />
 
@@ -717,11 +724,16 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
               onDragLeave={handleDrag}
               onDragOver={handleDrag}
               onDrop={handleDrop}
+              onClick={() => {
+                if (!isUploading) {
+                  fileInputRef.current?.click();
+                }
+              }}
               className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dashed ${
                 dragActive
                   ? 'drag-active border-[var(--accent)] bg-[var(--accent-subtle)]'
                   : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
-              }`}
+              } ${!isUploading ? 'cursor-pointer' : ''}`}
               style={{
                 backgroundImage: dragActive
                   ? undefined
@@ -729,26 +741,76 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
               }}
             >
               {isUploading ? (
-                <div className="space-y-5 py-4">
-                  <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto border border-[var(--accent-border)]">
-                    <BarChart3 className="w-7 h-7 animate-pulse" />
+                <div className="space-y-6 py-6 max-w-lg mx-auto text-center" onClick={(e) => e.stopPropagation()}>
+                  <div className="w-16 h-16 rounded-[var(--radius-xl)] bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto border border-[var(--accent-border)] shadow-[var(--shadow-card)]">
+                    <BarChart3 className="w-8 h-8 animate-pulse text-[var(--accent)]" />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
-                      Preparing your file (internal zero-copy conversion)...
+                  <div className="space-y-2">
+                    <span className="text-lg sm:text-xl font-semibold text-[var(--text-primary)] block tracking-tight">
+                      {uploadStage === 'inspecting'
+                        ? 'Inspecting dataset schema...'
+                        : uploadStage === 'uploading'
+                        ? 'Streaming dataset to workspace...'
+                        : uploadStage === 'converting'
+                        ? 'Processing & converting (zero-copy Parquet)...'
+                        : 'Profiling columns & preparing charts...'}
                     </span>
-                    <span className="text-sm text-[var(--text-muted)] font-mono block">
-                      {uploadProgress}% processed
+                    <span className="text-xs sm:text-sm text-[var(--text-muted)] font-mono block">
+                      {uploadFileName || stagedFile?.name}
+                      {(totalBytes > 0 || (stagedFile && stagedFile.size > 0)) && (
+                        <> • {formatBytes(totalBytes || stagedFile?.size || 0)}</>
+                      )}
                     </span>
                   </div>
 
-                  <div className="w-64 mx-auto bg-[var(--bg-subtle)] h-1.5 rounded-full overflow-hidden border border-[var(--border-hairline)]">
-                    <div
-                      className="bg-[var(--accent)] h-full transition-all duration-200 rounded-full"
-                      style={{ width: `${uploadProgress}%` }}
-                    />
+                  {/* Real-time Byte Progress Load Bar */}
+                  <div className="space-y-2 pt-1 max-w-md mx-auto">
+                    <div className="flex items-center justify-between text-xs font-mono text-[var(--text-secondary)]">
+                      <span>
+                        {uploadStage === 'uploading'
+                          ? `${formatBytes(uploadedBytes)} of ${formatBytes(totalBytes || stagedFile?.size || 0)}`
+                          : uploadStage === 'converting'
+                          ? 'Zero-copy ingestion & indexing'
+                          : uploadStage === 'generating'
+                          ? 'Compiling visual suggestions'
+                          : 'Validating format'}
+                      </span>
+                      <span className="font-bold text-[var(--text-primary)]">
+                        {uploadStage === 'uploading'
+                          ? `${uploadProgress}%`
+                          : uploadStage === 'converting'
+                          ? '99%'
+                          : '100%'}
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-[var(--bg-subtle)] h-2.5 rounded-full overflow-hidden border border-[var(--border-hairline)] shadow-inner">
+                      <div
+                        className={`h-full transition-all duration-200 rounded-full ${
+                          uploadStage === 'converting' || uploadStage === 'generating'
+                            ? 'bg-[var(--accent)] animate-pulse'
+                            : 'bg-gradient-to-r from-[var(--accent)] to-[#ff7b6b]'
+                        }`}
+                        style={{
+                          width:
+                            uploadStage === 'converting'
+                              ? '99%'
+                              : uploadStage === 'generating'
+                              ? '100%'
+                              : `${Math.max(2, uploadProgress)}%`,
+                        }}
+                      />
+                    </div>
                   </div>
+
+                  <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-md mx-auto">
+                    {uploadStage === 'uploading'
+                      ? 'Datasets up to 10 GB stream directly with chunked I/O to avoid browser memory strain.'
+                      : uploadStage === 'converting'
+                      ? 'DuckDB engine is indexing schemas and preparing zero-copy columnar partitions.'
+                      : 'Preparing intelligent distributions, heatmaps, time series, and categorical charts...'}
+                  </p>
                 </div>
               ) : (
                 <div className="space-y-6">
@@ -770,7 +832,10 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
                       variant="primary"
                       size="lg"
                       leftIcon={<Upload className="w-4 h-4" />}
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
                       className="shadow-[0_2px_12px_rgba(253,66,51,0.18)] hover:shadow-[0_4px_20px_rgba(253,66,51,0.25)] transition-shadow duration-200"
                     >
                       Select Dataset File
