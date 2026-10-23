@@ -6,10 +6,20 @@ export interface ChartColorSwatch {
 }
 
 export const DEFAULT_CHART_COLOR = '#FD4233';
+export const DEFAULT_LINE_COLOR = '#E11D48';
+export const DEFAULT_AREA_COLOR = '#0284C7';
+
+export function getDefaultChartColor(chartType?: string): string {
+  if (chartType === 'line') return DEFAULT_LINE_COLOR;
+  if (chartType === 'area') return DEFAULT_AREA_COLOR;
+  return DEFAULT_CHART_COLOR;
+}
 
 export const CHART_COLOR_SWATCHES: ChartColorSwatch[] = [
   // Warm Reds & Oranges
+  { id: 'scarlet', label: 'Scarlet Red', hex: '#FF2400' },
   { id: 'orange', label: 'Coral Orange (Brand)', hex: '#FD4233' },
+  { id: 'ruby', label: 'Crimson Ruby', hex: '#E11D48' },
   { id: 'tangerine', label: 'Warm Tangerine', hex: '#F97316' },
   { id: 'amber', label: 'Amber Gold', hex: '#F59E0B' },
   { id: 'yellow', label: 'Canary Yellow', hex: '#EAB308' },
@@ -32,13 +42,15 @@ export const CHART_COLOR_SWATCHES: ChartColorSwatch[] = [
   // Pinks & Neutrals
   { id: 'fuchsia', label: 'Vivid Fuchsia', hex: '#C026D3' },
   { id: 'rose', label: 'Rose Pink', hex: '#EC4899' },
-  { id: 'ruby', label: 'Crimson Ruby', hex: '#E11D48' },
   { id: 'coral', label: 'Coral Rose', hex: '#F43F5E' },
   { id: 'slate', label: 'Cool Slate', hex: '#64748B' },
 ];
 
 export const FALLBACK_PALETTE = [
   '#FD4233',
+  '#0284C7',
+  '#E11D48',
+  '#FF2400',
   '#2563EB',
   '#10B981',
   '#7C3AED',
@@ -50,7 +62,6 @@ export const FALLBACK_PALETTE = [
   '#F97316',
   '#0D9488',
   '#9333EA',
-  '#E11D48',
   '#64748B',
 ];
 
