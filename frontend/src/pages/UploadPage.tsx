@@ -222,11 +222,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Privacy Mode Card */}
           <div
-            className={`rounded-[var(--radius-lg)] border p-4 sm:p-5 transition-all duration-200 cursor-pointer ${
-              privacyMode
-                ? 'bg-[var(--accent-subtle)] border-[var(--accent-border)]'
-                : 'bg-[var(--bg-surface)] border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
-            }`}
+            className="rounded-[var(--radius-lg)] border border-[var(--border-hairline)] bg-[var(--bg-surface)] p-4 sm:p-5 transition-all duration-200 cursor-pointer hover:border-[var(--border-strong)]"
             onClick={() => !uploading && setPrivacyMode(!privacyMode)}
           >
             <div className="flex items-start justify-between gap-3">
