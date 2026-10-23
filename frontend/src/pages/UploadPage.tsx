@@ -5,7 +5,8 @@ import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
 import { Toggle } from '../components/ui/Toggle';
 import { formatBytes } from '../lib/format';
-import { CheckCircle2, FileUp, Shield, UploadCloud, Zap } from 'lucide-react';
+import { CheckCircle2, Database, FileUp, Shield, UploadCloud, Zap } from 'lucide-react';
+import { ConnectorModal } from '../components/connectors/ConnectorModal';
 
 interface UploadPageProps {
   onUploadComplete: (jobData: { id: string; name: string; size: string; rowCount: string }) => void;
@@ -15,6 +16,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   const [dragActive, setDragActive] = useState(false);
   const [privacyMode, setPrivacyMode] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [showConnectorModal, setShowConnectorModal] = useState(false);
   const [uploadProgressPct, setUploadProgressPct] = useState<number>(0);
   const [error, setError] = useState<{ message: string; recovery: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -198,8 +200,8 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
               </span>
             </div>
 
-            {/* Primary CTA */}
-            <div className="pt-1">
+            {/* Primary & Connector CTAs */}
+            <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
               <Button
                 variant="primary"
                 size="lg"
@@ -207,6 +209,15 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
                 className="shadow-[0_2px_12px_rgba(253,66,51,0.18)] hover:shadow-[0_4px_20px_rgba(253,66,51,0.25)] transition-shadow duration-200"
               >
                 Select Dataset File
+              </Button>
+
+              <Button
+                variant="secondary"
+                size="lg"
+                onClick={() => setShowConnectorModal(true)}
+                leftIcon={<Database className="w-5 h-5 text-[#FF4B3E]" />}
+              >
+                Connect S3 / PostgreSQL
               </Button>
             </div>
           </div>
@@ -277,6 +288,15 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
           </div>
         </div>
       </div>
+
+      {/* Cloud & Database Connector Ingestion Modal */}
+      <ConnectorModal
+        isOpen={showConnectorModal}
+        onClose={() => setShowConnectorModal(false)}
+        mode="import"
+        privacyMode={privacyMode}
+        onImportSuccess={onUploadComplete}
+      />
     </div>
   );
 };
