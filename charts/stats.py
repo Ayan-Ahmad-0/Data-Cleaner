@@ -17,10 +17,10 @@ class ColumnStats:
     name: str
     type: str                  # DuckDB type (e.g. VARCHAR, BIGINT)
     null_pct: float
-    distinct_approx: Optional[int]
-    min: Optional[str]         # stringified for display
-    max: Optional[str]
-    kind: str                  # "numeric" | "categorical" | "datetime" | "boolean" | "text_long" | "id_like"
+    distinct_approx: Optional[int] = None
+    min: Optional[str] = None         # stringified for display
+    max: Optional[str] = None
+    kind: str = "categorical"         # "numeric" | "categorical" | "datetime" | "boolean" | "text_long" | "id_like"
     parse_hints: Dict[str, Any] = field(default_factory=dict)   # {"as_date_success_pct": 96.4, "as_number_success_pct": 0.0}
 
     def to_dict(self) -> Dict[str, Any]:
