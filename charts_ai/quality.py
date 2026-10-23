@@ -23,6 +23,7 @@ def post_process_recommendations(
     seen_signatures = set()
     filtered: List[ChartRecommendation] = []
     pie_count = 0
+    donut_count = 0
     hist_count = 0
 
     # Sort primarily by model priority
@@ -34,10 +35,14 @@ def post_process_recommendations(
             continue
 
         # Variety caps
-        if rec.spec.chart_type in ("pie", "donut"):
-            if pie_count >= 2:
+        if rec.spec.chart_type == "pie":
+            if pie_count >= 1:
                 continue
             pie_count += 1
+        elif rec.spec.chart_type == "donut":
+            if donut_count >= 1:
+                continue
+            donut_count += 1
         elif rec.spec.chart_type == "histogram":
             if hist_count >= 2:
                 continue
