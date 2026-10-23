@@ -239,7 +239,9 @@ def test_suggest_charts_diverse_types():
     assert "pie" in chart_types
     assert "area" in chart_types
     assert "heatmap" in chart_types
+    assert "hbar" in chart_types
     assert "box" not in chart_types
+    assert "scatter" not in chart_types
 
 
 def test_compile_spec_sum_on_varchar_auto_promotes_number_cast():
