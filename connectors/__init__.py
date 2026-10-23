@@ -12,16 +12,25 @@ from connectors.base import (
 )
 from connectors.postgres import PostgresConnector, PostgresConnectorConfig
 from connectors.registry import ConnectorRegistry
-from connectors.router import router as connectors_router
+from connectors.router import (
+    ExportDatasetRequest,
+    ImportDatasetRequest,
+    ImportDatasetResponse,
+    router as connectors_router,
+)
 from connectors.s3 import S3Connector, S3ConnectorConfig
 
 __all__ = [
     "BaseConnector",
+    "ConnectionTestResult",
     "ConnectorMetadata",
     "ConnectorRegistry",
     "ConnectorType",
+    "ExportDatasetRequest",
     "ExportFormat",
     "ExportMode",
+    "ImportDatasetRequest",
+    "ImportDatasetResponse",
     "PostgresConnector",
     "PostgresConnectorConfig",
     "S3Connector",
