@@ -103,3 +103,48 @@ def test_s3_export_success_mock(tmp_path: Path):
         assert res.rows_transferred == 1500
         assert res.destination_uri == "s3://cleanflow-bucket/processed/orders.parquet"
         mock_con.close.assert_called_once()
+
+
+def test_s3_resolve_source_uri():
+    connector = S3Connector()
+
+    # Direct source URI
+    cfg1 = S3ConnectorConfig(source_uri="s3://lakehouse-bucket/raw/events.parquet")
+    assert connector._resolve_source_uri(cfg1) == "s3://lakehouse-bucket/raw/events.parquet"
+
+    # Bucket + Key
+    cfg2 = S3ConnectorConfig(bucket="my-bucket", key="folder/dataset.csv")
+    assert connector._resolve_source_uri(cfg2) == "s3://my-bucket/folder/dataset.csv"
+
+    # Bucket + Prefix + Filename
+    cfg3 = S3ConnectorConfig(bucket="s3://my-bucket/", prefix="/raw/2026/", filename="data.json")
+    assert connector._resolve_source_uri(cfg3) == "s3://my-bucket/raw/2026/data.json"
+
+    # Missing bucket and source_uri raises
+    cfg_empty = S3ConnectorConfig()
+    with pytest.raises(ValueError, match="Either bucket or source_uri must be provided"):
+        connector._resolve_source_uri(cfg_empty)
+
+
+def test_s3_import_success_mock(tmp_path: Path):
+    connector = S3Connector()
+    target_pq = tmp_path / "imported.parquet"
+
+    mock_con = MagicMock()
+    mock_con.execute.return_value.fetchone.return_value = [3400]
+
+    with patch("duckdb.connect", return_value=mock_con):
+        res = connector.import_dataset(
+            config={
+                "source_uri": "s3://analytics-lake/raw/sales.parquet",
+            },
+            target_parquet_path=target_pq,
+        )
+
+        assert isinstance(res, SyncResult)
+        assert res.success is True
+        assert res.rows_transferred == 3400
+        assert res.destination_uri == "s3://analytics-lake/raw/sales.parquet"
+        assert "3,400" in res.message
+        mock_con.close.assert_called_once()
+
