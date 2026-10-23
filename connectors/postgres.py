@@ -30,7 +30,8 @@ class PostgresConnectorConfig(BaseModel):
     username: str = Field(..., description="Database user name")
     password: str = Field(..., description="Database password")
     schema_name: str = Field("public", description="Target database schema name")
-    table_name: str = Field(..., description="Target destination table name")
+    table_name: str = Field(default="", description="Target destination or source table name")
+    query: Optional[str] = Field(None, description="Optional custom SQL SELECT query for import")
     sslmode: str = Field("prefer", description="SSL connection mode (disable, allow, prefer, require)")
     mode: ExportMode = Field(ExportMode.OVERWRITE, description="Export mode: overwrite or append")
 
@@ -133,6 +134,8 @@ class PostgresConnector(BaseConnector):
 
         start_time = time.perf_counter()
         cfg = PostgresConnectorConfig.model_validate(config)
+        if not cfg.table_name:
+            raise ValueError("Table name is required for PostgreSQL export.")
         schema = self._sanitize_identifier(cfg.schema_name, "schema_name")
         table = self._sanitize_identifier(cfg.table_name, "table_name")
 
@@ -184,3 +187,70 @@ class PostgresConnector(BaseConnector):
             except Exception:
                 pass
             con.close()
+
+    def import_dataset(
+        self,
+        config: Dict[str, Any],
+        target_parquet_path: Path,
+        options: Optional[Dict[str, Any]] = None,
+    ) -> SyncResult:
+        """Import table or query from PostgreSQL directly into canonical local Parquet."""
+        start_time = time.perf_counter()
+        cfg = PostgresConnectorConfig.model_validate(config)
+
+        target_parquet_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path_str = str(target_parquet_path.resolve()).replace("\\", "/")
+
+        con = duckdb.connect(":memory:")
+        con.execute("INSTALL postgres; LOAD postgres;")
+
+        conn_str = self._build_connection_string(cfg)
+        alias = "pg_source"
+
+        try:
+            con.execute(f"ATTACH '{conn_str}' AS {alias} (TYPE POSTGRES);")
+
+            import_query = cfg.query or (options or {}).get("query")
+            if import_query:
+                # Custom SQL select query
+                source_expr = f"({import_query})"
+                source_desc = "custom query"
+            else:
+                if not cfg.table_name:
+                    raise ValueError("Either table_name or query must be provided for PostgreSQL import.")
+                schema = self._sanitize_identifier(cfg.schema_name, "schema_name")
+                table = self._sanitize_identifier(cfg.table_name, "table_name")
+                source_expr = f"{alias}.{schema}.{table}"
+                source_desc = f"{schema}.{table}"
+
+            con.execute(f"COPY (SELECT * FROM {source_expr}) TO '{target_path_str}' (FORMAT PARQUET, COMPRESSION 'ZSTD');")
+
+            row_count_res = con.execute(f"SELECT count(*) FROM read_parquet('{target_path_str}')").fetchone()
+            row_count = int(row_count_res[0]) if row_count_res else 0
+
+            elapsed = time.perf_counter() - start_time
+            destination_uri = f"postgresql://{cfg.host}:{cfg.port}/{cfg.database}/{source_desc}"
+
+            return SyncResult(
+                success=True,
+                rows_transferred=row_count,
+                destination_uri=destination_uri,
+                elapsed_seconds=round(elapsed, 3),
+                message=f"Successfully imported {row_count:,} rows from PostgreSQL {source_desc} in {elapsed:.2f}s",
+                details={
+                    "host": cfg.host,
+                    "database": cfg.database,
+                    "source": source_desc,
+                    "target_path": str(target_parquet_path),
+                },
+            )
+        except Exception as e:
+            logger.exception("Postgres import failed: %s", e)
+            raise RuntimeError(f"Failed to import from PostgreSQL: {str(e)}") from e
+        finally:
+            try:
+                con.execute(f"DETACH {alias};")
+            except Exception:
+                pass
+            con.close()
+
