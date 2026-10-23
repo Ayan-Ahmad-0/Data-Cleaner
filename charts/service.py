@@ -210,9 +210,17 @@ def build_chart(
         spec.x = None
         if spec.aggregation == "none":
             spec.aggregation = "count"
+        if spec.y and not _is_numeric_type(schema.get(spec.y.column, ""), spec.y.cast_as):
+            spec.y.cast_as = "number"
     elif ctype in ("bar", "hbar", "line", "area"):
         if not spec.x and schema:
             spec.x = FieldRef(column=list(schema.keys())[0])
+
+    # For any chart type with numeric aggregation, ensure non-numeric Y columns are cast as number
+    if spec.y and spec.aggregation in ("sum", "avg", "median"):
+        y_col_type = schema.get(spec.y.column, "")
+        if not _is_numeric_type(y_col_type, spec.y.cast_as):
+            spec.y.cast_as = "number"
 
     # Apply page options if provided
     if page_options:

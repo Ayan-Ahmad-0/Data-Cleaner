@@ -128,7 +128,8 @@ def get_tweak_options(
     y_is_num = True
     if spec and spec.y:
         y_type = schema.get(spec.y.column, "")
-        y_is_num = _is_numeric_type(y_type, spec.y.cast_as)
+        y_col_stat = next((s for s in stats if s.name == spec.y.column), None)
+        y_is_num = _is_numeric_type(y_type, spec.y.cast_as) or (y_col_stat and y_col_stat.kind == "numeric") or (y_type.upper() == "VARCHAR")
 
     for agg in all_aggregations:
         if agg in ("sum", "avg", "median"):
