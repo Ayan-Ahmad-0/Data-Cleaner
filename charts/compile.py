@@ -423,12 +423,21 @@ LIMIT {top_n + 1}
         group_by = f"GROUP BY 1" + (f", 2" if spec.color else "")
         order_by = f"ORDER BY 1 ASC"
 
+        # Chronological timeline points cannot have NULL timestamps or invalid parsed dates.
+        # Excluding null x_expr prevents failed TRY_CAST rows from collapsing into a giant (None, N) bucket,
+        # which would artificially scale the Y-axis to thousands and visually flatten the entire trend line.
+        line_where = list(where_clauses)
+        line_where.append(f"{x_expr} IS NOT NULL")
+        if spec.y and spec.aggregation in ("sum", "avg", "min", "max", "median"):
+            line_where.append(f"{y_expr} IS NOT NULL")
+        line_where_sql = "WHERE " + " AND ".join(line_where)
+
         sql = f"""
 SELECT 
     {x_expr} AS x{color_expr},
     {agg_sql} AS y
 FROM data
-{where_sql}
+{line_where_sql}
 {group_by}
 {order_by}
 LIMIT {max_points}
