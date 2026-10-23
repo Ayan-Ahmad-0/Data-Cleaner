@@ -177,7 +177,7 @@ const AGGREGATIONS = [
   { id: 'none', label: 'None' },
 ];
 
-const TIME_BUCKETS = ['day', 'week', 'month', 'quarter', 'year', 'hour', 'hour_of_day', 'day_of_week'];
+const TIME_BUCKETS = ['week', 'day', 'month', 'quarter', 'year', 'hour', 'hour_of_day', 'day_of_week'];
 
 export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   jobId,
