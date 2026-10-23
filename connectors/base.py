@@ -41,12 +41,17 @@ class ConnectorMetadata(BaseModel):
     config_fields: List[Dict[str, Any]] = Field(default_factory=list)
 
 
-class TestConnectionResult(BaseModel):
+class ConnectionTestResult(BaseModel):
     """Response returned when pinging or validating connector credentials."""
+    __test__ = False
     success: bool
     message: str
     latency_ms: Optional[float] = None
     details: Dict[str, Any] = Field(default_factory=dict)
+
+
+# Alias for backward compatibility
+TestConnectionResult = ConnectionTestResult
 
 
 class SyncResult(BaseModel):
@@ -73,7 +78,7 @@ class BaseConnector(ABC):
         pass
 
     @abstractmethod
-    def test_connection(self, config: Dict[str, Any]) -> TestConnectionResult:
+    def test_connection(self, config: Dict[str, Any]) -> ConnectionTestResult:
         """Validate credentials, endpoints, and reachability."""
         pass
 

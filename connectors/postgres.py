@@ -12,11 +12,11 @@ from pydantic import BaseModel, Field
 
 from connectors.base import (
     BaseConnector,
+    ConnectionTestResult,
     ConnectorMetadata,
     ConnectorType,
     ExportMode,
     SyncResult,
-    TestConnectionResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ class PostgresConnector(BaseConnector):
             f"user='{user_escaped}' password='{pwd_escaped}' sslmode='{cfg.sslmode}'"
         )
 
-    def test_connection(self, config: Dict[str, Any]) -> TestConnectionResult:
+    def test_connection(self, config: Dict[str, Any]) -> ConnectionTestResult:
         """Attempt to attach to PostgreSQL and execute a ping query."""
         start_time = time.perf_counter()
         try:
@@ -106,7 +106,7 @@ class PostgresConnector(BaseConnector):
             con.close()
 
             elapsed = (time.perf_counter() - start_time) * 1000
-            return TestConnectionResult(
+            return ConnectionTestResult(
                 success=True,
                 message=f"Successfully connected to PostgreSQL at {cfg.host}:{cfg.port}/{cfg.database}",
                 latency_ms=round(elapsed, 2),
@@ -115,7 +115,7 @@ class PostgresConnector(BaseConnector):
         except Exception as e:
             elapsed = (time.perf_counter() - start_time) * 1000
             logger.warning("Postgres connection test failed: %s", e)
-            return TestConnectionResult(
+            return ConnectionTestResult(
                 success=False,
                 message=f"PostgreSQL connection failed: {str(e)}",
                 latency_ms=round(elapsed, 2),

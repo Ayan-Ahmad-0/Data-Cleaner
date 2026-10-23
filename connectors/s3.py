@@ -12,11 +12,11 @@ from pydantic import BaseModel, Field
 
 from connectors.base import (
     BaseConnector,
+    ConnectionTestResult,
     ConnectorMetadata,
     ConnectorType,
     ExportFormat,
     SyncResult,
-    TestConnectionResult,
 )
 
 logger = logging.getLogger(__name__)
@@ -125,7 +125,7 @@ class S3Connector(BaseConnector):
             return f"s3://{bucket}/{prefix}/{fname}"
         return f"s3://{bucket}/{fname}"
 
-    def test_connection(self, config: Dict[str, Any]) -> TestConnectionResult:
+    def test_connection(self, config: Dict[str, Any]) -> ConnectionTestResult:
         """Validate S3 credentials and endpoint reachability."""
         start_time = time.perf_counter()
         try:
@@ -136,7 +136,7 @@ class S3Connector(BaseConnector):
             # Sanity check bucket name
             clean_bucket = cfg.bucket.strip().removeprefix("s3://").strip("/")
             if not clean_bucket or not re.match(r"^[a-zA-Z0-9.\-_]{3,63}$", clean_bucket):
-                return TestConnectionResult(
+                return ConnectionTestResult(
                     success=False,
                     message=f"Invalid S3 bucket name '{cfg.bucket}'. Must be 3-63 characters (letters, numbers, hyphens, dots).",
                 )
@@ -144,7 +144,7 @@ class S3Connector(BaseConnector):
             # DuckDB httpfs ping: verify extension and configuration
             # In live environments with valid S3 credentials, DuckDB can verify the bucket
             elapsed = (time.perf_counter() - start_time) * 1000
-            return TestConnectionResult(
+            return ConnectionTestResult(
                 success=True,
                 message=f"Successfully connected to S3 service (bucket: {clean_bucket}, region: {cfg.region}).",
                 latency_ms=round(elapsed, 2),
@@ -153,7 +153,7 @@ class S3Connector(BaseConnector):
         except Exception as e:
             elapsed = (time.perf_counter() - start_time) * 1000
             logger.warning("S3 connection test failed: %s", e)
-            return TestConnectionResult(
+            return ConnectionTestResult(
                 success=False,
                 message=f"S3 Connection failed: {str(e)}",
                 latency_ms=round(elapsed, 2),

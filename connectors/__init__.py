@@ -2,6 +2,7 @@
 
 from connectors.base import (
     BaseConnector,
+    ConnectionTestResult,
     ConnectorMetadata,
     ConnectorType,
     ExportFormat,

@@ -8,7 +8,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 
 from app.storage import JobStorage
-from connectors.base import ConnectorMetadata, SyncResult, TestConnectionResult
+from connectors.base import ConnectionTestResult, ConnectorMetadata, SyncResult
 from connectors.registry import ConnectorRegistry
 from explore.service import resolve_job_parquet_paths
 
@@ -36,8 +36,8 @@ def list_available_connectors() -> List[ConnectorMetadata]:
     return ConnectorRegistry.list_all()
 
 
-@router.post("/test", response_model=TestConnectionResult)
-def test_connector_connection(payload: TestConnectorRequest) -> TestConnectionResult:
+@router.post("/test", response_model=ConnectionTestResult)
+def test_connector_connection(payload: TestConnectorRequest) -> ConnectionTestResult:
     """Validate credentials and test reachability for a target connector."""
     connector = ConnectorRegistry.get(payload.connector_type)
     if not connector:
@@ -50,7 +50,7 @@ def test_connector_connection(payload: TestConnectorRequest) -> TestConnectionRe
         return connector.test_connection(payload.config)
     except Exception as e:
         logger.exception("Connector test failed: %s", e)
-        return TestConnectionResult(
+        return ConnectionTestResult(
             success=False,
             message=f"Connection test failed: {str(e)}",
         )
