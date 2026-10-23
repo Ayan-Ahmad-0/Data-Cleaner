@@ -22,9 +22,9 @@ def suggest_charts_from_stats(
     3. Second low-cardinality category -> Pie chart
     4. Categorical comparison -> Horizontal bar (top 15 ranking)
     5. Datetime + Numeric -> Line chart (rate/average metric over time)
-    6. Numeric + Categorical -> Box plot (5-number summary spread across categories)
+    6. Cross-tabulation -> Heatmap (2D co-occurrence density matrix)
     7. Numeric distribution -> Histogram (binned distribution)
-    8. Multi-variable relationship -> Scatter plot (2 numerics) or Heatmap (2 categoricals)
+    8. Multi-variable relationship -> Scatter plot (2 numerics)
     9. KPI Overview -> Big Number metric card
     10. Additional categories -> Vertical Bar charts
     """
@@ -138,22 +138,51 @@ def suggest_charts_from_stats(
             f"dt_num_line_{dt_col.name}_{num_col.name}",
         )
 
-    # Rule 6: Numeric + Categorical -> Box Plot (5-number summary across categories)
-    if numerics and all_categoricals:
-        num = numerics[0]
-        cat = all_categoricals[0]
-        num_cast = "number" if num.type.upper() == "VARCHAR" else None
-        num_label = num.name.replace("_", " ").title()
-        cat_label = cat.name.replace("_", " ").title()
+    # Rule 6: Multi-category Cross-Tabulation -> Heatmap (2D Co-occurrence Density)
+    if len(all_categoricals) >= 2:
+        cat1 = all_categoricals[0]
+        cat2 = all_categoricals[1]
+        cat1_label = cat1.name.replace("_", " ").title()
+        cat2_label = cat2.name.replace("_", " ").title()
         add_spec(
             ChartSpec(
-                chart_type="box",
-                x=FieldRef(column=cat.name),
-                y=FieldRef(column=num.name, cast_as=num_cast),
-                top_n=10,
-                title=f"{num_label} Spread by {cat_label}",
+                chart_type="heatmap",
+                x=FieldRef(column=cat1.name),
+                y=FieldRef(column=cat2.name),
+                aggregation="count",
+                title=f"{cat1_label} vs. {cat2_label} Heatmap",
             ),
-            f"box_{cat.name}_{num.name}",
+            f"heat_{cat1.name}_{cat2.name}",
+        )
+    elif all_categoricals and datetimes:
+        cat = all_categoricals[0]
+        dt = datetimes[0]
+        cat_label = cat.name.replace("_", " ").title()
+        dt_cast = "timestamp" if dt.type.upper() == "VARCHAR" else None
+        add_spec(
+            ChartSpec(
+                chart_type="heatmap",
+                x=FieldRef(column=cat.name),
+                y=FieldRef(column=dt.name, time_bucket="day_of_week", cast_as=dt_cast),
+                aggregation="count",
+                title=f"{cat_label} by Day of Week Heatmap",
+            ),
+            f"heat_{cat.name}_{dt.name}",
+        )
+    elif len(stats) >= 2:
+        col1 = stats[0]
+        col2 = stats[1]
+        c1_label = col1.name.replace("_", " ").title()
+        c2_label = col2.name.replace("_", " ").title()
+        add_spec(
+            ChartSpec(
+                chart_type="heatmap",
+                x=FieldRef(column=col1.name),
+                y=FieldRef(column=col2.name),
+                aggregation="count",
+                title=f"{c1_label} vs. {c2_label} Heatmap",
+            ),
+            f"heat_{col1.name}_{col2.name}",
         )
 
     # Rule 7: Numeric Distribution -> Histogram
@@ -171,7 +200,7 @@ def suggest_charts_from_stats(
             f"hist_{num.name}",
         )
 
-    # Rule 8: Multi-variable relationship -> Scatter Plot or Heatmap
+    # Rule 8: Multi-variable relationship -> Scatter Plot
     if len(numerics) >= 2:
         x_num = numerics[0]
         y_num = numerics[1]
@@ -187,21 +216,6 @@ def suggest_charts_from_stats(
                 title=f"{x_label} vs. {y_label}",
             ),
             f"scatter_{x_num.name}_{y_num.name}",
-        )
-    elif len(all_categoricals) >= 2:
-        cat1 = all_categoricals[0]
-        cat2 = all_categoricals[1]
-        cat1_label = cat1.name.replace("_", " ").title()
-        cat2_label = cat2.name.replace("_", " ").title()
-        add_spec(
-            ChartSpec(
-                chart_type="heatmap",
-                x=FieldRef(column=cat1.name),
-                y=FieldRef(column=cat2.name),
-                aggregation="count",
-                title=f"{cat1_label} vs. {cat2_label} Density",
-            ),
-            f"heat_{cat1.name}_{cat2.name}",
         )
 
     # Rule 9: Key KPI Metric -> Big Number Card

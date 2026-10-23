@@ -231,6 +231,7 @@ def test_suggest_charts_diverse_types():
     assert "donut" in chart_types
     assert "pie" in chart_types
     assert "area" in chart_types
-    assert "box" in chart_types
+    assert "heatmap" in chart_types
+    assert "box" not in chart_types
 
 
