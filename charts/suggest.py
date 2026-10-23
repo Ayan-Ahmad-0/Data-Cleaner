@@ -8,14 +8,59 @@ from charts.spec import ChartSpec, FieldRef, Filter
 from charts.stats import ColumnStats
 
 
+from datetime import datetime
+
+
+def _parse_datetime_safe(val: object) -> Optional[datetime]:
+    if not val:
+        return None
+    val_str = str(val).strip()
+    if not val_str:
+        return None
+    # 1. Standard library ISO format parser (Python 3.11+ handles YYYY-MM-DD, ISO-8601 timestamps, etc.)
+    try:
+        clean = val_str.replace("Z", "+00:00") if val_str.endswith("Z") else val_str
+        dt = datetime.fromisoformat(clean)
+        return dt.replace(tzinfo=None)
+    except Exception:
+        pass
+
+    # 2. Common explicit date and datetime formats
+    for fmt in (
+        "%Y-%m-%d",
+        "%Y/%m/%d",
+        "%d-%m-%Y",
+        "%d/%m/%Y",
+        "%m/%d/%Y",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y-%m-%dT%H:%M:%S",
+    ):
+        try:
+            dt = datetime.strptime(val_str[:19], fmt)
+            return dt.replace(tzinfo=None)
+        except Exception:
+            continue
+
+    # 3. Fallback to python-dateutil if installed
+    try:
+        from dateutil import parser
+        dt = parser.parse(val_str, fuzzy=True)
+        return dt.replace(tzinfo=None)
+    except Exception:
+        pass
+
+    return None
+
+
 def _pick_adaptive_time_bucket(col: ColumnStats) -> str:
     """Choose an optimal time bucket based on the column's date range, defaulting to week."""
     if not col.min or not col.max:
         return "week"
     try:
-        from dateutil import parser
-        d_min = parser.parse(str(col.min), fuzzy=True)
-        d_max = parser.parse(str(col.max), fuzzy=True)
+        d_min = _parse_datetime_safe(col.min)
+        d_max = _parse_datetime_safe(col.max)
+        if not d_min or not d_max:
+            return "week"
         days = abs((d_max - d_min).days)
         if days > 730:
             return "month"
