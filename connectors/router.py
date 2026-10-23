@@ -4,9 +4,10 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from app.orchestrator import get_orchestrator
 from app.storage import JobStorage
 from connectors.base import ConnectionTestResult, ConnectorMetadata, SyncResult
 from connectors.registry import ConnectorRegistry
@@ -28,6 +29,25 @@ class ExportDatasetRequest(BaseModel):
     connector_type: str = Field(..., description="Connector ID, e.g. 's3' or 'postgres'")
     config: Dict[str, Any] = Field(..., description="Connector-specific configuration parameters")
     options: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional export options")
+
+
+class ImportDatasetRequest(BaseModel):
+    """Payload to import a dataset from a cloud storage or database connector into a new cleaning job."""
+    connector_type: str = Field(..., description="Connector ID, e.g. 's3' or 'postgres'")
+    config: Dict[str, Any] = Field(..., description="Connector-specific configuration parameters")
+    filename: Optional[str] = Field(None, description="Optional custom dataset name for the job")
+    privacy_mode: bool = Field(False, description="Whether to mask sensitive PII during AI profiling")
+    options: Optional[Dict[str, Any]] = Field(default_factory=dict, description="Additional import options")
+
+
+class ImportDatasetResponse(BaseModel):
+    """Response returned upon successfully importing a dataset from an external connector."""
+    job_id: str
+    filename: str
+    status: str
+    rows_imported: int
+    sync_result: SyncResult
+
 
 
 @router.get("", response_model=List[ConnectorMetadata])
@@ -91,3 +111,73 @@ def export_dataset_to_destination(
     except Exception as e:
         logger.exception("Export to %s failed for job %s: %s", payload.connector_type, job_id, e)
         raise HTTPException(status_code=500, detail=f"Failed to export dataset: {str(e)}")
+
+
+@router.post("/import", response_model=ImportDatasetResponse)
+def import_dataset_from_connector(
+    payload: ImportDatasetRequest,
+    background_tasks: BackgroundTasks,
+) -> ImportDatasetResponse:
+    """Import a dataset from a cloud storage or database connector directly into a new cleaning job."""
+    connector = ConnectorRegistry.get(payload.connector_type)
+    if not connector:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unknown connector type '{payload.connector_type}'. Available: {[c.id for c in ConnectorRegistry.list_all()]}",
+        )
+
+    # Determine a descriptive dataset filename
+    if payload.filename:
+        ds_name = payload.filename.strip()
+    elif payload.config.get("filename"):
+        ds_name = str(payload.config["filename"]).strip()
+    elif payload.config.get("table_name"):
+        ds_name = f"{payload.config['table_name']}.parquet"
+    elif payload.config.get("key"):
+        ds_name = Path(payload.config["key"]).name
+    elif payload.config.get("source_uri"):
+        ds_name = Path(payload.config["source_uri"]).name
+    else:
+        ds_name = f"imported_{payload.connector_type}_dataset.parquet"
+
+    if not ds_name.lower().endswith(".parquet"):
+        stem = Path(ds_name).stem
+        ds_name = f"{stem}.parquet"
+
+    orch = get_orchestrator()
+    job = orch.create_job(
+        filename=ds_name,
+        file_size=0,
+        privacy_mode=payload.privacy_mode,
+        format_id="parquet",
+    )
+    target_staged_pq = orch.storage.staged_parquet_path(job.id)
+
+    try:
+        sync_result = connector.import_dataset(
+            config=payload.config,
+            target_parquet_path=target_staged_pq,
+            options=payload.options,
+        )
+        if target_staged_pq.exists():
+            job.file_size_bytes = target_staged_pq.stat().st_size
+        job.row_count = sync_result.rows_transferred
+
+        # Queue background profiling and AI recipe draft
+        background_tasks.add_task(orch.run_profile_and_ai_draft, job.id)
+
+        return ImportDatasetResponse(
+            job_id=job.id,
+            filename=ds_name,
+            status=job.status.value,
+            rows_imported=sync_result.rows_transferred,
+            sync_result=sync_result,
+        )
+    except ValueError as e:
+        orch.storage.cleanup_job(job.id)
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        orch.storage.cleanup_job(job.id)
+        logger.exception("Connector import failed for %s: %s", payload.connector_type, e)
+        raise HTTPException(status_code=500, detail=f"Failed to import dataset: {str(e)}")
+
