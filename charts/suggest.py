@@ -43,7 +43,7 @@ def suggest_charts_from_stats(
     5. Datetime + Numeric -> Line chart (rate/average metric over time)
     6. Cross-tabulation -> Heatmap (2D co-occurrence density matrix)
     7. Numeric distribution -> Histogram (binned distribution)
-    8. Multi-variable relationship -> Scatter plot (2 numerics)
+    8. Metric ranking across categories -> Horizontal bar (hbar)
     9. KPI Overview -> Big Number metric card
     10. Additional categories -> Vertical Bar charts
     """
@@ -221,8 +221,44 @@ def suggest_charts_from_stats(
             f"hist_{num.name}",
         )
 
-    # Rule 8: Multi-variable relationship -> Scatter Plot
-    if len(numerics) >= 2:
+    # Rule 8: Metric Ranking across Categories -> Horizontal Bar (H-Bar) instead of Scatter
+    if (all_categoricals or mid_cardinality) and numerics:
+        used_hbar_cats = {s.x.column for s in suggestions if s.chart_type == "hbar" and s.x}
+        candidate_cats = [c for c in (all_categoricals or mid_cardinality) if c.name not in used_hbar_cats]
+        cat = candidate_cats[0] if candidate_cats else (all_categoricals or mid_cardinality)[0]
+        num = numerics[0]
+        cat_label = cat.name.replace("_", " ").title()
+        num_label = num.name.replace("_", " ").title()
+        num_cast = "number" if num.type.upper() == "VARCHAR" else None
+        add_spec(
+            ChartSpec(
+                chart_type="hbar",
+                x=FieldRef(column=cat.name),
+                y=FieldRef(column=num.name, cast_as=num_cast),
+                aggregation="sum",
+                sort="y_desc",
+                top_n=12,
+                title=f"{num_label} by {cat_label}",
+            ),
+            f"cat_metric_hbar_{cat.name}_{num.name}",
+        )
+    elif all_categoricals:
+        used_hbar_cats = {s.x.column for s in suggestions if s.chart_type == "hbar" and s.x}
+        candidate_cats = [c for c in all_categoricals if c.name not in used_hbar_cats]
+        cat = candidate_cats[0] if candidate_cats else all_categoricals[0]
+        cat_label = cat.name.replace("_", " ").title()
+        add_spec(
+            ChartSpec(
+                chart_type="hbar",
+                x=FieldRef(column=cat.name),
+                aggregation="count",
+                sort="y_desc",
+                top_n=12,
+                title=f"Top {cat_label} Breakdown",
+            ),
+            f"cat_hbar_count_{cat.name}",
+        )
+    elif len(numerics) >= 2:
         x_num = numerics[0]
         y_num = numerics[1]
         x_cast = "number" if x_num.type.upper() == "VARCHAR" else None
@@ -231,12 +267,15 @@ def suggest_charts_from_stats(
         y_label = y_num.name.replace("_", " ").title()
         add_spec(
             ChartSpec(
-                chart_type="scatter",
+                chart_type="hbar",
                 x=FieldRef(column=x_num.name, cast_as=x_cast),
                 y=FieldRef(column=y_num.name, cast_as=y_cast),
-                title=f"{x_label} vs. {y_label}",
+                aggregation="sum",
+                sort="y_desc",
+                top_n=12,
+                title=f"{y_label} by {x_label}",
             ),
-            f"scatter_{x_num.name}_{y_num.name}",
+            f"hbar_num_{x_num.name}_{y_num.name}",
         )
 
     # Rule 9: Key KPI Metric -> Big Number Card
