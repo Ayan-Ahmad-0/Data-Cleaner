@@ -175,7 +175,7 @@ def test_postgres_import_missing_table_and_query_raises(tmp_path: Path):
     connector = PostgresConnector()
     target_pq = tmp_path / "imported.parquet"
 
-    with pytest.raises(RuntimeError, match="Either table_name or query must be provided"):
+    with pytest.raises(ValueError, match="Either table_name or query must be provided"):
         connector.import_dataset(
             config={
                 "host": "localhost",
