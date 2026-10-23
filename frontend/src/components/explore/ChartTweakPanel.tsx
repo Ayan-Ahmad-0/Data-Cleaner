@@ -81,7 +81,14 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   }, [isOpen, jobId, spec]);
 
   const handleApply = () => {
-    onApply(spec);
+    let sanitized = { ...spec };
+    if (sanitized.chart_type === 'pie') {
+      sanitized.top_n = Math.min(sanitized.top_n || 6, 6);
+      if (sanitized.aggregation === 'none') {
+        sanitized.aggregation = 'count';
+      }
+    }
+    onApply(sanitized);
     onClose();
   };
 
@@ -103,7 +110,15 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   }, [isOpen, spec]);
 
   const handleChartTypeChange = (chartType: ChartSpec['chart_type']) => {
-    const updated = { ...spec, chart_type: chartType };
+    let newTopN = spec.top_n;
+    let newAgg = spec.aggregation;
+    if (chartType === 'pie') {
+      newTopN = Math.min(newTopN || 6, 6);
+      if (newAgg === 'none') {
+        newAgg = 'count';
+      }
+    }
+    const updated = { ...spec, chart_type: chartType, top_n: newTopN, aggregation: newAgg };
     setSpec(updated);
     // Refresh options for disabled aggregations
     getTweakOptions(jobId, updated).then(setTweakOptions).catch(() => {});
