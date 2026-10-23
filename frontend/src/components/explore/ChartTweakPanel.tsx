@@ -132,32 +132,88 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
     setSpec({ ...spec, filters: newFilters });
   };
 
+  const handleApply = () => {
+    onApply(spec);
+    onClose();
+  };
+
   const isEdited = JSON.stringify(spec) !== JSON.stringify(originalSpec);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleApply();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    if (isOpen) {
+      window.addEventListener('keydown', handleKeyDown);
+    }
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, spec]);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-[var(--radius-xl)] shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-[var(--radius-xl)] shadow-2xl w-full max-w-2xl max-h-[85vh] sm:max-h-[90vh] flex flex-col min-h-0 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)]">
-          <div className="flex items-center gap-2.5">
-            <Sliders className="w-5 h-5 text-[var(--accent)]" />
-            <div>
-              <h3 className="text-base font-semibold text-[var(--text-primary)]">Tweak Chart</h3>
-              <p className="text-xs text-[var(--text-muted)]">
-                Modify chart type, axes, aggregation, and filters. Changes apply to this card.
+        <div className="flex items-center justify-between px-5 sm:px-6 py-3.5 border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)] shrink-0">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center shrink-0">
+              <Sliders className="w-4 h-4" />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h3 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">Tweak Chart</h3>
+                {isEdited && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] uppercase tracking-wide">
+                    Modified
+                  </span>
+                )}
+              </div>
+              <p className="text-xs text-[var(--text-muted)] truncate hidden sm:block">
+                Modify chart type, axes, aggregation, and filters.
               </p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-app)] transition-colors"
-          >
-            <X className="w-5 h-5" />
-          </button>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={onClose}
+              className="text-xs font-medium"
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="primary"
+              size="sm"
+              leftIcon={<Check className="w-3.5 h-3.5" />}
+              onClick={handleApply}
+              className="text-xs font-semibold shadow-xs"
+            >
+              Apply Changes
+            </Button>
+            <button
+              onClick={onClose}
+              aria-label="Close modal"
+              className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-hover)] transition-colors cursor-pointer ml-1"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content form */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs sm:text-sm">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-6 text-xs sm:text-sm">
           {/* Title */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
@@ -493,34 +549,38 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex items-center justify-between px-6 py-3.5 border-t border-[var(--border-hairline)] bg-[var(--bg-subtle)]">
-          <Button
-            variant="ghost"
-            size="sm"
-            leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
-            onClick={() => {
-              setSpec(originalSpec);
-              onReset();
-            }}
-            disabled={!isEdited}
-            className="text-xs"
-          >
-            Reset to Original
-          </Button>
-
+        <div className="shrink-0 flex items-center justify-between px-5 sm:px-6 py-3.5 border-t border-[var(--border-hairline)] bg-[var(--bg-subtle)] sticky bottom-0 z-10">
           <div className="flex items-center gap-2">
-            <Button variant="secondary" size="sm" onClick={onClose} className="text-xs">
+            <Button
+              variant="ghost"
+              size="sm"
+              leftIcon={<RotateCcw className="w-3.5 h-3.5" />}
+              onClick={() => {
+                setSpec(originalSpec);
+                onReset();
+              }}
+              disabled={!isEdited}
+              className="text-xs"
+            >
+              Reset to Original
+            </Button>
+            {isEdited && (
+              <span className="text-[11px] text-[var(--text-muted)] font-mono hidden sm:inline">
+                Unsaved changes
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Button variant="secondary" size="sm" onClick={onClose} className="text-xs font-medium">
               Cancel
             </Button>
             <Button
               variant="primary"
               size="sm"
               leftIcon={<Check className="w-3.5 h-3.5" />}
-              onClick={() => {
-                onApply(spec);
-                onClose();
-              }}
-              className="text-xs"
+              onClick={handleApply}
+              className="text-xs font-semibold px-4 shadow-xs"
             >
               Apply Changes
             </Button>

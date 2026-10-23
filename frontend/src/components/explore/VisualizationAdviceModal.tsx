@@ -34,10 +34,15 @@ export const VisualizationAdviceModal: React.FC<VisualizationAdviceModalProps> =
   if (!isOpen || !plan) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-[var(--radius-xl)] shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col overflow-hidden">
+    <div
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150"
+    >
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-strong)] rounded-[var(--radius-xl)] shadow-2xl w-full max-w-3xl max-h-[85vh] flex flex-col min-h-0 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)]">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--border-hairline)] bg-[var(--bg-subtle)] shrink-0">
           <div className="flex items-center gap-2.5">
             <Lightbulb className="w-5 h-5 text-amber-400" />
             <div>
@@ -51,14 +56,14 @@ export const VisualizationAdviceModal: React.FC<VisualizationAdviceModalProps> =
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-app)] transition-colors"
+            className="p-1.5 rounded-[var(--radius-md)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-app)] transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs sm:text-sm">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-6 space-y-6 text-xs sm:text-sm">
           {/* Dataset Summary */}
           {plan.summary && (
             <div className="p-4 bg-[var(--bg-subtle)] border border-[var(--border-hairline)] rounded-[var(--radius-lg)] space-y-1.5">
@@ -191,7 +196,7 @@ export const VisualizationAdviceModal: React.FC<VisualizationAdviceModalProps> =
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-3 border-t border-[var(--border-hairline)] bg-[var(--bg-subtle)] flex justify-end">
+        <div className="shrink-0 px-6 py-3 border-t border-[var(--border-hairline)] bg-[var(--bg-subtle)] flex justify-end sticky bottom-0 z-10">
           <Button variant="secondary" size="sm" onClick={onClose} className="text-xs">
             Close
           </Button>
