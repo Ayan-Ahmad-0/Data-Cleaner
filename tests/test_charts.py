@@ -256,3 +256,69 @@ def test_compile_spec_sum_on_varchar_auto_promotes_number_cast():
     con.close()
 
 
+def test_compile_spec_line_and_area_excludes_null_dates():
+    """Verify line and area queries exclude null/unparseable timestamps so they don't corrupt the Y-axis scale."""
+    import duckdb
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE data (order_date VARCHAR, amount DOUBLE)")
+    # 5 valid rows on 2026-01-01, 5 valid rows on 2026-01-02, and 100 corrupted date rows
+    con.execute("""
+    INSERT INTO data VALUES 
+    ('2026-01-01', 10.0), ('2026-01-01', 12.0), ('2026-01-01', 14.0), ('2026-01-01', 11.0), ('2026-01-01', 13.0),
+    ('2026-01-02', 20.0), ('2026-01-02', 22.0), ('2026-01-02', 24.0), ('2026-01-02', 21.0), ('2026-01-02', 23.0)
+    """)
+    for _ in range(100):
+        con.execute("INSERT INTO data VALUES ('corrupted_val', 5.0)")
+
+    schema = {"order_date": "VARCHAR", "amount": "DOUBLE"}
+    spec = ChartSpec(
+        chart_type="area",
+        x=FieldRef(column="order_date", time_bucket="day", cast_as="timestamp"),
+        aggregation="count",
+    )
+    sql, params, notes = compile_spec(spec, schema)
+    assert "IS NOT NULL" in sql
+    res = con.execute(sql, params).fetchall()
+    
+    # Must only contain the 2 valid date buckets (count=5 each), NOT the 100 corrupted rows as (None, 100)
+    assert len(res) == 2
+    assert all(r[0] is not None for r in res)
+    assert res[0][1] == 5
+    assert res[1][1] == 5
+    con.close()
+
+
+def test_suggest_charts_adaptive_time_bucket():
+    """Verify adaptive time bucketing chooses month for multi-year, week for multi-month, and day for short spans."""
+    from charts.stats import ColumnStats
+    from charts.suggest import suggest_charts_from_stats
+
+    # 1. Multi-year span (> 365 days) -> should suggest 'month'
+    stats_long = [
+        ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=500, min="2025-01-01", max="2026-05-15", kind="datetime"),
+        ColumnStats(name="amount", type="DOUBLE", null_pct=0.0, distinct_approx=800, kind="numeric"),
+    ]
+    sug_long = suggest_charts_from_stats(stats_long, row_count=5000)
+    area_long = next(s for s in sug_long if s.chart_type == "area")
+    assert area_long.x.time_bucket == "month"
+
+    # 2. Multi-month span (90 days) -> should suggest 'week'
+    stats_mid = [
+        ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=90, min="2026-01-01", max="2026-04-01", kind="datetime"),
+        ColumnStats(name="amount", type="DOUBLE", null_pct=0.0, distinct_approx=800, kind="numeric"),
+    ]
+    sug_mid = suggest_charts_from_stats(stats_mid, row_count=1000)
+    area_mid = next(s for s in sug_mid if s.chart_type == "area")
+    assert area_mid.x.time_bucket == "week"
+
+    # 3. Short span (10 days) -> should suggest 'day'
+    stats_short = [
+        ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=10, min="2026-01-01", max="2026-01-11", kind="datetime"),
+        ColumnStats(name="amount", type="DOUBLE", null_pct=0.0, distinct_approx=800, kind="numeric"),
+    ]
+    sug_short = suggest_charts_from_stats(stats_short, row_count=100)
+    area_short = next(s for s in sug_short if s.chart_type == "area")
+    assert area_short.x.time_bucket == "day"
+
+
+
