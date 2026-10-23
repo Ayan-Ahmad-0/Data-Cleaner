@@ -147,6 +147,10 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     setTableNames([]);
     setSelectedTable('');
     setStagedFile(file);
+    setUploadFileName(file.name);
+    setTotalBytes(file.size);
+    setUploadedBytes(0);
+    setUploadProgress(0);
 
     const ext = file.name.slice(file.name.lastIndexOf('.')).toLowerCase();
     const supportedExts = ['.csv', '.tsv', '.parquet', '.json', '.ndjson', '.jsonl', '.xlsx', '.db', '.sqlite'];
@@ -157,24 +161,41 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
       return;
     }
 
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setError(`File size (${formatBytes(file.size)}) exceeds the maximum allowed limit of 10 GB.`);
+      setStagedFile(null);
+      return;
+    }
+
+    // Direct staging for tabular files (CSV, TSV, Parquet, JSON, NDJSON)
+    // Avoids redundant multi-gigabyte upload during format detection
+    const requiresInspection = ['.xlsx', '.db', '.sqlite'].includes(ext);
+    if (!requiresInspection) {
+      await processAndStageFile(file);
+      return;
+    }
+
+    // Multi-sheet Excel and SQLite require inspecting sheet/table names
+    setIsUploading(true);
+    setUploadStage('inspecting');
     try {
       const detectRes = await detectFormat(file);
+      setIsUploading(false);
       if (detectRes.sheets && detectRes.sheets.length > 1) {
         setSheetNames(detectRes.sheets);
         setSelectedSheet(detectRes.sheets[0]);
-        // Await user sheet selection confirmation
         return;
       } else if (detectRes.tables && detectRes.tables.length > 1) {
         setTableNames(detectRes.tables);
         setSelectedTable(detectRes.tables[0]);
         return;
       } else if (detectRes.sheets && detectRes.sheets.length === 1) {
-        // Single sheet Excel - auto stage with explicit sheet name
         await processAndStageFile(file, { sheet: detectRes.sheets[0] });
       } else {
         await processAndStageFile(file);
       }
     } catch {
+      setIsUploading(false);
       await processAndStageFile(file);
     }
   };
@@ -185,20 +206,30 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
   ) => {
     setError(null);
     setIsUploading(true);
-    setUploadProgress(20);
-
-    const timer = setInterval(() => {
-      setUploadProgress((prev) => (prev < 85 ? prev + 15 : prev));
-    }, 200);
+    setUploadStage('uploading');
+    setUploadFileName(file.name);
+    setTotalBytes(file.size);
+    setUploadedBytes(0);
+    setUploadProgress(0);
 
     try {
       const options = customOptions || (
         selectedSheet ? { sheet: selectedSheet } : selectedTable ? { table: selectedTable } : undefined
       );
 
-      const res = await uploadForQuery(file, options);
-      clearInterval(timer);
+      const res = await uploadForQuery(file, options, (loaded, total) => {
+        setUploadedBytes(loaded);
+        const actualTotal = total || file.size;
+        setTotalBytes(actualTotal);
+        const pct = Math.min(99, Math.round((loaded / actualTotal) * 100));
+        setUploadProgress(pct);
+        if (pct >= 99) {
+          setUploadStage('converting');
+        }
+      });
+
       setUploadProgress(100);
+      setUploadStage('generating');
       setDatasetInfo(res);
       setStagedFile(null);
       setSheetNames([]);
@@ -221,7 +252,6 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
         console.error('Failed to load dataset metadata:', err);
       }
     } catch (err: any) {
-      clearInterval(timer);
       setError(err.message || 'Failed to prepare dataset for visualization.');
     } finally {
       setIsUploading(false);
