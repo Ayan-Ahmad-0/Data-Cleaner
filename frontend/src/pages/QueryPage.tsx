@@ -16,6 +16,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
+import { ConnectorModal } from '../components/connectors/ConnectorModal';
 import { MAX_FILE_SIZE_BYTES } from '../config';
 
 interface QueryPageProps {
@@ -39,6 +40,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
   const [error, setError] = useState<string | null>(null);
 
   const [queryResult, setQueryResult] = useState<QueryUploadResult | null>(null);
+  const [showConnectorModal, setShowConnectorModal] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDrag = (e: React.DragEvent) => {
@@ -337,7 +339,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
                   </span>
                 </div>
 
-                <div className="pt-2">
+                <div className="pt-2 flex flex-wrap items-center justify-center gap-3">
                   <Button
                     variant="primary"
                     size="lg"
@@ -347,6 +349,18 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
                     }}
                   >
                     Select File to Query
+                  </Button>
+
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowConnectorModal(true);
+                    }}
+                    leftIcon={<Database className="w-5 h-5 text-[#FF4B3E]" />}
+                  >
+                    Connect S3 / PostgreSQL
                   </Button>
                 </div>
               </div>
@@ -405,6 +419,22 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
           />
         </div>
       )}
+
+      {/* Cloud & Database Connector Ingestion Modal */}
+      <ConnectorModal
+        isOpen={showConnectorModal}
+        onClose={() => setShowConnectorModal(false)}
+        mode="import"
+        onImportSuccess={(info) => {
+          setQueryResult({
+            query_id: info.id,
+            filename: info.name,
+            file_size_bytes: 0,
+            row_count: parseInt(info.rowCount.replace(/[^0-9]/g, '')) || 0,
+            columns: [],
+          });
+        }}
+      />
     </div>
   );
 };
