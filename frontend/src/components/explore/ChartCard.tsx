@@ -10,6 +10,7 @@ import { PlotlyChartRenderer } from './PlotlyChartRenderer';
 import {
   CHART_COLOR_SWATCHES,
   DEFAULT_CHART_COLOR,
+  getDefaultChartColor,
 } from './chartColors';
 import {
   Sliders,
@@ -82,8 +83,10 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 
   const hasWhyDetails =
     item.questionAnswered || item.why || (item.caveats && item.caveats.length > 0) || item.explanation;
-  const isKpi = item.spec.chart_type === 'big_number';
-  const activeColor = item.spec.custom_color || globalColor || DEFAULT_CHART_COLOR;
+  const defaultColor = getDefaultChartColor(item.spec.chart_type);
+  const activeColor =
+    item.spec.custom_color ||
+    (globalColor && globalColor !== DEFAULT_CHART_COLOR ? globalColor : defaultColor);
 
   // KPI card value extraction
   const kpiRaw = item.data?.rows?.length && item.data.rows[0]?.length ? item.data.rows[0][0] : 0;
