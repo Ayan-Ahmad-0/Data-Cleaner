@@ -154,7 +154,9 @@ export function adaptSpecForChartType(
   } else if (targetType === 'line' || targetType === 'area') {
     if (!updated.x) {
       const dtCol = columns.find((c) => c.kind === 'datetime' || /date|time/i.test(c.type));
-      updated.x = { column: dtCol ? dtCol.name : (allCols[0] || '') };
+      updated.x = { column: dtCol ? dtCol.name : (allCols[0] || ''), time_bucket: 'week' };
+    } else if (!updated.x.time_bucket) {
+      updated.x = { ...updated.x, time_bucket: 'week' };
     }
     if (updated.aggregation === 'none') {
       updated.aggregation = 'count';
