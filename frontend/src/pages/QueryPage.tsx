@@ -290,23 +290,34 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
               type="file"
               className="hidden"
               onChange={handleFileInputChange}
+              onClick={(e) => {
+                (e.target as HTMLInputElement).value = '';
+              }}
               accept=".csv,.tsv,.parquet,.json,.ndjson,.jsonl,.xlsx,.db,.sqlite"
             />
 
             {isUploading ? (
-              <div className="py-8 space-y-4 max-w-sm mx-auto">
+              <div className="py-6 space-y-4 max-w-sm mx-auto" onClick={(e) => e.stopPropagation()}>
                 <div className="w-12 h-12 rounded-full border-2 border-[var(--accent)] border-t-transparent animate-spin mx-auto" />
-                <div className="space-y-1">
+                <div className="space-y-1 text-center">
                   <span className="text-sm font-semibold text-[var(--text-primary)] block">
-                    Staging dataset into DuckDB sandbox...
+                    {uploadStage === 'inspecting'
+                      ? 'Inspecting dataset schema...'
+                      : uploadStage === 'uploading'
+                      ? 'Streaming dataset to DuckDB sandbox...'
+                      : 'Indexing & preparing sandbox...'}
                   </span>
                   <span className="text-xs text-[var(--text-muted)] font-mono block">
-                    {uploadProgress}% completed
+                    {uploadStage === 'uploading'
+                      ? `${formatBytes(uploadedBytes)} of ${formatBytes(totalBytes || selectedFile?.size || 0)} (${uploadProgress}%)`
+                      : '99% completed'}
                   </span>
                 </div>
-                <div className="w-full bg-[var(--bg-subtle)] h-1.5 rounded-full overflow-hidden hairline-border">
+                <div className="w-full bg-[var(--bg-subtle)] h-2 rounded-full overflow-hidden border border-[var(--border-hairline)] shadow-inner">
                   <div
-                    className="bg-[var(--accent)] h-full transition-all duration-300"
+                    className={`h-full transition-all duration-200 rounded-full ${
+                      uploadStage === 'converting' ? 'bg-[var(--accent)] animate-pulse' : 'bg-[var(--accent)]'
+                    }`}
                     style={{ width: `${uploadProgress}%` }}
                   />
                 </div>
