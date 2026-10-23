@@ -22,7 +22,7 @@ FilterOp = Literal["=", "!=", "<", "<=", ">", ">=", "in", "between", "is_null", 
 # Supported chart types
 ChartType = Literal[
     "bar", "hbar", "line", "area", "histogram", "scatter",
-    "pie", "box", "heatmap", "big_number"
+    "pie", "donut", "box", "heatmap", "big_number"
 ]
 
 # Supported aggregations
@@ -172,13 +172,14 @@ def validate_spec(spec: ChartSpec, schema: Dict[str, str], limits: Optional[Char
     # 4. Chart-type semantic rules
     ctype = spec.chart_type
 
-    if ctype == "pie":
+    if ctype in ("pie", "donut"):
+        name_label = "Donut" if ctype == "donut" else "Pie"
         if spec.x is None:
-            raise InvalidChartSpecError("Pie chart requires a categorical X axis column.")
+            raise InvalidChartSpecError(f"{name_label} chart requires a categorical X axis column.")
         if spec.aggregation == "none":
-            raise InvalidChartSpecError("Pie chart requires an aggregation (such as 'count' or 'sum').")
+            raise InvalidChartSpecError(f"{name_label} chart requires an aggregation (such as 'count' or 'sum').")
         if spec.top_n and spec.top_n > lim.max_pie_slices:
-            raise InvalidChartSpecError(f"Pie chart allows at most {lim.max_pie_slices} slices.")
+            raise InvalidChartSpecError(f"{name_label} chart allows at most {lim.max_pie_slices} slices.")
 
     elif ctype == "histogram":
         if spec.x is None:
