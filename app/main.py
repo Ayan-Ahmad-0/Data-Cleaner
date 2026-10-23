@@ -14,6 +14,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from app.models import JobDetailResponse, JobMetadata
 from app.orchestrator import JobOrchestrator
 from app.storage import JobStorage
+from connectors import connectors_router
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ app = FastAPI(
     description="DuckDB-powered profile-guided AI data cleaning pipeline",
     version="1.0.0",
 )
+
+app.include_router(connectors_router)
 
 @app.middleware("http")
 async def add_no_cache_for_html(request: Request, call_next):
