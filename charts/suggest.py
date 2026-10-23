@@ -8,6 +8,27 @@ from charts.spec import ChartSpec, FieldRef, Filter
 from charts.stats import ColumnStats
 
 
+def _pick_adaptive_time_bucket(col: ColumnStats) -> str:
+    """Choose an optimal time bucket (month, week, day, hour) based on the column's date range."""
+    if not col.min or not col.max:
+        return "day"
+    try:
+        from dateutil import parser
+        d_min = parser.parse(str(col.min), fuzzy=True)
+        d_max = parser.parse(str(col.max), fuzzy=True)
+        days = abs((d_max - d_min).days)
+        if days > 365:
+            return "month"
+        elif days > 60:
+            return "week"
+        elif days > 2:
+            return "day"
+        else:
+            return "hour"
+    except Exception:
+        return "day"
+
+
 def suggest_charts_from_stats(
     stats: List[ColumnStats],
     row_count: int,
@@ -77,10 +98,11 @@ def suggest_charts_from_stats(
         dt_col = datetimes[0]
         dt_label = dt_col.name.replace("_", " ").title()
         cast_as = "timestamp" if dt_col.type.upper() == "VARCHAR" else None
+        bucket = _pick_adaptive_time_bucket(dt_col)
         add_spec(
             ChartSpec(
                 chart_type="area",
-                x=FieldRef(column=dt_col.name, time_bucket="day", cast_as=cast_as),
+                x=FieldRef(column=dt_col.name, time_bucket=bucket, cast_as=cast_as),
                 aggregation="count",
                 title=f"Activity Over Time ({dt_label})",
             ),
@@ -127,10 +149,11 @@ def suggest_charts_from_stats(
         dt_cast = "timestamp" if dt_col.type.upper() == "VARCHAR" else None
         num_cast = "number" if num_col.type.upper() == "VARCHAR" else None
         num_label = num_col.name.replace("_", " ").title()
+        bucket = _pick_adaptive_time_bucket(dt_col)
         add_spec(
             ChartSpec(
                 chart_type="line",
-                x=FieldRef(column=dt_col.name, time_bucket="day", cast_as=dt_cast),
+                x=FieldRef(column=dt_col.name, time_bucket=bucket, cast_as=dt_cast),
                 y=FieldRef(column=num_col.name, cast_as=num_cast),
                 aggregation="avg",
                 title=f"Average {num_label} Over Time",
