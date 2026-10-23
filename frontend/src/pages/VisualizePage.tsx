@@ -453,7 +453,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     }
 
     let specToBuild = { ...updatedSpec };
-    if (specToBuild.chart_type === 'pie') {
+    if (specToBuild.chart_type === 'pie' || specToBuild.chart_type === 'donut') {
       if (!specToBuild.top_n || specToBuild.top_n > 6) {
         specToBuild.top_n = 6;
       }
@@ -484,7 +484,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     if (!card || !datasetInfo) return;
 
     let retrySpec = { ...card.spec };
-    if (retrySpec.chart_type === 'pie') {
+    if (retrySpec.chart_type === 'pie' || retrySpec.chart_type === 'donut') {
       if (!retrySpec.top_n || retrySpec.top_n > 6) {
         retrySpec.top_n = 6;
       }

@@ -166,10 +166,16 @@ def build_chart(
             spec.x = FieldRef(column=list(schema.keys())[0])
     elif ctype == "box":
         if not spec.y or not _is_numeric_type(schema.get(spec.y.column, ""), spec.y.cast_as):
-            for col_name, col_type in schema.items():
-                if _is_numeric_type(col_type, None):
-                    spec.y = FieldRef(column=col_name)
-                    break
+            if spec.x and _is_numeric_type(schema.get(spec.x.column, ""), spec.x.cast_as):
+                spec.y = spec.x
+                spec.x = None
+            else:
+                for col_name, col_type in schema.items():
+                    if _is_numeric_type(col_type, None):
+                        spec.y = FieldRef(column=col_name)
+                        break
+        if spec.x and spec.y and spec.x.column == spec.y.column:
+            spec.x = None
     elif ctype == "heatmap":
         cols = list(schema.keys())
         if not spec.x and cols:
