@@ -235,3 +235,24 @@ def test_suggest_charts_diverse_types():
     assert "box" not in chart_types
 
 
+def test_compile_spec_sum_on_varchar_auto_promotes_number_cast():
+    """Verify sum on VARCHAR column without explicit cast_as auto-casts to number and compiles."""
+    import duckdb
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE data (country VARCHAR, amount VARCHAR)")
+    con.execute("INSERT INTO data VALUES ('US', '100'), ('UK', '50')")
+    schema = {"country": "VARCHAR", "amount": "VARCHAR"}
+    spec = ChartSpec(
+        chart_type="hbar",
+        x=FieldRef(column="country"),
+        y=FieldRef(column="amount"),  # No explicit cast_as
+        aggregation="sum",
+    )
+    sql, params, notes = compile_spec(spec, schema)
+    assert "SUM(TRY_CAST" in sql
+    assert spec.y.cast_as == "number"
+    res = con.execute(sql, params).fetchall()
+    assert len(res) == 2
+    con.close()
+
+
