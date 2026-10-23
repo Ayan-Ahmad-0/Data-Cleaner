@@ -24,9 +24,11 @@ logger = logging.getLogger(__name__)
 
 class S3ConnectorConfig(BaseModel):
     """Configuration for AWS S3 and S3-compatible storage services."""
-    bucket: str = Field(..., description="Target S3 or R2 bucket name")
+    bucket: str = Field(default="", description="Target S3 or R2 bucket name")
     prefix: str = Field("", description="Optional folder/prefix path inside bucket")
     filename: Optional[str] = Field(None, description="Custom filename for destination object")
+    key: Optional[str] = Field(None, description="Object key for import (e.g. path/to/dataset.parquet)")
+    source_uri: Optional[str] = Field(None, description="Direct S3 URI (e.g. s3://bucket/data.parquet) for import")
     region: str = Field("us-east-1", description="AWS or cloud region (e.g., us-east-1, auto)")
     endpoint_url: Optional[str] = Field(
         None,
@@ -213,3 +215,82 @@ class S3Connector(BaseConnector):
             raise RuntimeError(f"Failed to export to S3 target '{destination_uri}': {str(e)}") from e
         finally:
             con.close()
+
+    def _resolve_source_uri(self, cfg: S3ConnectorConfig) -> str:
+        """Resolve a normalized s3:// URI for dataset import."""
+        if cfg.source_uri:
+            uri = cfg.source_uri.strip()
+            if not uri.startswith("s3://"):
+                uri = f"s3://{uri.lstrip('/')}"
+            return uri
+
+        clean_bucket = cfg.bucket.strip().removeprefix("s3://").strip("/")
+        if not clean_bucket:
+            raise ValueError("Either bucket or source_uri must be provided for S3 import.")
+
+        key = (cfg.key or cfg.filename or "").strip().lstrip("/")
+        prefix = cfg.prefix.strip().strip("/")
+        if prefix and key:
+            full_key = f"{prefix}/{key}"
+        elif prefix and not key:
+            full_key = prefix
+        else:
+            full_key = key
+
+        if not full_key:
+            raise ValueError("An S3 object key or filename must be provided for import.")
+
+        return f"s3://{clean_bucket}/{full_key}"
+
+    def import_dataset(
+        self,
+        config: Dict[str, Any],
+        target_parquet_path: Path,
+        options: Optional[Dict[str, Any]] = None,
+    ) -> SyncResult:
+        """Import dataset from S3/R2/MinIO object store directly into canonical local Parquet."""
+        start_time = time.perf_counter()
+        cfg = S3ConnectorConfig.model_validate(config)
+        source_uri = self._resolve_source_uri(cfg)
+
+        target_parquet_path.parent.mkdir(parents=True, exist_ok=True)
+        target_path_str = str(target_parquet_path.resolve()).replace("\\", "/")
+
+        con = duckdb.connect(":memory:")
+        self._configure_connection(con, cfg)
+
+        try:
+            fmt = ((options or {}).get("format") or "").lower()
+            uri_lower = source_uri.lower()
+            if fmt == "parquet" or uri_lower.endswith(".parquet"):
+                scan_expr = f"read_parquet('{source_uri}')"
+            elif fmt in ("csv", "tsv") or uri_lower.endswith((".csv", ".tsv")):
+                scan_expr = f"read_csv_auto('{source_uri}')"
+            elif fmt in ("json", "ndjson", "jsonl") or uri_lower.endswith((".json", ".ndjson", ".jsonl")):
+                scan_expr = f"read_json_auto('{source_uri}')"
+            else:
+                scan_expr = f"read_parquet('{source_uri}')"
+
+            con.execute(f"COPY (SELECT * FROM {scan_expr}) TO '{target_path_str}' (FORMAT PARQUET, COMPRESSION 'ZSTD');")
+
+            row_count_res = con.execute(f"SELECT count(*) FROM read_parquet('{target_path_str}')").fetchone()
+            row_count = int(row_count_res[0]) if row_count_res else 0
+
+            elapsed = time.perf_counter() - start_time
+            return SyncResult(
+                success=True,
+                rows_transferred=row_count,
+                destination_uri=source_uri,
+                elapsed_seconds=round(elapsed, 3),
+                message=f"Successfully imported {row_count:,} rows from {source_uri} in {elapsed:.2f}s",
+                details={
+                    "source_uri": source_uri,
+                    "target_path": str(target_parquet_path),
+                },
+            )
+        except Exception as e:
+            logger.exception("S3 import failed from %s", source_uri)
+            raise RuntimeError(f"Failed to import from S3 target '{source_uri}': {str(e)}") from e
+        finally:
+            con.close()
+
