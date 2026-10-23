@@ -7,7 +7,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
@@ -22,6 +22,15 @@ app = FastAPI(
     description="DuckDB-powered profile-guided AI data cleaning pipeline",
     version="1.0.0",
 )
+
+@app.middleware("http")
+async def add_no_cache_for_html(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path in ("/", "/index.html") or request.url.path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+    return response
 
 # Enable CORS for frontend development
 app.add_middleware(

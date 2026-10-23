@@ -78,9 +78,29 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
         .then((opts) => setTweakOptions(opts))
         .catch((err) => console.error('Failed to load tweak options:', err));
     }
-  }, [isOpen, jobId]);
+  }, [isOpen, jobId, spec]);
 
-  if (!isOpen) return null;
+  const handleApply = () => {
+    onApply(spec);
+    onClose();
+  };
+
+  const isEdited = JSON.stringify(spec) !== JSON.stringify(originalSpec);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleApply();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, spec]);
 
   const handleChartTypeChange = (chartType: ChartSpec['chart_type']) => {
     const updated = { ...spec, chart_type: chartType };
@@ -132,28 +152,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
     setSpec({ ...spec, filters: newFilters });
   };
 
-  const handleApply = () => {
-    onApply(spec);
-    onClose();
-  };
-
-  const isEdited = JSON.stringify(spec) !== JSON.stringify(originalSpec);
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        handleApply();
-      } else if (e.key === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    if (isOpen) {
-      window.addEventListener('keydown', handleKeyDown);
-    }
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, spec]);
+  if (!isOpen) return null;
 
   return (
     <div
@@ -189,7 +188,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
               variant="secondary"
               size="sm"
               onClick={onClose}
-              className="text-xs font-medium"
+              className="text-xs font-medium cursor-pointer"
             >
               Cancel
             </Button>
@@ -198,7 +197,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
               size="sm"
               leftIcon={<Check className="w-3.5 h-3.5" />}
               onClick={handleApply}
-              className="text-xs font-semibold shadow-xs"
+              className="text-xs font-semibold shadow-xs cursor-pointer"
             >
               Apply Changes
             </Button>
@@ -213,7 +212,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
         </div>
 
         {/* Content form */}
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-6 text-xs sm:text-sm">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-5 sm:p-6 space-y-6 text-xs sm:text-sm custom-scrollbar">
           {/* Title */}
           <div className="space-y-1.5">
             <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
