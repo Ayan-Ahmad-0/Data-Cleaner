@@ -289,20 +289,20 @@ def test_compile_spec_line_and_area_excludes_null_dates():
 
 
 def test_suggest_charts_adaptive_time_bucket():
-    """Verify adaptive time bucketing chooses month for multi-year, week for multi-month, and day for short spans."""
+    """Verify adaptive time bucketing defaults to week instead of day."""
     from charts.stats import ColumnStats
     from charts.suggest import suggest_charts_from_stats
 
-    # 1. Multi-year span (> 365 days) -> should suggest 'month'
+    # 1. Multi-year span (> 730 days) -> should suggest 'month'
     stats_long = [
-        ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=500, min="2025-01-01", max="2026-05-15", kind="datetime"),
+        ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=900, min="2023-01-01", max="2026-05-15", kind="datetime"),
         ColumnStats(name="amount", type="DOUBLE", null_pct=0.0, distinct_approx=800, kind="numeric"),
     ]
     sug_long = suggest_charts_from_stats(stats_long, row_count=5000)
     area_long = next(s for s in sug_long if s.chart_type == "area")
     assert area_long.x.time_bucket == "month"
 
-    # 2. Multi-month span (90 days) -> should suggest 'week'
+    # 2. Multi-month span (90 days) -> should suggest default 'week'
     stats_mid = [
         ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=90, min="2026-01-01", max="2026-04-01", kind="datetime"),
         ColumnStats(name="amount", type="DOUBLE", null_pct=0.0, distinct_approx=800, kind="numeric"),
@@ -311,9 +311,18 @@ def test_suggest_charts_adaptive_time_bucket():
     area_mid = next(s for s in sug_mid if s.chart_type == "area")
     assert area_mid.x.time_bucket == "week"
 
-    # 3. Short span (10 days) -> should suggest 'day'
+    # 3. Default without min/max dates -> should suggest default 'week'
+    stats_default = [
+        ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=100, kind="datetime"),
+        ColumnStats(name="amount", type="DOUBLE", null_pct=0.0, distinct_approx=800, kind="numeric"),
+    ]
+    sug_default = suggest_charts_from_stats(stats_default, row_count=1000)
+    area_default = next(s for s in sug_default if s.chart_type == "area")
+    assert area_default.x.time_bucket == "week"
+
+    # 4. Ultra-short span (2 days) -> should suggest 'day'
     stats_short = [
-        ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=10, min="2026-01-01", max="2026-01-11", kind="datetime"),
+        ColumnStats(name="order_date", type="VARCHAR", null_pct=0.0, distinct_approx=2, min="2026-01-01", max="2026-01-03", kind="datetime"),
         ColumnStats(name="amount", type="DOUBLE", null_pct=0.0, distinct_approx=800, kind="numeric"),
     ]
     sug_short = suggest_charts_from_stats(stats_short, row_count=100)
