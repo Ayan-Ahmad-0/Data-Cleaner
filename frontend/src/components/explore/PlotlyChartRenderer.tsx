@@ -66,7 +66,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         tickfont: { color: tickColor, size: 11 },
         automargin: true,
       },
-      showlegend: !!spec.color || spec.chart_type === 'pie',
+      showlegend: !!spec.color || spec.chart_type === 'pie' || spec.chart_type === 'donut',
       legend: {
         font: { color: textColor, size: 11 },
         orientation: 'h',
