@@ -255,7 +255,7 @@ async def upload_dataset_for_query_only(
 
     input_file_path = work_dir / file.filename
     with open(input_file_path, "wb") as buf:
-        shutil.copyfileobj(file.file, buf)
+        shutil.copyfileobj(file.file, buf, length=1024 * 1024)
 
     parsed_options = None
     if options:
