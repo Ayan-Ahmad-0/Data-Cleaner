@@ -275,7 +275,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
       </div>
 
       {/* 2. Chart / KPI Render Area */}
-      <div className="w-full flex-1 flex items-center justify-center my-1 min-h-[280px]">
+      <div className="chart-render-area w-full flex-1 flex items-center justify-center my-1 min-h-[280px]">
         {item.loading ? (
           <div className="flex flex-col items-center justify-center gap-2 py-12 text-[var(--text-muted)]">
             <Loader2 className="w-5 h-5 animate-spin text-[var(--accent)]" />
