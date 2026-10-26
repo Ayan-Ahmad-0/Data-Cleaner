@@ -21,6 +21,7 @@ from charts.service import (
     export_chart_data,
     get_column_stats,
     suggest_charts,
+    validate_formula,
 )
 
 __all__ = [
