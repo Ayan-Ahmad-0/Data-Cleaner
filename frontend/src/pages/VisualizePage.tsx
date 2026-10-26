@@ -25,6 +25,7 @@ import { DataOptionsPanel } from '../components/explore/DataOptionsPanel';
 import { DescribeChartBar } from '../components/explore/DescribeChartBar';
 import { VisualizationAdviceModal } from '../components/explore/VisualizationAdviceModal';
 import { ConnectorModal } from '../components/connectors/ConnectorModal';
+import { ExportDashboardModal } from '../components/explore/ExportDashboardModal';
 import { DEFAULT_CHART_COLOR } from '../components/explore/chartColors';
 import { Button } from '../components/ui/Button';
 import { Callout } from '../components/ui/Callout';
@@ -37,6 +38,7 @@ import {
   Database,
   Sparkles,
   ShieldCheck,
+  Share2,
 } from 'lucide-react';
 import { MAX_FILE_SIZE_BYTES } from '../config';
 
@@ -81,6 +83,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
   const [advicePlan, setAdvicePlan] = useState<VisualizationPlan | null>(null);
   const [loadingAdvice, setLoadingAdvice] = useState(false);
   const [isAddingChart, setIsAddingChart] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   // File sheet/table disambiguation
   const [stagedFile, setStagedFile] = useState<File | null>(null);
@@ -623,6 +626,40 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     }
   };
 
+  const handleImportDashboard = async (
+    importedSpecs: ChartSpec[],
+    importedOptions?: PageDataOptions
+  ) => {
+    if (!datasetInfo) return;
+    if (importedOptions) {
+      setPageOptions(importedOptions);
+    }
+    const newCards: ChartCardItem[] = importedSpecs.map((sp, idx) => ({
+      id: `imported_${Date.now()}_${idx}`,
+      spec: sp,
+      originalSpec: sp,
+      loading: true,
+      error: null,
+      source: 'custom',
+    }));
+    setCards(newCards);
+
+    for (let i = 0; i < importedSpecs.length; i++) {
+      const sp = importedSpecs[i];
+      const cardId = newCards[i].id;
+      try {
+        const data = await buildChart(datasetInfo.query_id, sp, importedOptions || pageOptions);
+        setCards((prev) =>
+          prev.map((c) => (c.id === cardId ? { ...c, data, loading: false } : c))
+        );
+      } catch (err: any) {
+        setCards((prev) =>
+          prev.map((c) => (c.id === cardId ? { ...c, loading: false, error: err.message } : c))
+        );
+      }
+    }
+  };
+
   const handleReset = () => {
     setDatasetInfo(null);
     setColumns([]);
@@ -966,6 +1003,16 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
               </Button>
               <Button
                 size="sm"
+                variant="primary"
+                leftIcon={<Share2 className="w-3.5 h-3.5" />}
+                onClick={() => setShowExportModal(true)}
+                className="text-xs h-7.5 shadow-xs"
+                title="Export standalone HTML, print PDF briefing, or share layout snapshot"
+              >
+                Share / Export
+              </Button>
+              <Button
+                size="sm"
                 variant="ghost"
                 onClick={handleReset}
                 className="text-xs h-7.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
@@ -1003,6 +1050,21 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
             onRemoveCrossFilter={handleRemoveCrossFilter}
             onClearAllCrossFilters={handleClearAllCrossFilters}
           />
+
+          {/* Print-only Executive Briefing Header */}
+          <div className="print-header">
+            <div className="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-3">
+              <div>
+                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Executive Intelligence Briefing</h1>
+                <p className="text-xs text-slate-600">
+                  Dataset: <strong>{datasetInfo.filename}</strong> • {formatNumber(datasetInfo.row_count)} records • {columns.length} columns
+                </p>
+              </div>
+              <div className="text-right text-xs text-slate-500 font-mono">
+                Generated: {new Date().toLocaleDateString()}
+              </div>
+            </div>
+          </div>
 
           {/* Active Chart Cards Grid */}
           {cards.length > 0 ? (
@@ -1049,6 +1111,16 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
             onCreateChart={handleCreateChartFromAdvice}
             onApplyPrepTip={handleApplyPrepTip}
             pageOptions={pageOptions}
+          />
+
+          {/* Share & Export Dashboard Modal */}
+          <ExportDashboardModal
+            isOpen={showExportModal}
+            onClose={() => setShowExportModal(false)}
+            datasetInfo={datasetInfo}
+            cards={cards}
+            pageOptions={pageOptions}
+            onImportDashboard={handleImportDashboard}
           />
         </div>
       )}
