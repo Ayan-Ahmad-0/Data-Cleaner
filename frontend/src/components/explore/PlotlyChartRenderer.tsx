@@ -339,16 +339,24 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           type: 'pie',
           labels,
           values,
+          domain: { x: [0, 1], y: [0, 1] },
           hole: isDonut ? 0.55 : 0,
-          textinfo: 'label+percent',
+          textinfo: 'percent',
           hoverinfo: 'label+value+percent',
+          textposition: 'inside',
           marker: {
             colors,
             line: { color: isDark ? '#18181b' : '#ffffff', width: 2 },
           },
         },
       ];
-      return { isBigNumber: false, primaryColor, traces, layout: baseLayout };
+      const pieLayout = {
+        ...baseLayout,
+        margin: { l: 20, r: 20, t: 15, b: 35 },
+        xaxis: undefined,
+        yaxis: undefined,
+      };
+      return { isBigNumber: false, primaryColor, traces, layout: pieLayout };
     }
 
     // 7. Horizontal Bar
