@@ -237,7 +237,7 @@ select option:disabled {
 @media print {
   @page {
     size: letter landscape;
-    margin: 0.6cm 0.6cm;
+    margin: 0.5in 0.5in;
   }
 
   *, *::before, *::after {
@@ -271,70 +271,117 @@ select option:disabled {
     margin: 0 !important;
   }
 
-  /* Force 2-Column Responsive Dashboard Grid on Print Page */
+  /* Force 2-Column Responsive Dashboard Grid on Print Page using Flexbox to avoid Chromium grid-break bugs */
   .grid,
   .dashboard-grid,
   div.grid.dashboard-grid,
   div.grid.xl\:grid-cols-2 {
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 0.75rem !important;
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: wrap !important;
+    justify-content: space-between !important;
+    align-items: stretch !important;
+    gap: 0.5rem 0 !important;
     width: 100% !important;
   }
 
-  /* Clean Dark Cards - Avoid awkward page splitting while fitting multiple cards per page */
+  /* Clean Dark Cards - Locked to uniform height and avoiding awkward page splitting */
   .chart-card,
   .dashboard-grid > div,
   .grid > div {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: flex-start !important;
+    width: 49.2% !important;
+    max-width: 49.2% !important;
+    flex: 0 0 49.2% !important;
+    height: 275px !important;
+    min-height: 275px !important;
+    max-height: 275px !important;
+    box-sizing: border-box !important;
     break-inside: avoid !important;
     page-break-inside: avoid !important;
+    break-inside: avoid-page !important;
     background-color: #121215 !important;
     color: #f4f4f5 !important;
     border: 1px solid rgba(255, 255, 255, 0.14) !important;
     border-radius: 0.5rem !important;
     box-shadow: none !important;
     margin-bottom: 0.5rem !important;
-    padding: 0.75rem 0.85rem !important;
+    padding: 0.5rem 0.75rem !important;
     overflow: hidden !important;
   }
 
-  /* Ensure card headers and text stay crisp in dark mode */
+  /* Ensure card headers stay crisp and aligned in dark mode */
+  .chart-card-header,
+  .chart-card > div:first-child {
+    height: 24px !important;
+    min-height: 24px !important;
+    max-height: 24px !important;
+    margin-bottom: 2px !important;
+  }
+
   .chart-card h3,
   .chart-card-title {
     color: #f4f4f5 !important;
     font-size: 0.8125rem !important;
   }
 
-  /* Compact Plotly chart canvas height for print so 2-4 charts fit cleanly per page */
+  /* Compact Plotly chart canvas height for print so exactly 4 charts fit cleanly per landscape page */
+  .chart-card .min-h-\[280px\],
+  .chart-card .chart-render-area {
+    min-height: 0 !important;
+    height: 215px !important;
+    max-height: 215px !important;
+    flex: 0 0 215px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
   .js-plotly-plot,
   .chart-body,
   .plotly,
   .plot-container {
-    max-height: 220px !important;
-    height: 220px !important;
+    height: 215px !important;
+    max-height: 215px !important;
     min-height: 0 !important;
+    width: 100% !important;
   }
 
   .js-plotly-plot .plot-container {
-    height: 220px !important;
+    height: 215px !important;
+    width: 100% !important;
   }
 
-  .js-plotly-plot svg {
-    max-height: 220px !important;
+  .js-plotly-plot svg.main-svg {
+    height: 215px !important;
+    max-height: 215px !important;
+  }
+
+  /* Compact footer for notes / data caps */
+  .chart-card-footer,
+  .chart-card > div:last-child {
+    height: 20px !important;
+    max-height: 20px !important;
+    overflow: hidden !important;
+    padding-top: 2px !important;
+    margin-top: 2px !important;
   }
 
   /* Print executive briefing banner */
   .print-header {
     display: block !important;
-    padding-bottom: 0.5rem !important;
-    margin-bottom: 0.75rem !important;
+    padding-bottom: 0.35rem !important;
+    margin-bottom: 0.5rem !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
     color: #f4f4f5 !important;
+    break-after: avoid !important;
+    page-break-after: avoid !important;
   }
 
   .print-header h1 {
     color: #f4f4f5 !important;
-    font-size: 1.25rem !important;
+    font-size: 1.15rem !important;
   }
 
   .print-header p,
@@ -342,6 +389,25 @@ select option:disabled {
   .print-header strong {
     color: #a1a1aa !important;
   }
+}
+
+/* Pre-print preparation helper classes */
+html.is-printing .chart-card,
+html.is-printing .dashboard-grid > div {
+  width: 49.2% !important;
+  max-width: 49.2% !important;
+  flex: 0 0 49.2% !important;
+  height: 275px !important;
+  min-height: 275px !important;
+  max-height: 275px !important;
+}
+
+html.is-printing .chart-card .min-h-\[280px\],
+html.is-printing .chart-card .chart-render-area {
+  min-height: 0 !important;
+  height: 215px !important;
+  max-height: 215px !important;
+  flex: 0 0 215px !important;
 }
 
 .print-header {
