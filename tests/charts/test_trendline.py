@@ -44,6 +44,7 @@ def test_trendline_validation_unsupported_chart():
         x=FieldRef(column="category"),
         y=FieldRef(column="count"),
         aggregation="sum",
+        top_n=5,
         trendline=TrendlineConfig(type="sma", window=7),
     )
     with pytest.raises(InvalidChartSpecError, match="Trendlines are not supported for 'pie'"):
@@ -51,14 +52,6 @@ def test_trendline_validation_unsupported_chart():
 
 
 def test_trendline_validation_invalid_window():
-    schema = {"timestamp": "TIMESTAMP", "revenue": "DOUBLE"}
-    spec = ChartSpec(
-        chart_type="line",
-        x=FieldRef(column="timestamp"),
-        y=FieldRef(column="revenue"),
-        aggregation="sum",
-        trendline=TrendlineConfig(type="sma", window=1),
-    )
-    # Pydantic validation catches window < 2 directly or via validate_spec
-    with pytest.raises((ValueError, InvalidChartSpecError)):
-        validate_spec(spec, schema)
+    from pydantic import ValidationError
+    with pytest.raises(ValidationError):
+        TrendlineConfig(type="sma", window=1)
