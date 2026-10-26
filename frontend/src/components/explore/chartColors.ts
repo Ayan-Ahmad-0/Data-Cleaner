@@ -8,7 +8,7 @@ export interface ChartColorSwatch {
 export const DEFAULT_CHART_COLOR = '#FD4233';
 export const DEFAULT_LINE_COLOR = '#E11D48';
 export const DEFAULT_AREA_COLOR = '#0284C7';
-export const DEFAULT_HEATMAP_COLOR = '#118DFF';
+export const DEFAULT_HEATMAP_COLOR = '#FF2400';
 
 export function getDefaultChartColor(chartType?: string): string {
   if (chartType === 'line') return DEFAULT_LINE_COLOR;
@@ -149,13 +149,13 @@ export function buildHeatmapColorscale(primaryColor: string, isDark: boolean): [
         ];
   }
 
-  // Any custom color chosen by user
+  // Any custom or default color (e.g. Scarlet Red #FF2400)
   if (isDark) {
     return [
-      [0, blendWithDark(primaryColor, 0.2)],
-      [0.3, adjustBrightness(primaryColor, -40)],
-      [0.65, adjustBrightness(primaryColor, -10)],
-      [1.0, adjustBrightness(primaryColor, 20)],
+      [0, blendWithDark(primaryColor, 0.15)],
+      [0.25, adjustBrightness(primaryColor, -55)],
+      [0.6, adjustBrightness(primaryColor, -20)],
+      [1.0, primaryColor],
     ];
   } else {
     return [
