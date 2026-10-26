@@ -348,3 +348,57 @@ def export_chart_data(
             writer.writerow(row)
 
     return out_file
+
+
+def validate_formula(
+    job_id: str,
+    formula: str,
+    user_id: str = "anonymous",
+    storage: Optional[JobStorage] = None,
+) -> Dict[str, Any]:
+    """Validate a custom formula expression against the dataset schema in DuckDB.
+    
+    Returns {valid: bool, inferred_type: Optional[str], sample_result: Any, error: Optional[str]}.
+    """
+    from charts.spec import validate_formula_string
+    try:
+        validate_formula_string(formula)
+    except Exception as e:
+        return {"valid": False, "inferred_type": None, "sample_result": None, "error": str(e)}
+
+    clean_pq, orig_pq = resolve_job_parquet_paths(job_id, user_id=user_id, storage=storage)
+    target_pq = clean_pq if clean_pq and clean_pq.exists() else (orig_pq or clean_pq)
+    if not target_pq or not target_pq.exists():
+        return {"valid": False, "inferred_type": None, "sample_result": None, "error": "Dataset not found."}
+
+    q_lim = QueryLimits(query_timeout_seconds=5.0, memory_limit_per_query="1GB")
+    try:
+        con = create_sandboxed_connection(target_pq, limits=q_lim)
+        try:
+            rel = con.execute(f"SELECT ({formula.strip()}) AS calc_val FROM data LIMIT 1")
+            desc = rel.description
+            inferred_type = str(desc[0][1]) if desc else "UNKNOWN"
+            row = rel.fetchone()
+            sample_val = row[0] if row else None
+            if sample_val is not None and hasattr(sample_val, "isoformat"):
+                sample_val = sample_val.isoformat()
+            return {
+                "valid": True,
+                "inferred_type": inferred_type,
+                "sample_result": sample_val,
+                "error": None,
+            }
+        finally:
+            con.close()
+    except Exception as e:
+        err_msg = str(e)
+        if "Binder Error:" in err_msg:
+            err_msg = err_msg.split("Binder Error:")[-1].strip()
+        elif "Parser Error:" in err_msg:
+            err_msg = err_msg.split("Parser Error:")[-1].strip()
+        return {
+            "valid": False,
+            "inferred_type": None,
+            "sample_result": None,
+            "error": err_msg,
+        }
