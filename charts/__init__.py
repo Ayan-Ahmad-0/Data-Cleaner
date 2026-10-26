@@ -10,7 +10,15 @@ from charts.errors import (
 )
 from charts.limits import ChartLimits
 from charts.shape import ChartSuggestion, chart_from_result
-from charts.spec import ChartSpec, FieldRef, Filter, validate_spec
+from charts.spec import (
+    ChartSpec,
+    FieldRef,
+    Filter,
+    TrendlineConfig,
+    TrendlineLineStyle,
+    TrendlineType,
+    validate_spec,
+)
 from charts.stats import ColumnStats, compute_column_stats
 from charts.suggest import suggest_charts_from_stats
 from charts.page_options import PageDataOptions, apply_page_options
