@@ -169,7 +169,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       return { isBigNumber: false, primaryColor, traces, layout: boxLayout };
     }
 
-    // 5. Heatmap
+    // 5. Heatmap (Styled like Microsoft Power BI Matrix with Conditional Formatting)
     if (spec.chart_type === 'heatmap') {
       const xSet = Array.from(new Set(rows.map((r) => String(r[0]))));
       const ySet = Array.from(new Set(rows.map((r) => String(r[1]))));
@@ -183,32 +183,119 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         }
       });
 
+      // Format cell data labels with commas (Power BI Matrix values)
+      const textMatrix = zMatrix.map((row) =>
+        row.map((val) => {
+          if (val == null) return '';
+          const num = Number(val);
+          if (isNaN(num)) return String(val);
+          if (Number.isInteger(num)) {
+            return num.toLocaleString();
+          }
+          return num.toLocaleString(undefined, {
+            minimumFractionDigits: 0,
+            maximumFractionDigits: Math.abs(num) < 10 ? 2 : 1,
+          });
+        })
+      );
+
+      const numCols = xSet.length;
+      const numRows = ySet.length;
+      // Auto-scale in-cell text size based on density (suppress if > 25 columns to avoid clutter)
+      const cellFontSize =
+        numCols > 25 || numRows > 25
+          ? 0
+          : numCols > 15 || numRows > 15
+          ? 9
+          : numCols > 10 || numRows > 10
+          ? 10.5
+          : 12.5;
+
+      const colorscale = buildHeatmapColorscale(primaryColor, isDark);
+
       const traces: any[] = [
         {
           type: 'heatmap',
           x: xSet,
           y: ySet,
           z: zMatrix,
-          colorscale: isDark
-            ? [
-                [0, '#1c1917'],
-                [0.3, adjustBrightness(primaryColor, -40)],
-                [0.7, adjustBrightness(primaryColor, -15)],
-                [1, primaryColor],
-              ]
-            : [
-                [0, '#fff5f4'],
-                [0.25, hexToRgba(primaryColor, 0.35)],
-                [0.65, hexToRgba(primaryColor, 0.7)],
-                [1, primaryColor],
-              ],
+          ...(cellFontSize > 0
+            ? {
+                text: textMatrix,
+                texttemplate: '<b>%{text}</b>',
+                textfont: {
+                  family: 'Segoe UI, -apple-system, BlinkMacSystemFont, IBM Plex Sans, sans-serif',
+                  size: cellFontSize,
+                },
+              }
+            : {}),
+          xgap: 3,
+          ygap: 3,
+          colorscale,
+          colorbar: {
+            thickness: 12,
+            len: 0.85,
+            outlinewidth: 0,
+            bordercolor: 'transparent',
+            tickfont: {
+              color: tickColor,
+              size: 10,
+              family: 'Segoe UI, -apple-system, BlinkMacSystemFont, IBM Plex Sans, sans-serif',
+            },
+            tickformat: ',d',
+            xpad: 12,
+            ypad: 0,
+          },
+          hovertemplate:
+            '<b>%{y}</b> • <b>%{x}</b><br>' +
+            '<span style="font-size: 11px; opacity: 0.85;">Count:</span> <b>%{z:,.0f}</b>' +
+            '<extra></extra>',
         },
       ];
+
       const heatLayout = {
         ...baseLayout,
-        margin: { ...baseLayout.margin, l: 80, b: 60 },
-        xaxis: { ...baseLayout.xaxis, type: 'category' },
-        yaxis: { ...baseLayout.yaxis, type: 'category' },
+        margin: {
+          ...baseLayout.margin,
+          l: 85,
+          r: 25,
+          t: 16,
+          b: 48,
+        },
+        hoverlabel: {
+          bgcolor: isDark ? '#1e293b' : '#ffffff',
+          bordercolor: isDark ? '#334155' : '#cbd5e1',
+          font: {
+            family: 'Segoe UI, -apple-system, BlinkMacSystemFont, IBM Plex Sans, sans-serif',
+            size: 12,
+            color: isDark ? '#f8fafc' : '#0f172a',
+          },
+        },
+        xaxis: {
+          ...baseLayout.xaxis,
+          type: 'category',
+          ticks: '',
+          showgrid: false,
+          zeroline: false,
+          tickfont: {
+            color: tickColor,
+            size: 11.5,
+            family: 'Segoe UI, -apple-system, BlinkMacSystemFont, IBM Plex Sans, sans-serif',
+          },
+        },
+        yaxis: {
+          ...baseLayout.yaxis,
+          type: 'category',
+          autorange: 'reversed', // Display top-down matching Power BI matrix
+          ticks: '',
+          showgrid: false,
+          zeroline: false,
+          tickfont: {
+            color: tickColor,
+            size: 11.5,
+            family: 'Segoe UI, -apple-system, BlinkMacSystemFont, IBM Plex Sans, sans-serif',
+          },
+        },
       };
       return { isBigNumber: false, primaryColor, traces, layout: heatLayout };
     }
