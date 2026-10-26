@@ -73,10 +73,13 @@ def apply_page_options(
                 is_source_chart = bool(new_spec.x and new_spec.x.column == filter_col)
                 if not is_source_chart:
                     new_spec.filters = [
-                        f for f in new_spec.filters if not (f.column == filter_col and f.op == "=")
+                        f for f in new_spec.filters if not (f.column == filter_col and f.op in ("=", "is_null"))
                     ]
                     if len(new_spec.filters) < 10:
-                        new_spec.filters.append(Filter(column=filter_col, op="=", value=filter_val))
+                        if filter_val == "(Null)":
+                            new_spec.filters.append(Filter(column=filter_col, op="is_null"))
+                        else:
+                            new_spec.filters.append(Filter(column=filter_col, op="=", value=filter_val))
 
     # 4. Validate output
     try:
