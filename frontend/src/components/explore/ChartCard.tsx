@@ -319,6 +319,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
         initialSpec={item.spec}
         originalSpec={item.originalSpec}
         columns={columns}
+        pageOptions={pageOptions}
+        onUpdatePageOptions={onUpdatePageOptions}
         isOpen={isTweakOpen}
         onClose={() => setIsTweakOpen(false)}
         onApply={(updated) => onUpdateSpec(item.id, updated)}
