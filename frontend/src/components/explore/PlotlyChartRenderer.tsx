@@ -609,7 +609,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
     }
 
     return { isBigNumber: false, primaryColor, traces, layout: lineLayout };
-  }, [data, isDark, height, spec, columns, rows, customColor, crossFilters]);
+  }, [data, isDark, height, spec, columns, rows, customColor, crossFilters, isPrinting]);
 
   const handlePlotClick = (event: any) => {
     if (!onPointClick || !event || !event.points || event.points.length === 0) return;
