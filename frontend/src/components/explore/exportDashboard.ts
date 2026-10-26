@@ -479,12 +479,20 @@ ${payloadJson}
         return { x: resX, y: resY };
       }
 
+      const BRAND_PALETTE = [
+        '#FF4B3E', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6',
+        '#EC4899', '#06B6D4', '#84CC16', '#F97316', '#6366F1'
+      ];
+
       function renderAllCharts() {
         container.innerHTML = '';
         const textColor = isDark ? '#e2e8f0' : '#1e293b';
         const tickColor = isDark ? '#94a3b8' : '#64748b';
         const gridColor = isDark ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)';
 
+        const chartTasks = [];
+
+        // 1. Build and append all card containers to DOM first so CSS grid computes exact column widths
         dataPayload.cards.forEach((card, idx) => {
           const spec = card.spec || {};
           const data = card.data || { columns: [], rows: [] };
@@ -543,101 +551,131 @@ ${payloadJson}
             return;
           }
 
-          const primaryColor = spec.custom_color || '#FF4B3E';
-          const baseLayout = {
-            autosize: true,
-            height: 380,
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: 'transparent',
-            font: { family: 'IBM Plex Sans, sans-serif', color: textColor, size: 11 },
-            margin: { l: 45, r: 20, t: 15, b: 40 },
-            xaxis: { gridcolor: gridColor, tickfont: { color: tickColor, size: 10 }, automargin: true },
-            yaxis: { gridcolor: gridColor, tickfont: { color: tickColor, size: 10 }, automargin: true },
-            showlegend: !!spec.color || spec.chart_type === 'pie' || spec.chart_type === 'donut' || (!!spec.trendline && spec.trendline.type !== 'none'),
-            legend: { font: { color: textColor, size: 10 }, orientation: 'h', y: -0.15 }
-          };
+          chartTasks.push({ chartDiv, spec, data });
+        });
 
-          const rows = data.rows || [];
-          const traces = [];
+        // 2. Plot all Plotly instances in the next animation frame when widths are computed
+        requestAnimationFrame(() => {
+          chartTasks.forEach(({ chartDiv, spec, data }) => {
+            const primaryColor = spec.custom_color || '#FF4B3E';
+            const baseLayout = {
+              autosize: true,
+              height: 360,
+              paper_bgcolor: 'transparent',
+              plot_bgcolor: 'transparent',
+              font: { family: 'IBM Plex Sans, sans-serif', color: textColor, size: 11 },
+              margin: { l: 45, r: 20, t: 15, b: 40 },
+              xaxis: { gridcolor: gridColor, tickfont: { color: tickColor, size: 10 }, automargin: true },
+              yaxis: { gridcolor: gridColor, tickfont: { color: tickColor, size: 10 }, automargin: true },
+              showlegend: !!spec.color || spec.chart_type === 'pie' || spec.chart_type === 'donut' || (!!spec.trendline && spec.trendline.type !== 'none'),
+              legend: { font: { color: textColor, size: 10 }, orientation: 'h', y: -0.15 }
+            };
 
-          if (spec.chart_type === 'bar') {
-            traces.push({
-              type: 'bar',
-              x: rows.map(r => r[0]),
-              y: rows.map(r => Number(r[1]) || 0),
-              marker: { color: primaryColor }
-            });
-          } else if (spec.chart_type === 'hbar') {
-            traces.push({
-              type: 'bar',
-              orientation: 'h',
-              y: rows.map(r => String(r[0])).reverse(),
-              x: rows.map(r => Number(r[1]) || 0).reverse(),
-              marker: { color: primaryColor }
-            });
-            baseLayout.margin.l = 95;
-          } else if (spec.chart_type === 'line' || spec.chart_type === 'area') {
-            const xVals = rows.map(r => r[0]);
-            const yVals = rows.map(r => Number(r[1]) || 0);
-            traces.push({
-              type: 'scatter',
-              mode: 'lines+markers',
-              name: 'Series',
-              x: xVals,
-              y: yVals,
-              fill: spec.chart_type === 'area' ? 'tozeroy' : undefined,
-              line: { color: primaryColor, width: 2.5 },
-              marker: { color: primaryColor, size: 5 }
-            });
+            const rows = data.rows || [];
+            const traces = [];
 
-            if (spec.trendline && spec.trendline.type === 'sma') {
-              const sma = calculateSMA(xVals, yVals, spec.trendline.window || 7);
-              if (sma) {
-                traces.push({
-                  type: 'scatter',
-                  mode: 'lines',
-                  name: \`SMA (\${spec.trendline.window || 7})\`,
-                  x: sma.x,
-                  y: sma.y,
-                  line: { color: spec.trendline.color || '#f59e0b', width: 2, dash: 'dash' }
-                });
+            if (spec.chart_type === 'bar') {
+              traces.push({
+                type: 'bar',
+                x: rows.map(r => r[0]),
+                y: rows.map(r => Number(r[1]) || 0),
+                marker: { color: primaryColor }
+              });
+            } else if (spec.chart_type === 'hbar') {
+              traces.push({
+                type: 'bar',
+                orientation: 'h',
+                y: rows.map(r => String(r[0])).reverse(),
+                x: rows.map(r => Number(r[1]) || 0).reverse(),
+                marker: { color: primaryColor }
+              });
+              baseLayout.margin.l = 95;
+            } else if (spec.chart_type === 'line' || spec.chart_type === 'area') {
+              const xVals = rows.map(r => r[0]);
+              const yVals = rows.map(r => Number(r[1]) || 0);
+              traces.push({
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Series',
+                x: xVals,
+                y: yVals,
+                fill: spec.chart_type === 'area' ? 'tozeroy' : undefined,
+                line: { color: primaryColor, width: 2.5 },
+                marker: { color: primaryColor, size: 5 }
+              });
+
+              if (spec.trendline && spec.trendline.type === 'sma') {
+                const sma = calculateSMA(xVals, yVals, spec.trendline.window || 7);
+                if (sma) {
+                  traces.push({
+                    type: 'scatter',
+                    mode: 'lines',
+                    name: \`SMA (\${spec.trendline.window || 7})\`,
+                    x: sma.x,
+                    y: sma.y,
+                    line: { color: spec.trendline.color || '#f59e0b', width: 2, dash: 'dash' }
+                  });
+                }
               }
+            } else if (spec.chart_type === 'pie' || spec.chart_type === 'donut') {
+              baseLayout.margin = { l: 20, r: 20, t: 15, b: 35 };
+              baseLayout.xaxis = undefined;
+              baseLayout.yaxis = undefined;
+              traces.push({
+                type: 'pie',
+                labels: rows.map(r => String(r[0])),
+                values: rows.map(r => Number(r[1]) || 0),
+                hole: spec.chart_type === 'donut' ? 0.55 : 0,
+                domain: { x: [0, 1], y: [0, 1] },
+                textposition: 'inside',
+                textinfo: 'percent',
+                hoverinfo: 'label+value+percent',
+                marker: {
+                  colors: BRAND_PALETTE,
+                  line: { color: isDark ? '#121215' : '#ffffff', width: 2 }
+                }
+              });
+            } else if (spec.chart_type === 'scatter') {
+              traces.push({
+                type: 'scatter',
+                mode: 'markers',
+                x: rows.map(r => Number(r[0])),
+                y: rows.map(r => Number(r[1])),
+                marker: { color: primaryColor, size: 7 }
+              });
+            } else {
+              traces.push({
+                type: 'bar',
+                x: rows.map(r => r[0]),
+                y: rows.map(r => Number(r[1]) || 0),
+                marker: { color: primaryColor }
+              });
             }
-          } else if (spec.chart_type === 'pie' || spec.chart_type === 'donut') {
-            traces.push({
-              type: 'pie',
-              labels: rows.map(r => String(r[0])),
-              values: rows.map(r => Number(r[1]) || 0),
-              hole: spec.chart_type === 'donut' ? 0.55 : 0
-            });
-          } else if (spec.chart_type === 'scatter') {
-            traces.push({
-              type: 'scatter',
-              mode: 'markers',
-              x: rows.map(r => Number(r[0])),
-              y: rows.map(r => Number(r[1])),
-              marker: { color: primaryColor, size: 7 }
-            });
-          } else {
-            traces.push({
-              type: 'bar',
-              x: rows.map(r => r[0]),
-              y: rows.map(r => Number(r[1]) || 0),
-              marker: { color: primaryColor }
-            });
-          }
 
-          Plotly.newPlot(chartDiv.id, traces, baseLayout, { responsive: true, displayModeBar: false });
+            Plotly.newPlot(chartDiv.id, traces, baseLayout, { responsive: true, displayModeBar: false })
+              .then(() => {
+                if (window.Plotly) Plotly.Plots.resize(chartDiv);
+              });
+          });
         });
       }
 
       renderAllCharts();
-      window.addEventListener('resize', () => {
+
+      const resizeCharts = () => {
         dataPayload.cards.forEach((_, idx) => {
           const elem = document.getElementById(\`chart-elem-\${idx}\`);
           if (elem && window.Plotly) Plotly.Plots.resize(elem);
         });
-      });
+      };
+
+      window.addEventListener('resize', resizeCharts);
+      window.addEventListener('beforeprint', resizeCharts);
+      window.addEventListener('afterprint', resizeCharts);
+      if (window.ResizeObserver) {
+        const ro = new ResizeObserver(() => resizeCharts());
+        ro.observe(container);
+      }
     })();
   </script>
 </body>
@@ -752,5 +790,8 @@ export async function parseDashboardJsonFile(file: File): Promise<DashboardSnaps
  * Triggers native browser print/save-to-PDF flow.
  */
 export function triggerPdfPrint(): void {
-  window.print();
+  window.dispatchEvent(new Event('resize'));
+  setTimeout(() => {
+    window.print();
+  }, 100);
 }
