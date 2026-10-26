@@ -270,41 +270,43 @@ def suggest_charts_from_stats(
 
     # Rule 8: Metric Ranking across Categories -> Horizontal Bar (H-Bar) instead of Scatter
     if (all_categoricals or mid_cardinality) and numerics:
-        used_hbar_cats = {s.x.column for s in suggestions if s.chart_type == "hbar" and s.x}
-        candidate_cats = [c for c in (all_categoricals or mid_cardinality) if c.name not in used_hbar_cats]
-        cat = candidate_cats[0] if candidate_cats else (all_categoricals or mid_cardinality)[0]
-        num = numerics[0]
-        cat_label = cat.name.replace("_", " ").title()
-        num_label = num.name.replace("_", " ").title()
-        num_cast = "number" if num.type.upper() == "VARCHAR" else None
-        add_spec(
-            ChartSpec(
-                chart_type="hbar",
-                x=FieldRef(column=cat.name),
-                y=FieldRef(column=num.name, cast_as=num_cast),
-                aggregation="sum",
-                sort="y_desc",
-                top_n=12,
-                title=f"{num_label} by {cat_label}",
-            ),
-            f"cat_metric_hbar_{cat.name}_{num.name}",
-        )
+        used_cats = {s.x.column for s in suggestions if s.x and s.chart_type in ("bar", "hbar")}
+        candidate_cats = [c for c in (all_categoricals or mid_cardinality) if c.name not in used_cats]
+        if candidate_cats:
+            cat = candidate_cats[0]
+            num = numerics[0]
+            cat_label = cat.name.replace("_", " ").title()
+            num_label = num.name.replace("_", " ").title()
+            num_cast = "number" if num.type.upper() == "VARCHAR" else None
+            add_spec(
+                ChartSpec(
+                    chart_type="hbar",
+                    x=FieldRef(column=cat.name),
+                    y=FieldRef(column=num.name, cast_as=num_cast),
+                    aggregation="sum",
+                    sort="y_desc",
+                    top_n=12,
+                    title=f"{num_label} by {cat_label}",
+                ),
+                f"cat_metric_hbar_{cat.name}_{num.name}",
+            )
     elif all_categoricals:
-        used_hbar_cats = {s.x.column for s in suggestions if s.chart_type == "hbar" and s.x}
-        candidate_cats = [c for c in all_categoricals if c.name not in used_hbar_cats]
-        cat = candidate_cats[0] if candidate_cats else all_categoricals[0]
-        cat_label = cat.name.replace("_", " ").title()
-        add_spec(
-            ChartSpec(
-                chart_type="hbar",
-                x=FieldRef(column=cat.name),
-                aggregation="count",
-                sort="y_desc",
-                top_n=12,
-                title=f"Top {cat_label} Breakdown",
-            ),
-            f"cat_hbar_count_{cat.name}",
-        )
+        used_cats = {s.x.column for s in suggestions if s.x and s.chart_type in ("bar", "hbar")}
+        candidate_cats = [c for c in all_categoricals if c.name not in used_cats]
+        if candidate_cats:
+            cat = candidate_cats[0]
+            cat_label = cat.name.replace("_", " ").title()
+            add_spec(
+                ChartSpec(
+                    chart_type="hbar",
+                    x=FieldRef(column=cat.name),
+                    aggregation="count",
+                    sort="y_desc",
+                    top_n=12,
+                    title=f"Top {cat_label} Breakdown",
+                ),
+                f"cat_hbar_count_{cat.name}",
+            )
     elif len(numerics) >= 2:
         x_num = numerics[0]
         y_num = numerics[1]
@@ -351,9 +353,12 @@ def suggest_charts_from_stats(
         )
 
     # Rule 10: Additional Categoricals -> Vertical Bar charts (fill remaining slots)
+    used_bar_cats = {s.x.column for s in suggestions if s.x and s.chart_type in ("bar", "hbar")}
     for cat in all_categoricals:
         if len(suggestions) >= max_suggestions:
             break
+        if cat.name in used_bar_cats:
+            continue
         key = f"cat_bar_{cat.name}"
         if key not in seen_keys:
             cat_label = cat.name.replace("_", " ").title()
