@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Plot from 'react-plotly.js';
 import type { ChartDataResponse } from '../../lib/api';
 import {
@@ -30,6 +30,40 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
   const { spec, columns, rows } = data;
   const isDark = document.documentElement.classList.contains('dark');
 
+  const [isPrinting, setIsPrinting] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      document.documentElement.classList.contains('is-printing') ||
+      window.matchMedia?.('print')?.matches ||
+      false
+    );
+  });
+
+  useEffect(() => {
+    const handleBeforePrint = () => setIsPrinting(true);
+    const handleAfterPrint = () => setIsPrinting(false);
+
+    window.addEventListener('beforeprint', handleBeforePrint);
+    window.addEventListener('afterprint', handleAfterPrint);
+
+    let mql: MediaQueryList | null = null;
+    let mqlHandler: ((e: MediaQueryListEvent) => void) | null = null;
+
+    if (window.matchMedia) {
+      mql = window.matchMedia('print');
+      mqlHandler = (e: MediaQueryListEvent) => setIsPrinting(e.matches);
+      mql.addEventListener('change', mqlHandler);
+    }
+
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint);
+      window.removeEventListener('afterprint', handleAfterPrint);
+      if (mql && mqlHandler) {
+        mql.removeEventListener('change', mqlHandler);
+      }
+    };
+  }, []);
+
   const plotConfig = useMemo(() => {
     const textColor = isDark ? '#e2e8f0' : '#1e293b';
     const tickColor = isDark ? '#94a3b8' : '#64748b';
@@ -43,13 +77,18 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
     const primaryDark = adjustBrightness(primaryColor, -15);
     const activePalette = buildPaletteWithPrimary(primaryColor);
 
+    const chartHeight = isPrinting ? 215 : height;
+    const baseMargin = isPrinting
+      ? { l: 48, r: 16, t: 10, b: 34 }
+      : { l: 48, r: 18, t: 14, b: 38 };
+
     const baseLayout: any = {
       autosize: true,
-      height,
+      height: chartHeight,
       paper_bgcolor: paperBg,
       plot_bgcolor: plotBg,
       colorway: activePalette,
-      margin: { l: 48, r: 18, t: 14, b: 38 },
+      margin: baseMargin,
       font: {
         family: 'IBM Plex Sans, sans-serif',
         color: textColor,
