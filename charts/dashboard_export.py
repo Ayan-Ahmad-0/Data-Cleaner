@@ -336,24 +336,42 @@ def generate_dashboard_html(
         border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
       }}
       .dashboard-grid {{
-        display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        gap: 0.75rem !important;
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: wrap !important;
+        justify-content: space-between !important;
+        align-items: stretch !important;
+        gap: 0.5rem 0 !important;
         width: 100% !important;
       }}
       .chart-card {{
+        display: flex !important;
+        flex-direction: column !important;
+        justify-content: flex-start !important;
+        width: 49.2% !important;
+        max-width: 49.2% !important;
+        flex: 0 0 49.2% !important;
+        height: 275px !important;
+        min-height: 275px !important;
+        max-height: 275px !important;
+        box-sizing: border-box !important;
         background-color: #121215 !important;
         border: 1px solid rgba(255, 255, 255, 0.14) !important;
         border-radius: 0.5rem !important;
         box-shadow: none !important;
         margin-bottom: 0.5rem !important;
-        padding: 0.75rem 0.85rem !important;
+        padding: 0.5rem 0.75rem !important;
         break-inside: avoid !important;
         page-break-inside: avoid !important;
+        break-inside: avoid-page !important;
+        overflow: hidden !important;
       }}
       .chart-card-header {{
-        margin-bottom: 0.4rem !important;
-        padding-bottom: 0.35rem !important;
+        height: 24px !important;
+        min-height: 24px !important;
+        max-height: 24px !important;
+        margin-bottom: 2px !important;
+        padding-bottom: 0 !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
       }}
       .chart-card-title {{
@@ -368,18 +386,20 @@ def generate_dashboard_html(
         padding: 0.1rem 0.4rem !important;
       }}
       .chart-body {{
-        min-height: 220px !important;
-        height: 220px !important;
-        max-height: 220px !important;
+        min-height: 0 !important;
+        height: 215px !important;
+        max-height: 215px !important;
+        flex: 0 0 215px !important;
       }}
       .js-plotly-plot,
       .plotly,
       .plot-container {{
-        height: 220px !important;
-        max-height: 220px !important;
+        height: 215px !important;
+        max-height: 215px !important;
       }}
-      .js-plotly-plot svg {{
-        max-height: 220px !important;
+      .js-plotly-plot svg.main-svg {{
+        height: 215px !important;
+        max-height: 215px !important;
       }}
       .kpi-container {{
         min-height: 180px !important;
