@@ -558,18 +558,23 @@ ${payloadJson}
         requestAnimationFrame(() => {
           chartTasks.forEach(({ chartDiv, spec, data }) => {
             const primaryColor = spec.custom_color || '#FF4B3E';
-            const baseLayout = {
+            const isPie = spec.chart_type === 'pie' || spec.chart_type === 'donut';
+            const isHbar = spec.chart_type === 'hbar';
+            const layout = {
               autosize: true,
               height: 360,
               paper_bgcolor: 'transparent',
               plot_bgcolor: 'transparent',
               font: { family: 'IBM Plex Sans, sans-serif', color: textColor, size: 11 },
-              margin: { l: 45, r: 20, t: 15, b: 40 },
-              xaxis: { gridcolor: gridColor, tickfont: { color: tickColor, size: 10 }, automargin: true },
-              yaxis: { gridcolor: gridColor, tickfont: { color: tickColor, size: 10 }, automargin: true },
-              showlegend: !!spec.color || spec.chart_type === 'pie' || spec.chart_type === 'donut' || (!!spec.trendline && spec.trendline.type !== 'none'),
+              margin: isPie ? { l: 20, r: 20, t: 15, b: 35 } : isHbar ? { l: 95, r: 20, t: 15, b: 40 } : { l: 45, r: 20, t: 15, b: 40 },
+              showlegend: !!spec.color || isPie || (!!spec.trendline && spec.trendline.type !== 'none'),
               legend: { font: { color: textColor, size: 10 }, orientation: 'h', y: -0.15 }
             };
+
+            if (!isPie) {
+              layout.xaxis = { gridcolor: gridColor, tickfont: { color: tickColor, size: 10 }, automargin: true };
+              layout.yaxis = { gridcolor: gridColor, tickfont: { color: tickColor, size: 10 }, automargin: true };
+            }
 
             const rows = data.rows || [];
             const traces = [];
@@ -589,7 +594,6 @@ ${payloadJson}
                 x: rows.map(r => Number(r[1]) || 0).reverse(),
                 marker: { color: primaryColor }
               });
-              baseLayout.margin.l = 95;
             } else if (spec.chart_type === 'line' || spec.chart_type === 'area') {
               const xVals = rows.map(r => r[0]);
               const yVals = rows.map(r => Number(r[1]) || 0);
@@ -618,9 +622,6 @@ ${payloadJson}
                 }
               }
             } else if (spec.chart_type === 'pie' || spec.chart_type === 'donut') {
-              baseLayout.margin = { l: 20, r: 20, t: 15, b: 35 };
-              baseLayout.xaxis = undefined;
-              baseLayout.yaxis = undefined;
               traces.push({
                 type: 'pie',
                 labels: rows.map(r => String(r[0])),
@@ -652,7 +653,7 @@ ${payloadJson}
               });
             }
 
-            Plotly.newPlot(chartDiv.id, traces, baseLayout, { responsive: true, displayModeBar: false })
+            Plotly.newPlot(chartDiv.id, traces, layout, { responsive: true, displayModeBar: false })
               .then(() => {
                 if (window.Plotly) Plotly.Plots.resize(chartDiv);
               });
