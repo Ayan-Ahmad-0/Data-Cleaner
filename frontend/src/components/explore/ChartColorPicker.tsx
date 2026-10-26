@@ -453,7 +453,7 @@ export const ChartColorPicker: React.FC<ChartColorPickerProps> = ({
             {onReset && (
               <button
                 type="button"
-                onClick={onReset}
+                onClick={handleReset}
                 className="text-[11px] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 font-medium cursor-pointer transition-colors"
               >
                 Reset
