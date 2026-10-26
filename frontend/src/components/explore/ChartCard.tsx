@@ -27,6 +27,7 @@ import {
   Palette,
   RefreshCw,
   Calculator,
+  TrendingUp,
 } from 'lucide-react';
 
 export interface ChartCardItem {
@@ -135,6 +136,24 @@ export const ChartCard: React.FC<ChartCardProps> = ({
             </span>
           )}
 
+          {item.spec.trendline && item.spec.trendline.type !== 'none' && (
+            <span
+              title={`Trendline: ${item.spec.trendline.type.toUpperCase()}${
+                item.spec.trendline.window ? ` (${item.spec.trendline.window} periods)` : ''
+              }`}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/25 shrink-0"
+            >
+              <TrendingUp className="w-2.5 h-2.5" />
+              <span>
+                {item.spec.trendline.type === 'sma'
+                  ? `SMA (${item.spec.trendline.window || 7})`
+                  : item.spec.trendline.type === 'ema'
+                  ? `EMA (${item.spec.trendline.window || 7})`
+                  : 'Trend'}
+              </span>
+            </span>
+          )}
+
           {item.isEdited && (
             <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-500/10 text-amber-500 border border-amber-500/25 shrink-0">
               Edited
@@ -144,6 +163,50 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 
         {/* Compact Utility Action Buttons */}
         <div className="flex items-center gap-1 shrink-0">
+          {/* Quick SMA Toggle (for Line/Area/Scatter) */}
+          {['line', 'area', 'scatter'].includes(item.spec.chart_type) && (
+            <button
+              type="button"
+              onClick={() => {
+                if (item.spec.trendline && item.spec.trendline.type !== 'none') {
+                  onUpdateSpec(item.id, { ...item.spec, trendline: null });
+                } else {
+                  onUpdateSpec(item.id, {
+                    ...item.spec,
+                    trendline: {
+                      type: 'sma',
+                      window: 7,
+                      line_style: 'dash',
+                      show_equation: false,
+                    },
+                  });
+                }
+              }}
+              className={`p-1.5 rounded-md transition-colors cursor-pointer flex items-center gap-1 text-[11px] font-medium ${
+                item.spec.trendline && item.spec.trendline.type !== 'none'
+                  ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30'
+                  : 'text-zinc-400 hover:text-white hover:bg-zinc-800'
+              }`}
+              title={
+                item.spec.trendline && item.spec.trendline.type !== 'none'
+                  ? `Trendline active: ${item.spec.trendline.type.toUpperCase()}. Click to disable.`
+                  : 'Click to overlay 7-period Simple Moving Average (SMA)'
+              }
+              aria-label="Toggle Moving Average"
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline text-[10px]">
+                {item.spec.trendline?.type === 'sma'
+                  ? `SMA (${item.spec.trendline.window || 7})`
+                  : item.spec.trendline?.type === 'ema'
+                  ? `EMA`
+                  : item.spec.trendline?.type === 'linear'
+                  ? `Trend`
+                  : 'SMA'}
+              </span>
+            </button>
+          )}
+
           {/* Quick Color Picker Trigger & Popover */}
           <div className="relative">
             <button
