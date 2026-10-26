@@ -37,6 +37,7 @@ export const BRAND_CHART_SWATCHES: ChartColorSwatch[] = [
 
 export const CHART_COLOR_SWATCHES: ChartColorSwatch[] = [
   // Warm Reds & Oranges
+  { id: 'crimson_bar', label: 'Crimson Wine (Bar Default)', hex: '#8F0926' },
   { id: 'coral', label: 'Core Coral (Brand)', hex: '#FF4B3E' },
   { id: 'scarlet', label: 'Scarlet Red', hex: '#FF2400' },
   { id: 'orange', label: 'Coral Orange (Brand)', hex: '#FD4233' },
@@ -69,6 +70,7 @@ export const CHART_COLOR_SWATCHES: ChartColorSwatch[] = [
 ];
 
 export const FALLBACK_PALETTE = [
+  '#8F0926',
   '#FD4233',
   '#0284C7',
   '#E11D48',
