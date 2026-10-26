@@ -769,6 +769,22 @@ def export_dataset_chart(job_id: str, payload: BuildChartRequest):
         raise HTTPException(status_code=500, detail=f"Failed to export chart data: {e}")
 
 
+@app.post("/api/charts/{job_id}/validate-formula")
+def validate_dataset_formula(job_id: str, payload: ValidateFormulaRequest):
+    """Validate a custom SQL formula against the dataset in DuckDB."""
+    try:
+        res = validate_formula(
+            job_id=job_id,
+            formula=payload.formula,
+            user_id=payload.user_id or "anonymous",
+            storage=storage,
+        )
+        return res
+    except Exception as e:
+        logger.exception("Failed to validate formula for %s: %s", job_id, e)
+        return {"valid": False, "inferred_type": None, "sample_result": None, "error": str(e)}
+
+
 # ============================================================================
 # Chart AI Endpoints (Plan, Auto-Visualize, Ask for a Chart)
 # ============================================================================
