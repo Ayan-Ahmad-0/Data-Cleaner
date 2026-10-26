@@ -424,7 +424,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                 </button>
               )}
             </div>
-            <div className="flex flex-col sm:flex-row items-start gap-4 p-3.5 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-lg)]">
+            <div className="flex items-center justify-start">
               <ChartColorPicker
                 color={spec.custom_color || getDefaultChartColor(spec.chart_type)}
                 onChange={(newColor) => setSpec({ ...spec, custom_color: newColor })}
@@ -435,25 +435,6 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                 }
                 defaultColor={getDefaultChartColor(spec.chart_type)}
               />
-              <div className="flex-1 text-xs text-[var(--text-muted)] space-y-2.5 pt-1">
-                <div className="font-medium text-[var(--text-primary)]">Custom Series Color</div>
-                <p className="leading-relaxed">
-                  Interactive Figma/Sketch-style color picker. Drag across the saturation-brightness canvas, slide hue or opacity, choose from your 14 saved palette colors, or enter any Hex, RGB, or HSL code directly.
-                </p>
-                <div className="flex items-center gap-2 pt-1">
-                  <span className="text-xs text-[var(--text-secondary)] font-medium">Active:</span>
-                  <span
-                    className="w-3.5 h-3.5 rounded-full inline-block border border-black/20 dark:border-white/20 shrink-0 shadow-2xs"
-                    style={{ backgroundColor: spec.custom_color || getDefaultChartColor(spec.chart_type) }}
-                  />
-                  <span className="font-mono px-2 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-primary)] font-semibold text-[11px]">
-                    {spec.custom_color || getDefaultChartColor(spec.chart_type)}
-                  </span>
-                  {!spec.custom_color && (
-                    <span className="text-[11px] text-[var(--text-muted)]">(Default)</span>
-                  )}
-                </div>
-              </div>
             </div>
           </div>
 
