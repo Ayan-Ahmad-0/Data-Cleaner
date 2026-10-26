@@ -1,0 +1,80 @@
+
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+    <style>body { background: #09090b; padding: 20px; font-family: Segoe UI, sans-serif; }</style>
+  </head>
+  <body>
+    <div style="background: #18181b; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+      <h3 style="color: #fff; margin:0 0 10px 0;">Coral Red (Dark Mode)</h3>
+      <div id="chart_red_dark" style="width: 720px; height: 260px;"></div>
+    </div>
+    <div style="background: #fff; padding: 16px; border-radius: 12px; margin-bottom: 20px;">
+      <h3 style="color: #000; margin:0 0 10px 0;">Coral Red (Light Mode)</h3>
+      <div id="chart_red_light" style="width: 720px; height: 260px;"></div>
+    </div>
+    <div style="background: #18181b; padding: 16px; border-radius: 12px;">
+      <h3 style="color: #fff; margin:0 0 10px 0;">Purple (Dark Mode)</h3>
+      <div id="chart_purple_dark" style="width: 720px; height: 260px;"></div>
+    </div>
+
+    <script>
+      const xSet = ['CAD', 'AUD', 'EUR', 'GBP', 'USD'];
+      const ySet = ['completed', 'pending', 'failed', 'refunded'];
+      const zMatrix = [
+        [2235, 2240, 2160, 2210, 2225],
+        [2220, 2150, 2228, 2215, 2230],
+        [2215, 2232, 2145, 2131, 2220],
+        [2242, 2225, 2140, 2220, 2218],
+      ];
+      const textMatrix = zMatrix.map(row => row.map(v => Number(v).toLocaleString()));
+
+      function render(id, scale, isDark) {
+        Plotly.newPlot(id, [{
+          type: 'heatmap',
+          x: xSet,
+          y: ySet,
+          z: zMatrix,
+          text: textMatrix,
+          texttemplate: '<b>%{text}</b>',
+          textfont: { family: 'Segoe UI, sans-serif', size: 12 },
+          xgap: 3,
+          ygap: 3,
+          colorscale: scale,
+          colorbar: {
+            thickness: 12,
+            len: 0.82,
+            outlinewidth: 0,
+            tickfont: { color: isDark ? '#94a3b8' : '#64748b', size: 10, family: 'Segoe UI, sans-serif' },
+            tickformat: ',d',
+            xpad: 10,
+          },
+          hovertemplate: '<b>%{y}</b> • <b>%{x}</b><br>Count: <b>%{z:,.0f}</b><extra></extra>',
+        }], {
+          paper_bgcolor: 'transparent',
+          plot_bgcolor: 'transparent',
+          margin: { l: 85, r: 20, t: 10, b: 40 },
+          xaxis: {
+            tickfont: { color: isDark ? '#cbd5e1' : '#334155', size: 11, family: 'Segoe UI, sans-serif' },
+            showgrid: false,
+            zeroline: false,
+            ticks: '',
+          },
+          yaxis: {
+            autorange: 'reversed',
+            tickfont: { color: isDark ? '#cbd5e1' : '#334155', size: 11, family: 'Segoe UI, sans-serif' },
+            showgrid: false,
+            zeroline: false,
+            ticks: '',
+          },
+        }, { responsive: true, displayModeBar: false });
+      }
+
+      render('chart_red_dark', [[0,"#3a1f2c"],[0.3,"#970000"],[0.65,"#de2314"],[1,"#ff7061"]], true);
+      render('chart_red_light', [[0,"#ffeceb"],[0.3,"#febdb8"],[0.65,"#fe776c"],[1,"#cf1405"]], false);
+      render('chart_purple_dark', [[0,"#231d4d"],[0.3,"#160087"],[0.65,"#5d1bce"],[1,"#aa68ff"]], true);
+    </script>
+  </body>
+  </html>
+  
