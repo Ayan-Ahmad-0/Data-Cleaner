@@ -12,6 +12,7 @@ import {
   DEFAULT_CHART_COLOR,
   getDefaultChartColor,
 } from './chartColors';
+import { ChartColorPicker } from './ChartColorPicker';
 import {
   Sliders,
   Download,
