@@ -84,7 +84,7 @@ def suggest_charts_from_stats(
     1. Low-cardinality category (2-6 values) -> Donut chart
     2. Datetime column -> Area chart (smooth gradient volume/activity over time)
     3. Second low-cardinality category -> Pie chart
-    4. Categorical comparison -> Horizontal bar (top 15 ranking)
+    4. Categorical comparison -> Vertical bar chart (top 15 ranking)
     5. Datetime + Numeric -> Line chart (rate/average metric over time)
     6. Cross-tabulation -> Heatmap (2D co-occurrence density matrix)
     7. Numeric distribution -> Histogram (binned distribution)
