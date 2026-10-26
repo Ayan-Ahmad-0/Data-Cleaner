@@ -328,7 +328,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
 
       {/* 3. Card Footer: Metadata Notes & 'Why this chart?' Toggle */}
       {(hasWhyDetails || (item.data && (item.data.notes.length > 0 || item.data.warnings.length > 0))) && (
-        <div className="border-t border-[var(--border-hairline)]/70 pt-2.5 mt-1 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
+        <div className="chart-card-footer border-t border-[var(--border-hairline)]/70 pt-2.5 mt-1 flex flex-wrap items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
           {/* Notes / Data Caps */}
           <div className="flex items-center gap-1.5 flex-wrap">
             {item.data && [...item.data.notes, ...item.data.warnings].map((n, i) => (
