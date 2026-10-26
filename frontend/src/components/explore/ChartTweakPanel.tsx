@@ -8,6 +8,8 @@ import {
   type TweakOptionsResponse,
   type PageDataOptions,
   type ValidateFormulaResponse,
+  type TrendlineType,
+  type TrendlineLineStyle,
   getTweakOptions,
   validateFormula,
 } from '../../lib/api';
@@ -22,6 +24,7 @@ import {
   Calculator,
   Code2,
   Loader2,
+  TrendingUp,
 } from 'lucide-react';
 import {
   getDefaultChartColor,
@@ -965,6 +968,221 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
               </div>
             )}
           </div>
+
+          {/* Trendline & Moving Averages (for Line, Area, Scatter) */}
+          {['line', 'area', 'scatter'].includes(spec.chart_type) && (
+            <div className="space-y-3 pt-2 border-t border-[var(--border-hairline)]">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-1.5">
+                  <TrendingUp className="w-3.5 h-3.5 text-amber-500" />
+                  <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                    Trendlines & Moving Averages (SMA)
+                  </label>
+                </div>
+                {spec.trendline && spec.trendline.type !== 'none' && (
+                  <button
+                    type="button"
+                    onClick={() => setSpec({ ...spec, trendline: null })}
+                    className="text-[11px] text-[var(--text-muted)] hover:text-red-400 cursor-pointer"
+                  >
+                    Clear trendline
+                  </button>
+                )}
+              </div>
+
+              {/* Type Segmented Buttons */}
+              <div className="grid grid-cols-4 gap-1.5 p-1 bg-[var(--bg-app)] rounded-[var(--radius-md)] border border-[var(--border-hairline)]">
+                {[
+                  { id: 'none' as const, label: 'Off' },
+                  { id: 'sma' as const, label: 'SMA' },
+                  { id: 'ema' as const, label: 'EMA' },
+                  { id: 'linear' as const, label: 'Linear Trend' },
+                ].map((t) => {
+                  const isActive = (!spec.trendline && t.id === 'none') || spec.trendline?.type === t.id;
+                  return (
+                    <button
+                      key={t.id}
+                      type="button"
+                      onClick={() => {
+                        if (t.id === 'none') {
+                          setSpec({ ...spec, trendline: null });
+                        } else {
+                          setSpec({
+                            ...spec,
+                            trendline: {
+                              type: t.id,
+                              window: spec.trendline?.window || 7,
+                              show_equation: spec.trendline?.show_equation ?? true,
+                              line_style: spec.trendline?.line_style || 'dash',
+                              color: spec.trendline?.color || null,
+                            },
+                          });
+                        }
+                      }}
+                      className={`py-1 text-xs font-medium rounded transition-all cursor-pointer ${
+                        isActive
+                          ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-xs border border-[var(--border-hairline)]'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Active Trendline Configuration Options */}
+              {spec.trendline && spec.trendline.type !== 'none' && (
+                <div className="space-y-3 p-3 rounded-[var(--radius-md)] bg-[var(--bg-app)] border border-[var(--border-hairline)]">
+                  {/* Moving Average Window Selection (for SMA & EMA) */}
+                  {(spec.trendline.type === 'sma' || spec.trendline.type === 'ema') && (
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between text-[11px]">
+                        <span className="font-medium text-[var(--text-secondary)]">
+                          Period Window ({spec.trendline.window || 7} points)
+                        </span>
+                        <span className="text-[10px] text-[var(--text-muted)]">
+                          {spec.trendline.type === 'sma' ? 'Simple Moving Average' : 'Exponential Moving Average'}
+                        </span>
+                      </div>
+
+                      {/* Quick Window Presets */}
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {[
+                          { label: '7 periods', val: 7 },
+                          { label: '14 periods', val: 14 },
+                          { label: '30 periods', val: 30 },
+                          { label: '90 periods', val: 90 },
+                        ].map((p) => {
+                          const isCur = (spec.trendline?.window || 7) === p.val;
+                          return (
+                            <button
+                              key={p.val}
+                              type="button"
+                              onClick={() =>
+                                setSpec({
+                                  ...spec,
+                                  trendline: { ...spec.trendline!, window: p.val },
+                                })
+                              }
+                              className={`px-2 py-0.5 rounded text-[11px] font-mono transition-all cursor-pointer ${
+                                isCur
+                                  ? 'bg-amber-500/15 text-amber-500 dark:text-amber-400 border border-amber-500/30 font-semibold'
+                                  : 'bg-[var(--bg-surface)] text-[var(--text-muted)] hover:text-[var(--text-secondary)] border border-[var(--border-hairline)]'
+                              }`}
+                            >
+                              {p.label}
+                            </button>
+                          );
+                        })}
+                        <div className="flex items-center gap-1 ml-auto">
+                          <span className="text-[10px] text-[var(--text-muted)]">Custom:</span>
+                          <input
+                            type="number"
+                            min={2}
+                            max={365}
+                            value={spec.trendline.window || 7}
+                            onChange={(e) => {
+                              const v = parseInt(e.target.value) || 2;
+                              setSpec({
+                                ...spec,
+                                trendline: { ...spec.trendline!, window: Math.min(Math.max(v, 2), 365) },
+                              });
+                            }}
+                            className="w-14 px-1.5 py-0.5 text-xs font-mono bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded text-[var(--text-primary)]"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Linear Regression Options */}
+                  {spec.trendline.type === 'linear' && (
+                    <label className="flex items-center gap-2 text-[11px] text-[var(--text-secondary)] cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={spec.trendline.show_equation ?? true}
+                        onChange={(e) =>
+                          setSpec({
+                            ...spec,
+                            trendline: { ...spec.trendline!, show_equation: e.target.checked },
+                          })
+                        }
+                        className="rounded text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
+                      />
+                      <span>Show R² score and regression formula in chart legend</span>
+                    </label>
+                  )}
+
+                  {/* Line Style and Color Customization */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1 border-t border-[var(--border-hairline)]/50">
+                    {/* Line Stroke Style */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-medium text-[var(--text-muted)] block">Stroke Style</span>
+                      <div className="flex items-center gap-1">
+                        {[
+                          { id: 'dash' as const, label: 'Dashed (---)' },
+                          { id: 'dot' as const, label: 'Dotted (···)' },
+                          { id: 'solid' as const, label: 'Solid (───)' },
+                        ].map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            onClick={() =>
+                              setSpec({
+                                ...spec,
+                                trendline: { ...spec.trendline!, line_style: s.id },
+                              })
+                            }
+                            className={`flex-1 py-1 px-1 text-[10px] font-mono rounded text-center transition-colors cursor-pointer border ${
+                              (spec.trendline?.line_style || 'dash') === s.id
+                                ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] border-[var(--accent)]'
+                                : 'bg-[var(--bg-surface)] text-[var(--text-muted)] border-[var(--border-hairline)] hover:text-[var(--text-secondary)]'
+                            }`}
+                          >
+                            {s.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Overlay Accent Color */}
+                    <div className="space-y-1">
+                      <span className="text-[10px] font-medium text-[var(--text-muted)] block">Trend Color</span>
+                      <div className="flex items-center gap-1.5">
+                        {[
+                          { color: '#f59e0b', name: 'Amber' },
+                          { color: '#06b6d4', name: 'Cyan' },
+                          { color: '#10b981', name: 'Emerald' },
+                          { color: '#f43f5e', name: 'Rose' },
+                          { color: '#a855f7', name: 'Purple' },
+                        ].map((c) => {
+                          const isSel = (spec.trendline?.color || '#f59e0b') === c.color;
+                          return (
+                            <button
+                              key={c.color}
+                              type="button"
+                              onClick={() =>
+                                setSpec({
+                                  ...spec,
+                                  trendline: { ...spec.trendline!, color: c.color },
+                                })
+                              }
+                              title={c.name}
+                              className={`w-5 h-5 rounded-full transition-transform cursor-pointer border ${
+                                isSel ? 'scale-110 ring-2 ring-white/50 border-white' : 'border-transparent hover:scale-105'
+                              }`}
+                              style={{ backgroundColor: c.color }}
+                            />
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Chart Color / Accent */}
           <div className="space-y-2 pt-2 border-t border-[var(--border-hairline)]">
