@@ -609,6 +609,7 @@ from charts import (
     export_chart_data,
     get_column_stats,
     suggest_charts,
+    validate_formula,
 )
 from charts.page_options import PageDataOptions
 from charts.tweak import default_starter_spec, get_tweak_options
@@ -624,6 +625,12 @@ class BuildChartRequest(BaseModel):
     spec: Dict[str, Any]
     user_id: Optional[str] = "anonymous"
     page_options: Optional[Dict[str, Any]] = None
+
+
+class ValidateFormulaRequest(BaseModel):
+    formula: str
+    name: Optional[str] = None
+    user_id: Optional[str] = "anonymous"
 
 
 class TweakOptionsRequest(BaseModel):
