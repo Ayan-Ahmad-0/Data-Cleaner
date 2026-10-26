@@ -39,7 +39,12 @@
       const textMatrix = zMatrix.map(row => row.map(v => Number(v).toLocaleString()));
 
       // Power BI color scale: Light ice-tint to Vibrant Power BI Blue
-      const powerBiBlueScaleDark = [
+      const powerBiBlueScaleLight = [
+        [0, '#ebf3fc'],
+        [0.3, '#9ec5f7'],
+        [0.6, '#408ef4'],
+        [1.0, '#005fb8']
+      ]; const powerBiBlueScaleDark = [
         [0, '#132238'],
         [0.2, '#1a365d'],
         [0.5, '#1e4f8a'],
@@ -60,12 +65,12 @@
         },
         xgap: 3,
         ygap: 3,
-        colorscale: powerBiBlueScaleDark,
+        colorscale: powerBiBlueScaleLight,
         colorbar: {
           thickness: 12,
           len: 0.85,
           outlinewidth: 0,
-          tickfont: { color: '#94a3b8', size: 10, family: 'Segoe UI, sans-serif' },
+          tickfont: { color: '#64748b', size: 10, family: 'Segoe UI, sans-serif' },
           tickformat: ',d',
           xpad: 12,
         },
@@ -78,14 +83,14 @@
         margin: { l: 90, r: 20, t: 30, b: 50 },
         xaxis: {
           side: 'bottom',
-          tickfont: { color: '#cbd5e1', size: 12, family: 'Segoe UI, sans-serif' },
+          tickfont: { color: '#334155', size: 12, family: 'Segoe UI, sans-serif' },
           showgrid: false,
           zeroline: false,
           ticks: '',
         },
         yaxis: {
           autorange: 'reversed', // Display top-down like Power BI matrix
-          tickfont: { color: '#cbd5e1', size: 12, family: 'Segoe UI, sans-serif' },
+          tickfont: { color: '#334155', size: 12, family: 'Segoe UI, sans-serif' },
           showgrid: false,
           zeroline: false,
           ticks: '',
