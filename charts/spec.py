@@ -31,6 +31,19 @@ AggregationType = Literal["count", "count_distinct", "sum", "avg", "min", "max",
 # Sort options
 SortType = Literal["x", "y_desc", "y_asc"]
 
+# Supported trendline types
+TrendlineType = Literal["none", "linear", "sma", "ema", "polynomial"]
+TrendlineLineStyle = Literal["dash", "dot", "solid", "dashdot"]
+
+
+class TrendlineConfig(BaseModel):
+    """Configuration for trendline or moving average overlays."""
+    type: TrendlineType = "none"
+    window: Optional[int] = Field(7, ge=2, le=365)
+    show_equation: bool = False
+    color: Optional[str] = Field(None, max_length=32)
+    line_style: Optional[TrendlineLineStyle] = "dash"
+
 
 class FieldRef(BaseModel):
     """Reference to a dataset column with optional type-casting, bucketing, binning, or custom formula."""
