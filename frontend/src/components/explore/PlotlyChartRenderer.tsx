@@ -394,7 +394,9 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       const { xaxis, yaxis, ...layoutWithoutAxes } = baseLayout;
       const pieLayout = {
         ...layoutWithoutAxes,
-        margin: { l: 20, r: 20, t: 15, b: 35 },
+        margin: isPrinting
+          ? { l: 16, r: 16, t: 10, b: 24 }
+          : { l: 20, r: 20, t: 15, b: 35 },
       };
       return { isBigNumber: false, primaryColor, traces, layout: pieLayout };
     }
@@ -423,13 +425,15 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       const hbarLayout = {
         ...baseLayout,
         bargap: 0.28,
-        margin: {
-          ...baseLayout.margin,
-          l: 110,
-          t: 12,
-          b: 36,
-          r: 20,
-        },
+        margin: isPrinting
+          ? { l: 90, r: 16, t: 10, b: 34 }
+          : {
+              ...baseLayout.margin,
+              l: 110,
+              t: 12,
+              b: 36,
+              r: 20,
+            },
         xaxis: {
           ...baseLayout.xaxis,
           type: spec.log_y ? 'log' : 'linear',
@@ -448,13 +452,15 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       const barLayout = {
         ...baseLayout,
         bargap: 0.28,
-        margin: {
-          ...baseLayout.margin,
-          t: 12,
-          b: 40,
-          l: 45,
-          r: 20,
-        },
+        margin: isPrinting
+          ? { l: 48, r: 16, t: 10, b: 34 }
+          : {
+              ...baseLayout.margin,
+              t: 12,
+              b: 40,
+              l: 45,
+              r: 20,
+            },
         xaxis: {
           ...baseLayout.xaxis,
           type: 'category',
@@ -511,13 +517,15 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
     const isArea = spec.chart_type === 'area';
     const lineLayout = {
       ...baseLayout,
-      margin: {
-        ...baseLayout.margin,
-        t: 12,
-        b: 36,
-        l: 45,
-        r: 20,
-      },
+      margin: isPrinting
+        ? { l: 48, r: 16, t: 10, b: 34 }
+        : {
+            ...baseLayout.margin,
+            t: 12,
+            b: 36,
+            l: 45,
+            r: 20,
+          },
       xaxis: {
         ...baseLayout.xaxis,
         automargin: true,
