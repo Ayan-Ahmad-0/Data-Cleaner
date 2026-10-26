@@ -391,6 +391,17 @@ export interface ChartFilter {
 export type FieldRef = ChartFieldRef;
 export type Filter = ChartFilter;
 
+export type TrendlineType = 'none' | 'linear' | 'sma' | 'ema' | 'polynomial';
+export type TrendlineLineStyle = 'dash' | 'dot' | 'solid' | 'dashdot';
+
+export interface TrendlineConfig {
+  type: TrendlineType;
+  window?: number;
+  show_equation?: boolean;
+  color?: string | null;
+  line_style?: TrendlineLineStyle;
+}
+
 export interface ChartSpec {
   chart_type: 'bar' | 'hbar' | 'line' | 'area' | 'histogram' | 'scatter' | 'pie' | 'donut' | 'box' | 'heatmap' | 'big_number';
   x?: ChartFieldRef | null;
@@ -405,6 +416,7 @@ export interface ChartSpec {
   exclude_nulls?: boolean;
   hide_outliers?: boolean;
   custom_color?: string | null;
+  trendline?: TrendlineConfig | null;
 }
 
 export interface ChartDataResponse {
