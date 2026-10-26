@@ -6,7 +6,10 @@ import {
   type FieldRef,
   type Filter,
   type TweakOptionsResponse,
+  type PageDataOptions,
+  type ValidateFormulaResponse,
   getTweakOptions,
+  validateFormula,
 } from '../../lib/api';
 import { Button } from '../ui/Button';
 import {
@@ -16,6 +19,9 @@ import {
   Plus,
   Trash2,
   Check,
+  Calculator,
+  Code2,
+  Loader2,
 } from 'lucide-react';
 import {
   getDefaultChartColor,
@@ -27,6 +33,8 @@ interface ChartTweakPanelProps {
   initialSpec: ChartSpec;
   originalSpec: ChartSpec;
   columns: ChartColumnStats[];
+  pageOptions?: PageDataOptions;
+  onUpdatePageOptions?: (opts: PageDataOptions) => void;
   isOpen: boolean;
   onClose: () => void;
   onApply: (updatedSpec: ChartSpec) => void;
