@@ -1000,6 +1000,8 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
             isAddingChart={isAddingChart}
             globalColor={globalChartColor}
             onGlobalColorChange={setGlobalChartColor}
+            onRemoveCrossFilter={handleRemoveCrossFilter}
+            onClearAllCrossFilters={handleClearAllCrossFilters}
           />
 
           {/* Active Chart Cards Grid */}
@@ -1016,6 +1018,8 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
                   onRemove={handleRemoveCard}
                   onRetry={handleRetryCard}
                   globalColor={globalChartColor}
+                  onPointClick={handleChartPointClick}
+                  crossFilters={pageOptions.cross_filters}
                 />
               ))}
             </div>
