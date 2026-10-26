@@ -181,6 +181,7 @@ def suggest_charts_from_stats(
                 aggregation="count",
                 sort="y_desc",
                 top_n=15,
+                custom_color="#8F0926",
                 title=f"Top {cat_label} Categories",
             ),
             f"cat_bar_{cat.name}",
