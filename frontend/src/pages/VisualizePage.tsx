@@ -638,9 +638,10 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
       id: `imported_${Date.now()}_${idx}`,
       spec: sp,
       originalSpec: sp,
+      data: null,
       loading: true,
       error: null,
-      source: 'custom',
+      source: 'manual',
     }));
     setCards(newCards);
 
