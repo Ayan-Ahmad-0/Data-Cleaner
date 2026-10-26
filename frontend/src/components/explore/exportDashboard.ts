@@ -213,11 +213,12 @@ export function generateDashboardHtml(
 
     .dashboard-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(620px, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 1.25rem;
+      width: 100%;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
       .dashboard-grid {
         grid-template-columns: 1fr;
       }
@@ -232,6 +233,10 @@ export function generateDashboardHtml(
       display: flex;
       flex-direction: column;
       justify-content: space-between;
+      min-width: 0;
+      max-width: 100%;
+      overflow: hidden;
+      position: relative;
       break-inside: avoid;
       page-break-inside: avoid;
       transition: border-color 0.15s ease;
@@ -283,7 +288,11 @@ export function generateDashboardHtml(
 
     .chart-body {
       width: 100%;
-      min-height: 380px;
+      min-width: 0;
+      max-width: 100%;
+      min-height: 360px;
+      overflow: hidden;
+      position: relative;
     }
 
     .kpi-container {
@@ -313,29 +322,77 @@ export function generateDashboardHtml(
     @media print {
       @page {
         size: letter landscape;
-        margin: 1cm;
+        margin: 0.6cm 0.6cm;
+      }
+      *, *::before, *::after {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
       body {
-        background: #ffffff !important;
-        color: #0f172a !important;
+        background-color: #09090b !important;
+        color: #f4f4f5 !important;
         padding: 0 !important;
+        margin: 0 !important;
       }
       .no-print {
         display: none !important;
       }
+      .header-bar {
+        padding-bottom: 0.75rem !important;
+        margin-bottom: 1rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+      }
+      .dashboard-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        gap: 0.75rem !important;
+        width: 100% !important;
+      }
       .chart-card {
-        background: #ffffff !important;
-        border: 1px solid #cbd5e1 !important;
+        background-color: #121215 !important;
+        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+        border-radius: 0.5rem !important;
         box-shadow: none !important;
-        margin-bottom: 1.5rem !important;
+        margin-bottom: 0.5rem !important;
+        padding: 0.75rem 0.85rem !important;
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+      }
+      .chart-card-header {
+        margin-bottom: 0.4rem !important;
+        padding-bottom: 0.35rem !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
       }
       .chart-card-title {
-        color: #0f172a !important;
+        color: #f4f4f5 !important;
+        font-size: 0.8125rem !important;
       }
       .chart-pill {
-        background: #f1f5f9 !important;
-        color: #334155 !important;
-        border-color: #cbd5e1 !important;
+        background-color: #18181b !important;
+        color: #a1a1aa !important;
+        border-color: rgba(255, 255, 255, 0.1) !important;
+        font-size: 0.625rem !important;
+        padding: 0.1rem 0.4rem !important;
+      }
+      .chart-body {
+        min-height: 220px !important;
+        height: 220px !important;
+        max-height: 220px !important;
+      }
+      .js-plotly-plot,
+      .plotly,
+      .plot-container {
+        height: 220px !important;
+        max-height: 220px !important;
+      }
+      .js-plotly-plot svg {
+        max-height: 220px !important;
+      }
+      .kpi-container {
+        min-height: 180px !important;
+      }
+      .kpi-value {
+        font-size: 2.5rem !important;
       }
     }
   </style>
