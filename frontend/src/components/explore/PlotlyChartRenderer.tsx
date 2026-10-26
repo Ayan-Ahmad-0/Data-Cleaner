@@ -6,6 +6,7 @@ import {
   adjustBrightness,
   buildPaletteWithPrimary,
   hexToRgba,
+  buildHeatmapColorscale,
 } from './chartColors';
 
 interface PlotlyChartRendererProps {
