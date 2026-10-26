@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
 from app.models import JobDetailResponse, JobMetadata
 from app.orchestrator import JobOrchestrator, get_orchestrator
@@ -633,6 +633,14 @@ class ValidateFormulaRequest(BaseModel):
     user_id: Optional[str] = "anonymous"
 
 
+class ExportDashboardRequest(BaseModel):
+    title: Optional[str] = "Executive Data Intelligence Briefing"
+    dataset_name: Optional[str] = "dataset.parquet"
+    cards: List[Dict[str, Any]] = []
+    metadata: Optional[Dict[str, Any]] = None
+    user_id: Optional[str] = "anonymous"
+
+
 class TweakOptionsRequest(BaseModel):
     spec: Optional[Dict[str, Any]] = None
     user_id: Optional[str] = "anonymous"
@@ -783,6 +791,28 @@ def validate_dataset_formula(job_id: str, payload: ValidateFormulaRequest):
     except Exception as e:
         logger.exception("Failed to validate formula for %s: %s", job_id, e)
         return {"valid": False, "inferred_type": None, "sample_result": None, "error": str(e)}
+
+
+@app.post("/api/charts/{job_id}/export-dashboard-html")
+def export_dashboard_html_endpoint(job_id: str, payload: ExportDashboardRequest):
+    """Generate and return a standalone interactive HTML dashboard report with Plotly."""
+    try:
+        from charts.dashboard_export import generate_dashboard_html
+        html_content = generate_dashboard_html(
+            title=payload.title or "Executive Data Intelligence Briefing",
+            dataset_name=payload.dataset_name or f"dataset_{job_id}",
+            cards_data=payload.cards,
+            metadata=payload.metadata,
+        )
+        return HTMLResponse(
+            content=html_content,
+            headers={
+                "Content-Disposition": f'attachment; filename="dashboard_{job_id}.html"'
+            }
+        )
+    except Exception as e:
+        logger.exception("Failed to export dashboard HTML for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to generate dashboard HTML: {e}")
 
 
 # ============================================================================
