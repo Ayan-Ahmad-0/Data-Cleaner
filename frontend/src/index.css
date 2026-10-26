@@ -253,7 +253,9 @@ select option:disabled {
   .print-hide,
   .modebar-container,
   [role="dialog"],
-  .fixed.inset-0 {
+  .fixed.inset-0,
+  .print-header,
+  .visualize-hero {
     display: none !important;
   }
 
