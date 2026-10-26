@@ -348,7 +348,7 @@
           <span class="meta-tag"><strong>File:</strong> transactions.csv</span>
           <span class="meta-tag"><strong>Rows:</strong> N/A</span>
           <span class="meta-tag"><strong>Cols:</strong> N/A</span>
-          <span class="meta-tag"><strong>Generated:</strong> 2026-10-26 12:00:15 UTC</span>
+          <span class="meta-tag"><strong>Generated:</strong> 2026-10-26 12:02:27 UTC</span>
         </div>
       </div>
 
@@ -589,6 +589,83 @@
                 y: rows.map(r => Number(r[1])),
                 marker: { color: primaryColor, size: 7 }
               });
+            } else if (spec.chart_type === 'heatmap') {
+              const xSet = Array.from(new Set(rows.map(r => String(r[0]))));
+              const ySet = Array.from(new Set(rows.map(r => String(r[1]))));
+              const zMatrix = ySet.map(() => xSet.map(() => 0));
+
+              rows.forEach(r => {
+                const xIdx = xSet.indexOf(String(r[0]));
+                const yIdx = ySet.indexOf(String(r[1]));
+                if (xIdx !== -1 && yIdx !== -1) {
+                  zMatrix[yIdx][xIdx] = Number(r[2]) || 0;
+                }
+              });
+
+              const textMatrix = zMatrix.map(row =>
+                row.map(val => (val == null || val === 0 ? '0' : Number(val).toLocaleString()))
+              );
+              const cellFontSize = xSet.length > 25 || ySet.length > 25 ? 0 : xSet.length > 15 ? 9 : 11;
+
+              const colorscale = isDark
+                ? [[0, '#09090b'], [0.25, '#1e3a8a'], [0.55, '#2563eb'], [0.8, '#60a5fa'], [1.0, '#bfdbfe']]
+                : [[0, '#eff6ff'], [0.3, '#93c5fd'], [0.65, '#2563eb'], [1.0, '#1e3a8a']];
+
+              traces.push({
+                type: 'heatmap',
+                x: xSet,
+                y: ySet,
+                z: zMatrix,
+                ...(cellFontSize > 0 ? {
+                  text: textMatrix,
+                  texttemplate: '<b>%{text}</b>',
+                  textfont: { size: cellFontSize, color: textColor }
+                } : {}),
+                xgap: 2,
+                ygap: 2,
+                colorscale: colorscale,
+                colorbar: {
+                  thickness: 12,
+                  len: 0.85,
+                  outlinewidth: 0,
+                  tickfont: { color: tickColor, size: 10 }
+                },
+                hovertemplate: '<b>%{y}</b> • <b>%{x}</b><br>Value: <b>%{z:,}</b><extra></extra>'
+              });
+
+              layout.margin.l = 85;
+              layout.margin.b = 55;
+              layout.xaxis.type = 'category';
+              layout.xaxis.showgrid = false;
+              layout.yaxis.type = 'category';
+              layout.yaxis.autorange = 'reversed';
+              layout.yaxis.showgrid = false;
+            } else if (spec.chart_type === 'histogram') {
+              const xLabels = rows.map(r => `${r[0]} - ${r[1]}`);
+              const yValues = rows.map(r => Number(r[2]) || 0);
+              traces.push({
+                type: 'bar',
+                x: xLabels,
+                y: yValues,
+                marker: { color: primaryColor }
+              });
+              layout.xaxis.type = 'category';
+            } else if (spec.chart_type === 'box') {
+              rows.forEach((r, bIdx) => {
+                const color = BRAND_PALETTE[bIdx % BRAND_PALETTE.length];
+                traces.push({
+                  type: 'box',
+                  name: String(r[0]),
+                  lowerfence: [r[2]],
+                  q1: [r[3]],
+                  median: [r[4]],
+                  q3: [r[5]],
+                  upperfence: [r[6]],
+                  marker: { color: color },
+                  line: { color: color, width: 1.5 }
+                });
+              });
+              layout.xaxis.type = 'category';
             } else {
               traces.push({
                 type: 'bar',
