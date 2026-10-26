@@ -16,6 +16,7 @@ import {
   Lightbulb,
   Loader2,
   Palette,
+  Filter as FilterIcon,
 } from 'lucide-react';
 
 interface DataOptionsPanelProps {
@@ -36,6 +37,9 @@ interface DataOptionsPanelProps {
   // Global Chart Color
   globalColor?: string;
   onGlobalColorChange?: (color: string) => void;
+  // Cross-filtering
+  onRemoveCrossFilter?: (column: string) => void;
+  onClearAllCrossFilters?: () => void;
 }
 
 export const DataOptionsPanel: React.FC<DataOptionsPanelProps> = ({
@@ -53,6 +57,8 @@ export const DataOptionsPanel: React.FC<DataOptionsPanelProps> = ({
   isAddingChart,
   globalColor,
   onGlobalColorChange,
+  onRemoveCrossFilter,
+  onClearAllCrossFilters,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isColorMenuOpen, setIsColorMenuOpen] = useState(false);
