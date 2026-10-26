@@ -684,7 +684,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
   return (
     <div className="container-shell pt-6 sm:pt-8 pb-12 sm:pb-16 space-y-5 sm:space-y-6">
       {/* Hero Title */}
-      <div className="text-left space-y-2">
+      <div className="text-left space-y-2 no-print">
         <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
           Visualize Your Data
         </h1>
@@ -694,7 +694,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
       </div>
 
       {/* Raw-Data Honesty Note */}
-      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+      <div className="flex items-center gap-2 text-xs text-[var(--text-muted)] no-print">
         <Info className="w-4 h-4 shrink-0 text-[var(--text-muted)]" />
         <span>
           Viewing original, uncleaned data. Missing values, duplicates, and unparsed types are included in charts unless filtered out.
