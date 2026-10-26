@@ -67,9 +67,32 @@ def test_compile_spec_histogram():
     schema = {"fare": "DOUBLE"}
     spec = ChartSpec(chart_type="histogram", x=FieldRef(column="fare", bins=20))
     sql, params, notes = compile_spec(spec, schema)
-    assert "WITH stats AS" in sql
+    assert "WITH filtered_data AS" in sql
+    assert "stats AS" in sql
     assert "LIMIT 25" in sql
     assert len(params) == 0
+
+
+def test_compile_spec_histogram_with_parameter_filter():
+    """Verify that a histogram with equality filters compiles correctly and executes without parameter errors."""
+    import duckdb
+    schema = {"category": "VARCHAR", "fare": "DOUBLE"}
+    spec = ChartSpec(
+        chart_type="histogram",
+        x=FieldRef(column="fare", bins=10),
+        filters=[Filter(column="category", op="=", value="Tech")],
+    )
+    sql, params, notes = compile_spec(spec, schema)
+    assert len(params) == 1
+    assert params[0] == "Tech"
+    assert sql.count("?") == 1  # exactly 1 placeholder matching len(params)
+
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE data (category VARCHAR, fare DOUBLE)")
+    con.execute("INSERT INTO data VALUES ('Tech', 50.0), ('Tech', 100.0), ('Office', 30.0)")
+    rows = con.execute(sql, params).fetchall()
+    assert len(rows) > 0
+    con.close()
 
 
 def test_compile_spec_scatter_sampling():
