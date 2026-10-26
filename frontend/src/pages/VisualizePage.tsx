@@ -296,22 +296,58 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     setPageOptions(newOptions);
     if (!datasetInfo) return;
 
-    // Trigger re-render of all active cards with new options
+    // Trigger parallel re-render of all active cards with new options
     setCards((prev) => prev.map((c) => ({ ...c, loading: true })));
 
-    for (let i = 0; i < cards.length; i++) {
-      const card = cards[i];
-      try {
-        const data = await buildChart(datasetInfo.query_id, card.spec, newOptions);
-        setCards((prev) =>
-          prev.map((c) => (c.id === card.id ? { ...c, data, loading: false, error: null } : c))
-        );
-      } catch (err: any) {
-        setCards((prev) =>
-          prev.map((c) => (c.id === card.id ? { ...c, loading: false, error: err.message } : c))
-        );
-      }
+    await Promise.all(
+      cards.map(async (card) => {
+        try {
+          const data = await buildChart(datasetInfo.query_id, card.spec, newOptions);
+          setCards((prev) =>
+            prev.map((c) => (c.id === card.id ? { ...c, data, loading: false, error: null } : c))
+          );
+        } catch (err: any) {
+          setCards((prev) =>
+            prev.map((c) => (c.id === card.id ? { ...c, loading: false, error: err.message } : c))
+          );
+        }
+      })
+    );
+  };
+
+  // Cross-filtering click-to-filter handler
+  const handleChartPointClick = (column: string, value: any) => {
+    const currentVal = pageOptions.cross_filters?.[column];
+    const nextCrossFilters = { ...(pageOptions.cross_filters || {}) };
+
+    if (currentVal !== undefined && String(currentVal) === String(value)) {
+      // Toggle off if clicking the currently active filtered value
+      delete nextCrossFilters[column];
+    } else {
+      // Apply new cross-filter
+      nextCrossFilters[column] = value;
     }
+
+    handlePageOptionsChange({
+      ...pageOptions,
+      cross_filters: nextCrossFilters,
+    });
+  };
+
+  const handleRemoveCrossFilter = (column: string) => {
+    const nextCrossFilters = { ...(pageOptions.cross_filters || {}) };
+    delete nextCrossFilters[column];
+    handlePageOptionsChange({
+      ...pageOptions,
+      cross_filters: nextCrossFilters,
+    });
+  };
+
+  const handleClearAllCrossFilters = () => {
+    handlePageOptionsChange({
+      ...pageOptions,
+      cross_filters: {},
+    });
   };
 
   const handleResetPageOptions = () => {
@@ -319,6 +355,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
       cast_overrides: {},
       exclude_missing: false,
       hide_outliers: false,
+      cross_filters: {},
     });
   };
 
