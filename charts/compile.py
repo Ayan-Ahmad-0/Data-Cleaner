@@ -39,25 +39,40 @@ def _render_field_expr(field_ref: FieldRef, schema: Dict[str, str]) -> Tuple[str
     
     Returns (sql_expr, failure_count_sql_expr).
     """
-    col_quoted = quote_identifier(field_ref.column)
-    col_type = schema.get(field_ref.column, "")
-
-    # 1. Cast expression
-    if field_ref.cast_as == "number":
-        expr = f"TRY_CAST({col_quoted} AS DOUBLE)"
-        fail_expr = f"SUM(CASE WHEN {col_quoted} IS NOT NULL AND TRY_CAST({col_quoted} AS DOUBLE) IS NULL THEN 1 ELSE 0 END)"
-    elif field_ref.cast_as == "date":
-        expr = f"TRY_CAST({col_quoted} AS DATE)"
-        fail_expr = f"SUM(CASE WHEN {col_quoted} IS NOT NULL AND TRY_CAST({col_quoted} AS DATE) IS NULL THEN 1 ELSE 0 END)"
-    elif field_ref.cast_as == "timestamp":
-        expr = f"TRY_CAST({col_quoted} AS TIMESTAMP)"
-        fail_expr = f"SUM(CASE WHEN {col_quoted} IS NOT NULL AND TRY_CAST({col_quoted} AS TIMESTAMP) IS NULL THEN 1 ELSE 0 END)"
-    elif field_ref.cast_as == "text":
-        expr = f"CAST({col_quoted} AS VARCHAR)"
+    if field_ref.formula:
+        base_expr = f"({field_ref.formula.strip()})"
+        col_type = ""
         fail_expr = None
+        if field_ref.cast_as == "number":
+            expr = f"TRY_CAST({base_expr} AS DOUBLE)"
+        elif field_ref.cast_as == "date":
+            expr = f"TRY_CAST({base_expr} AS DATE)"
+        elif field_ref.cast_as == "timestamp":
+            expr = f"TRY_CAST({base_expr} AS TIMESTAMP)"
+        elif field_ref.cast_as == "text":
+            expr = f"CAST({base_expr} AS VARCHAR)"
+        else:
+            expr = base_expr
     else:
-        expr = col_quoted
-        fail_expr = None
+        col_quoted = quote_identifier(field_ref.column)
+        col_type = schema.get(field_ref.column, "")
+
+        # 1. Cast expression
+        if field_ref.cast_as == "number":
+            expr = f"TRY_CAST({col_quoted} AS DOUBLE)"
+            fail_expr = f"SUM(CASE WHEN {col_quoted} IS NOT NULL AND TRY_CAST({col_quoted} AS DOUBLE) IS NULL THEN 1 ELSE 0 END)"
+        elif field_ref.cast_as == "date":
+            expr = f"TRY_CAST({col_quoted} AS DATE)"
+            fail_expr = f"SUM(CASE WHEN {col_quoted} IS NOT NULL AND TRY_CAST({col_quoted} AS DATE) IS NULL THEN 1 ELSE 0 END)"
+        elif field_ref.cast_as == "timestamp":
+            expr = f"TRY_CAST({col_quoted} AS TIMESTAMP)"
+            fail_expr = f"SUM(CASE WHEN {col_quoted} IS NOT NULL AND TRY_CAST({col_quoted} AS TIMESTAMP) IS NULL THEN 1 ELSE 0 END)"
+        elif field_ref.cast_as == "text":
+            expr = f"CAST({col_quoted} AS VARCHAR)"
+            fail_expr = None
+        else:
+            expr = col_quoted
+            fail_expr = None
 
     # 2. Time bucket expression
     if field_ref.time_bucket:
@@ -90,6 +105,12 @@ def _render_y_expr(field_ref: Optional[FieldRef], schema: Dict[str, str], agg: s
     """Render the Y-axis column expression, ensuring TRY_CAST to DOUBLE if aggregating numerically."""
     if not field_ref:
         return "*"
+    if field_ref.formula:
+        base_expr = f"({field_ref.formula.strip()})"
+        has_agg = any(kw in field_ref.formula.upper() for kw in ("SUM(", "AVG(", "MEDIAN(", "COUNT("))
+        if agg in ("avg", "sum", "median") and not has_agg:
+            return f"TRY_CAST({base_expr} AS DOUBLE)"
+        return base_expr
     expr, _ = _render_field_expr(field_ref, schema)
     if agg in ("avg", "sum", "median"):
         col_type = schema.get(field_ref.column, "")
