@@ -5,6 +5,7 @@ import {
   CHART_COLOR_SWATCHES,
   DEFAULT_CHART_COLOR,
 } from './chartColors';
+import { ChartColorPicker } from './ChartColorPicker';
 import {
   SlidersHorizontal,
   RotateCcw,
@@ -214,74 +215,19 @@ export const DataOptionsPanel: React.FC<DataOptionsPanelProps> = ({
                     className="fixed inset-0 z-40"
                     onClick={() => setIsColorMenuOpen(false)}
                   />
-                  <div className="absolute right-0 top-full mt-1.5 z-50 p-2.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl shadow-xl w-64 space-y-2 animate-in fade-in zoom-in-95 duration-100">
-                    <div className="flex items-center justify-between text-[11px] font-semibold text-[var(--text-primary)] px-0.5">
-                      <span>Global Chart Color</span>
-                      {globalColor && globalColor !== DEFAULT_CHART_COLOR && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            onGlobalColorChange(DEFAULT_CHART_COLOR);
-                            setIsColorMenuOpen(false);
-                          }}
-                          className="text-[10px] text-[var(--accent)] hover:underline font-normal cursor-pointer"
-                        >
-                          Reset
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-5 gap-1.5 pt-0.5">
-                      {CHART_COLOR_SWATCHES.map((swatch) => {
-                        const activeHex = globalColor || DEFAULT_CHART_COLOR;
-                        const isSelected = activeHex.toLowerCase() === swatch.hex.toLowerCase();
-                        return (
-                          <button
-                            key={swatch.id}
-                            type="button"
-                            onClick={() => {
-                              onGlobalColorChange(swatch.hex);
-                              setIsColorMenuOpen(false);
-                            }}
-                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer relative hover:scale-105 ${
-                              isSelected
-                                ? 'ring-2 ring-offset-2 ring-[var(--accent)] dark:ring-offset-zinc-900 scale-105'
-                                : 'hover:opacity-90'
-                            }`}
-                            style={{ backgroundColor: swatch.hex }}
-                            title={swatch.label}
-                          >
-                            {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
-                          </button>
-                        );
-                      })}
-                    </div>
-
-                    <div className="pt-1.5 border-t border-[var(--border-hairline)]/70 flex items-center gap-2">
-                      <label className="relative cursor-pointer shrink-0">
-                        <input
-                          type="color"
-                          value={
-                            globalColor && globalColor.startsWith('#') && globalColor.length === 7
-                              ? globalColor
-                              : '#FD4233'
-                          }
-                          onChange={(e) => onGlobalColorChange(e.target.value)}
-                          className="w-6 h-6 rounded cursor-pointer border-0 p-0 opacity-0 absolute inset-0"
-                        />
-                        <div
-                          className="w-6 h-6 rounded-md border border-[var(--border-hairline)] shadow-2xs"
-                          style={{ backgroundColor: globalColor || DEFAULT_CHART_COLOR }}
-                        />
-                      </label>
-                      <input
-                        type="text"
-                        value={globalColor || DEFAULT_CHART_COLOR}
-                        onChange={(e) => onGlobalColorChange(e.target.value)}
-                        placeholder="#hex"
-                        className="flex-1 text-[11px] font-mono px-2 py-0.5 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded text-[var(--text-primary)] uppercase focus:outline-none focus:border-[var(--accent)]"
-                      />
-                    </div>
+                  <div className="absolute right-0 top-full mt-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                    <ChartColorPicker
+                      color={globalColor || DEFAULT_CHART_COLOR}
+                      onChange={(newColor) => {
+                        onGlobalColorChange(newColor);
+                      }}
+                      onReset={
+                        globalColor && globalColor !== DEFAULT_CHART_COLOR
+                          ? () => onGlobalColorChange(DEFAULT_CHART_COLOR)
+                          : undefined
+                      }
+                      defaultColor={DEFAULT_CHART_COLOR}
+                    />
                   </div>
                 </>
               )}
