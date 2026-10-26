@@ -35,6 +35,7 @@ export const CHART_COLOR_SWATCHES: ChartColorSwatch[] = [
   { id: 'cyan', label: 'Sky Cyan', hex: '#06B6D4' },
 
   // Blues & Purples
+  { id: 'powerbi', label: 'Power BI Blue', hex: '#118DFF' },
   { id: 'azure', label: 'Ocean Azure', hex: '#0284C7' },
   { id: 'blue', label: 'Royal Blue', hex: '#2563EB' },
   { id: 'indigo', label: 'Deep Indigo', hex: '#4F46E5' },
@@ -99,4 +100,69 @@ export function buildPaletteWithPrimary(primaryHex: string): string[] {
   const norm = primaryHex.toLowerCase();
   const rest = FALLBACK_PALETTE.filter((c) => c.toLowerCase() !== norm);
   return [primaryHex, ...rest];
+}
+
+export function blendWithWhite(hex: string, alpha: number): string {
+  let clean = hex.replace('#', '').trim();
+  if (clean.length === 3) clean = clean.split('').map((c) => c + c).join('');
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) return '#f1f5f9';
+  const r = Math.round(((num >> 16) & 255) * alpha + 255 * (1 - alpha));
+  const g = Math.round(((num >> 8) & 255) * alpha + 255 * (1 - alpha));
+  const b = Math.round((num & 255) * alpha + 255 * (1 - alpha));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+export function blendWithDark(hex: string, alpha: number): string {
+  let clean = hex.replace('#', '').trim();
+  if (clean.length === 3) clean = clean.split('').map((c) => c + c).join('');
+  const num = parseInt(clean, 16);
+  if (isNaN(num)) return '#1e293b';
+  const r = Math.round(((num >> 16) & 255) * alpha + 15 * (1 - alpha));
+  const g = Math.round(((num >> 8) & 255) * alpha + 23 * (1 - alpha));
+  const b = Math.round((num & 255) * alpha + 42 * (1 - alpha));
+  return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+}
+
+/**
+ * Builds authentic Power BI matrix heatmap color scale.
+ * Default (#118DFF) matches Microsoft Power BI's signature corporate blue gradient.
+ * Custom colors smoothly scale from soft base tint to rich saturated maximum.
+ */
+export function buildHeatmapColorscale(primaryColor: string, isDark: boolean): [number, string][] {
+  const norm = primaryColor.toLowerCase();
+  // Signature Power BI Blue
+  if (norm === '#118dff' || norm === '#2563eb' || norm === '#0078d4') {
+    return isDark
+      ? [
+          [0, '#132238'],
+          [0.25, '#17365d'],
+          [0.55, '#1a569b'],
+          [0.8, '#0d6efd'],
+          [1.0, '#38bdf8'],
+        ]
+      : [
+          [0, '#ebf3fc'],
+          [0.3, '#9ec5f7'],
+          [0.65, '#3b8ded'],
+          [1.0, '#005fb8'],
+        ];
+  }
+
+  // Any custom color chosen by user
+  if (isDark) {
+    return [
+      [0, blendWithDark(primaryColor, 0.2)],
+      [0.3, adjustBrightness(primaryColor, -40)],
+      [0.65, adjustBrightness(primaryColor, -10)],
+      [1.0, adjustBrightness(primaryColor, 20)],
+    ];
+  } else {
+    return [
+      [0, blendWithWhite(primaryColor, 0.1)],
+      [0.3, blendWithWhite(primaryColor, 0.38)],
+      [0.65, blendWithWhite(primaryColor, 0.72)],
+      [1.0, adjustBrightness(primaryColor, -18)],
+    ];
+  }
 }
