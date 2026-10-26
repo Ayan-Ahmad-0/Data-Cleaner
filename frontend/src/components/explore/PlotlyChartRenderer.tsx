@@ -8,6 +8,7 @@ import {
   hexToRgba,
   buildHeatmapColorscale,
 } from './chartColors';
+import { buildTrendlineTrace } from './trendlineMath';
 
 interface PlotlyChartRendererProps {
   data: ChartDataResponse;
@@ -72,7 +73,11 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         tickfont: { color: tickColor, size: 11 },
         automargin: true,
       },
-      showlegend: !!spec.color || spec.chart_type === 'pie' || spec.chart_type === 'donut',
+      showlegend:
+        !!spec.color ||
+        spec.chart_type === 'pie' ||
+        spec.chart_type === 'donut' ||
+        (!!spec.trendline && spec.trendline.type !== 'none'),
       legend: {
         font: { color: textColor, size: 11 },
         orientation: 'h',
@@ -140,6 +145,20 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           },
         },
       ];
+
+      if (spec.trendline && spec.trendline.type !== 'none') {
+        const sorted = [...validRows].sort((a, b) => Number(a[0]) - Number(b[0]));
+        const trendTrace = buildTrendlineTrace(
+          spec.trendline,
+          sorted.map((r) => Number(r[0])),
+          sorted.map((r) => Number(r[1])),
+          { primaryColor, isDark }
+        );
+        if (trendTrace) {
+          traces.push(trendTrace);
+        }
+      }
+
       const scatterLayout = {
         ...baseLayout,
         xaxis: { ...baseLayout.xaxis, type: 'linear' },
@@ -481,6 +500,23 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           marker: { color, size: 4 },
         };
       });
+
+      if (spec.trendline && spec.trendline.type !== 'none') {
+        seriesNames.forEach((sName, idx) => {
+          const sRows = validRows.filter((r) => String(r[1]) === sName);
+          const color = activePalette[idx % activePalette.length];
+          const trendTrace = buildTrendlineTrace(
+            spec.trendline!,
+            sRows.map((r) => r[0]),
+            sRows.map((r) => Number(r[2])),
+            { seriesName: sName, primaryColor: color, isDark }
+          );
+          if (trendTrace) {
+            traces.push(trendTrace);
+          }
+        });
+      }
+
       return { isBigNumber: false, primaryColor, traces, layout: lineLayout };
     }
 
@@ -503,6 +539,18 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
         marker: { color: primaryColor, size: 5 },
       },
     ];
+
+    if (spec.trendline && spec.trendline.type !== 'none') {
+      const trendTrace = buildTrendlineTrace(
+        spec.trendline,
+        xVals,
+        yVals,
+        { primaryColor, isDark }
+      );
+      if (trendTrace) {
+        traces.push(trendTrace);
+      }
+    }
 
     return { isBigNumber: false, primaryColor, traces, layout: lineLayout };
   }, [data, isDark, height, spec, columns, rows, customColor, crossFilters]);
