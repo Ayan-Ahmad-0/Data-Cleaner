@@ -40,7 +40,7 @@ export function generateDashboardHtml(
 
   const cardsPayload = cards.map((c) => ({
     id: c.id,
-    title: c.spec.title || c.title || `${c.spec.chart_type.toUpperCase()} Chart`,
+    title: c.spec.title || `${c.spec.chart_type.toUpperCase()} Chart`,
     spec: c.spec,
     questionAnswered: c.questionAnswered,
     data: {
@@ -626,7 +626,7 @@ export function downloadDashboardJson(
     page_options: pageOptions,
     cards: cards.map((c) => ({
       id: c.id,
-      title: c.spec.title || c.title,
+      title: c.spec.title || `${c.spec.chart_type.toUpperCase()} Chart`,
       question_answered: c.questionAnswered,
       why: c.why,
       spec: c.spec,
@@ -664,7 +664,7 @@ export async function copyDashboardSnapshotText(
       page_options: pageOptions,
       cards: cards.map((c) => ({
         id: c.id,
-        title: c.spec.title || c.title,
+        title: c.spec.title || `${c.spec.chart_type.toUpperCase()} Chart`,
         question_answered: c.questionAnswered,
         why: c.why,
         spec: c.spec,
