@@ -33,11 +33,12 @@ SortType = Literal["x", "y_desc", "y_asc"]
 
 
 class FieldRef(BaseModel):
-    """Reference to a dataset column with optional type-casting, bucketing, or binning."""
+    """Reference to a dataset column with optional type-casting, bucketing, binning, or custom formula."""
     column: str
     cast_as: Optional[CastType] = None
     time_bucket: Optional[TimeBucketType] = None
     bins: Optional[int] = Field(None, ge=5, le=200)
+    formula: Optional[str] = Field(None, max_length=500)
 
     @field_validator("column")
     @classmethod
