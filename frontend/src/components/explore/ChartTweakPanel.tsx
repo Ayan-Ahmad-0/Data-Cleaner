@@ -572,86 +572,258 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
               </div>
             )}
 
-            {/* Y Axis */}
+            {/* Y Axis / Metric Builder */}
             {spec.chart_type !== 'histogram' && (
-              <div className="space-y-1.5 p-3 rounded-[var(--radius-lg)] bg-[var(--bg-subtle)] border border-[var(--border-hairline)]">
-                <div className="flex items-center justify-between">
-                  <label className="font-semibold text-xs text-[var(--text-primary)]">
-                    {spec.chart_type === 'box'
-                      ? 'Y Axis Column (Numeric Required)'
-                      : spec.chart_type === 'heatmap'
-                      ? 'Y Axis Column (Required)'
-                      : spec.chart_type === 'scatter'
-                      ? 'Y Axis Column (Numeric Required)'
-                      : 'Y Axis Column'}
-                  </label>
-                  {spec.y && (
-                    <select
-                      value={spec.y.cast_as || ''}
-                      onChange={(e) => handleCastChange('y', e.target.value)}
-                      className="text-[10px] bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-1.5 py-0.5 text-[var(--text-secondary)]"
-                    >
-                      <option value="">Default type</option>
-                      <option value="number">Read as Number</option>
-                      <option value="text">Read as Text</option>
-                    </select>
-                  )}
-                </div>
-                <select
-                  value={spec.y?.column || ''}
-                  onChange={(e) => handleColumnChange('y', e.target.value)}
-                  className="w-full px-2.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-[var(--radius-md)] text-xs"
-                >
-                  <option value="">
-                    {spec.chart_type === 'box' || spec.chart_type === 'heatmap' || spec.chart_type === 'scatter'
-                      ? '(Select column)'
-                      : '(None / Row Count)'}
-                  </option>
-                  {columns.map((c) => (
-                    <option key={c.name} value={c.name}>
-                      {c.name} ({c.type}) {c.null_pct > 0 ? `· ${c.null_pct}% null` : ''}
-                    </option>
-                  ))}
-                </select>
+              <div className="space-y-3 p-3.5 rounded-[var(--radius-lg)] bg-[var(--bg-subtle)] border border-[var(--border-hairline)]">
+                {/* Header with Mode Switcher */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <label className="font-semibold text-xs text-[var(--text-primary)] truncate">
+                      {spec.chart_type === 'box'
+                        ? 'Y Axis Column'
+                        : spec.chart_type === 'heatmap'
+                        ? 'Y Axis Column'
+                        : spec.chart_type === 'scatter'
+                        ? 'Y Axis Column'
+                        : 'Metric / Y Axis'}
+                    </label>
+                    {spec.y?.formula && (
+                      <span className="px-1.5 py-0.2 rounded text-[10px] font-mono bg-indigo-500/15 text-indigo-400 font-semibold border border-indigo-500/25 shrink-0">
+                        fx formula
+                      </span>
+                    )}
+                  </div>
 
-                {/* Aggregation */}
-                {spec.chart_type !== 'box' && spec.chart_type !== 'scatter' && (
-                  <div className="pt-2 flex items-center justify-between text-[11px]">
-                    <span className="text-[var(--text-secondary)]">Aggregation:</span>
-                    <select
-                      value={spec.aggregation}
-                      onChange={(e) => {
-                        const newAgg = e.target.value as any;
-                        let updatedY = spec.y ? { ...spec.y } : undefined;
-                        if (updatedY && (newAgg === 'sum' || newAgg === 'avg' || newAgg === 'median')) {
-                          const colObj = columns.find((c) => c.name === updatedY?.column);
-                          if (colObj && !isNumericCol(colObj) && !updatedY.cast_as) {
-                            updatedY = { ...updatedY, cast_as: 'number' };
-                          }
+                  {/* Mode Switcher Tabs */}
+                  <div className="flex items-center p-0.5 rounded-md bg-[var(--bg-app)] border border-[var(--border-hairline)] shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMetricMode('column');
+                        if (spec.y?.formula) {
+                          setSpec({ ...spec, y: { column: columns[0]?.name || '' } });
                         }
-                        setSpec({ ...spec, aggregation: newAgg, y: updatedY });
                       }}
-                      className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-2 py-0.5 text-[11px]"
+                      className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                        metricMode === 'column'
+                          ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-2xs font-semibold'
+                          : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+                      }`}
                     >
-                      {AGGREGATIONS.map((a) => {
-                        const disabledReason = tweakOptions?.disabled_aggregations?.[a.id];
-                        return (
-                          <option key={a.id} value={a.id} disabled={!!disabledReason}>
-                            {a.label} {disabledReason ? '(!)' : ''}
+                      Column
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMetricMode('formula');
+                        if (!formulaExpr) {
+                          const numCols = columns.filter((c) => isNumericCol(c));
+                          const c1 = numCols[0]?.name ? `"${numCols[0].name}"` : '"col_a"';
+                          const c2 = numCols[1]?.name ? `"${numCols[1].name}"` : '"col_b"';
+                          setFormulaName('Calculated Metric');
+                          setFormulaExpr(`${c1} - ${c2}`);
+                        }
+                      }}
+                      className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                        metricMode === 'formula'
+                          ? 'bg-[var(--bg-surface)] text-indigo-400 shadow-2xs font-semibold'
+                          : 'text-[var(--text-muted)] hover:text-indigo-400'
+                      }`}
+                    >
+                      <Calculator className="w-3 h-3 text-indigo-400" />
+                      <span>Formula (fx)</span>
+                    </button>
+                  </div>
+                </div>
+
+                {metricMode === 'column' ? (
+                  /* Standard Column Selection */
+                  <div className="space-y-2">
+                    <select
+                      value={spec.y?.column || ''}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const savedCalc = pageOptions?.calculated_columns?.[val];
+                        if (savedCalc) {
+                          setSpec({ ...spec, y: { column: val, formula: savedCalc } });
+                        } else {
+                          handleColumnChange('y', val);
+                        }
+                      }}
+                      className="w-full px-2.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-[var(--radius-md)] text-xs"
+                    >
+                      <option value="">
+                        {spec.chart_type === 'box' || spec.chart_type === 'heatmap' || spec.chart_type === 'scatter'
+                          ? '(Select column)'
+                          : '(None / Row Count)'}
+                      </option>
+                      {pageOptions?.calculated_columns && Object.keys(pageOptions.calculated_columns).length > 0 && (
+                        <optgroup label="Calculated Formulas (fx)">
+                          {Object.entries(pageOptions.calculated_columns).map(([name, form]) => (
+                            <option key={`calc_${name}`} value={name}>
+                              fx {name} = {form}
+                            </option>
+                          ))}
+                        </optgroup>
+                      )}
+                      <optgroup label="Dataset Columns">
+                        {columns.map((c) => (
+                          <option key={c.name} value={c.name}>
+                            {c.name} ({c.type}) {c.null_pct > 0 ? `· ${c.null_pct}% null` : ''}
                           </option>
-                        );
-                      })}
+                        ))}
+                      </optgroup>
                     </select>
+
+                    {/* Aggregation */}
+                    {spec.chart_type !== 'box' && spec.chart_type !== 'scatter' && (
+                      <div className="pt-1 flex items-center justify-between text-[11px]">
+                        <span className="text-[var(--text-secondary)]">Aggregation:</span>
+                        <select
+                          value={spec.aggregation}
+                          onChange={(e) => {
+                            const newAgg = e.target.value as any;
+                            let updatedY = spec.y ? { ...spec.y } : undefined;
+                            if (updatedY && (newAgg === 'sum' || newAgg === 'avg' || newAgg === 'median')) {
+                              const colObj = columns.find((c) => c.name === updatedY?.column);
+                              if (colObj && !isNumericCol(colObj) && !updatedY.cast_as) {
+                                updatedY = { ...updatedY, cast_as: 'number' };
+                              }
+                            }
+                            setSpec({ ...spec, aggregation: newAgg, y: updatedY });
+                          }}
+                          className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-2 py-0.5 text-[11px]"
+                        >
+                          {AGGREGATIONS.map((a) => {
+                            const disabledReason = tweakOptions?.disabled_aggregations?.[a.id];
+                            return (
+                              <option key={a.id} value={a.id} disabled={!!disabledReason}>
+                                {a.label} {disabledReason ? '(!)' : ''}
+                              </option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                    )}
+                    {spec.chart_type === 'box' && (
+                      <div className="pt-1 text-[11px] text-[var(--text-muted)] italic">
+                        Five-number summary (min, Q1, median, Q3, max)
+                      </div>
+                    )}
+                    {spec.chart_type === 'scatter' && (
+                      <div className="pt-1 text-[11px] text-[var(--text-muted)] italic">
+                        Sampled data points (no aggregation)
+                      </div>
+                    )}
                   </div>
-                )}
-                {spec.chart_type === 'box' && (
-                  <div className="pt-2 text-[11px] text-[var(--text-muted)] italic">
-                    Five-number summary (min, Q1, median, Q3, max)
-                  </div>
-                )}
-                {spec.chart_type === 'scatter' && (
-                  <div className="pt-2 text-[11px] text-[var(--text-muted)] italic">
-                    Sampled data points (no aggregation)
+                ) : (
+                  /* Custom Formula & Metric Builder */
+                  <div className="space-y-3 pt-1 border-t border-[var(--border-hairline)]/60">
+                    {/* Metric Name */}
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-medium text-[var(--text-secondary)] flex items-center justify-between">
+                        <span>Metric Label</span>
+                        <span className="text-[10px] text-[var(--text-muted)]">Shown on axis & tooltips</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={formulaName}
+                        onChange={(e) => setFormulaName(e.target.value)}
+                        placeholder="e.g. Net Profit, Conversion Rate, Margin"
+                        className="w-full px-2.5 py-1.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-[var(--radius-md)] text-xs text-[var(--text-primary)] focus:border-[var(--accent)] focus:outline-hidden"
+                      />
+                    </div>
+
+                    {/* Formula Editor */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[11px] font-medium text-[var(--text-secondary)] flex items-center gap-1.5">
+                          <Code2 className="w-3 h-3 text-indigo-400" />
+                          <span>Formula Expression (SQL / DuckDB)</span>
+                        </label>
+                        {/* Quick Presets Dropdown */}
+                        <select
+                          onChange={(e) => {
+                            const p = FORMULA_PRESETS.find((x) => x.label === e.target.value);
+                            if (p) handleApplyPreset(p);
+                            e.target.value = '';
+                          }}
+                          defaultValue=""
+                          className="text-[10px] bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded px-1.5 py-0.5 text-[var(--text-muted)] hover:text-[var(--text-secondary)] cursor-pointer"
+                        >
+                          <option value="" disabled>Insert formula preset...</option>
+                          {FORMULA_PRESETS.map((p) => (
+                            <option key={p.label} value={p.label}>{p.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="relative">
+                        <textarea
+                          rows={2}
+                          value={formulaExpr}
+                          onChange={(e) => setFormulaExpr(e.target.value)}
+                          placeholder='e.g. "revenue" - "cost" or ("orders" * 1.0 / NULLIF("visits", 0)) * 100'
+                          className="w-full px-2.5 py-2 font-mono text-xs bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-md)] text-[var(--text-primary)] focus:border-indigo-400 focus:outline-hidden leading-relaxed resize-y"
+                        />
+                      </div>
+
+                      {/* Quick Insert Column Chips */}
+                      <div className="space-y-1">
+                        <span className="text-[10px] text-[var(--text-muted)] block">Click to insert column into formula:</span>
+                        <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto custom-scrollbar p-1 rounded bg-[var(--bg-app)] border border-[var(--border-hairline)]/50">
+                          {columns.map((c) => (
+                            <button
+                              key={`chip_${c.name}`}
+                              type="button"
+                              onClick={() => insertTokenIntoFormula(`"${c.name}"`)}
+                              className="px-1.5 py-0.5 rounded text-[10px] font-mono bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-hairline)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+                              title={`Insert "${c.name}" (${c.type})`}
+                            >
+                              + {c.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Real-time Validation Status */}
+                      <div className="pt-0.5">
+                        {isValidating ? (
+                          <div className="flex items-center gap-1.5 text-[11px] text-[var(--text-muted)]">
+                            <Loader2 className="w-3 h-3 animate-spin text-indigo-400" />
+                            <span>Validating formula syntax in DuckDB...</span>
+                          </div>
+                        ) : validationResult?.valid ? (
+                          <div className="flex items-center justify-between text-[11px] px-2 py-1 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                            <span className="flex items-center gap-1 font-medium">
+                              <Check className="w-3 h-3 text-emerald-500" />
+                              Valid expression ({validationResult.inferred_type})
+                            </span>
+                            {validationResult.sample_result !== null && (
+                              <span className="font-mono text-[10px] opacity-90">
+                                Sample: {String(validationResult.sample_result)}
+                              </span>
+                            )}
+                          </div>
+                        ) : validationResult?.error ? (
+                          <div className="text-[11px] px-2 py-1 rounded bg-rose-500/10 text-rose-500 border border-rose-500/20 leading-tight">
+                            <span className="font-semibold">Error: </span>
+                            <span>{validationResult.error}</span>
+                          </div>
+                        ) : null}
+                      </div>
+
+                      {/* Save to Page Options Checkbox */}
+                      <label className="flex items-center gap-2 pt-1 text-[11px] text-[var(--text-secondary)] cursor-pointer select-none">
+                        <input
+                          type="checkbox"
+                          checked={saveToPage}
+                          onChange={(e) => setSaveToPage(e.target.checked)}
+                          className="rounded text-[var(--accent)] focus:ring-[var(--accent)] cursor-pointer"
+                        />
+                        <span>Save as reusable calculated metric across all charts</span>
+                      </label>
+                    </div>
                   </div>
                 )}
               </div>
