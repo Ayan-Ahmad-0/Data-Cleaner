@@ -505,7 +505,32 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
     ];
 
     return { isBigNumber: false, primaryColor, traces, layout: lineLayout };
-  }, [data, isDark, height, spec, columns, rows, customColor]);
+  }, [data, isDark, height, spec, columns, rows, customColor, crossFilters]);
+
+  const handlePlotClick = (event: any) => {
+    if (!onPointClick || !event || !event.points || event.points.length === 0) return;
+    const pt = event.points[0];
+    let clickedCol: string | undefined = undefined;
+    let clickedVal: any = undefined;
+
+    if (spec.chart_type === 'bar') {
+      clickedCol = spec.x?.column;
+      clickedVal = pt.x;
+    } else if (spec.chart_type === 'hbar') {
+      clickedCol = spec.x?.column;
+      clickedVal = pt.y;
+    } else if (spec.chart_type === 'pie' || spec.chart_type === 'donut') {
+      clickedCol = spec.x?.column;
+      clickedVal = pt.label;
+    } else if (spec.chart_type === 'heatmap') {
+      clickedCol = spec.x?.column;
+      clickedVal = pt.x;
+    }
+
+    if (clickedCol && clickedVal != null) {
+      onPointClick(clickedCol, clickedVal);
+    }
+  };
 
   if (plotConfig.isBigNumber) {
     return (
@@ -538,6 +563,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           },
           modeBarButtonsToRemove: ['lasso2d', 'select2d'],
         }}
+        onClick={handlePlotClick}
         useResizeHandler
         style={{ width: '100%', height: '100%' }}
       />
