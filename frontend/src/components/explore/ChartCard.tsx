@@ -106,7 +106,7 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   return (
     <div className="chart-card bg-[var(--bg-surface)] backdrop-blur border border-[var(--border-hairline)] rounded-xl p-4 sm:p-5 shadow-[var(--shadow-card)] hover:border-[var(--border-strong)] transition-all flex flex-col justify-between group">
       {/* 1. Card Header: Title + Category Pill on Left; Muted Utility Button Group on Right */}
-      <div className="flex items-center justify-between gap-3 pb-2.5 border-b border-[var(--border-hairline)]/60">
+      <div className="chart-card-header flex items-center justify-between gap-3 pb-2.5 border-b border-[var(--border-hairline)]/60">
         <div className="flex items-center gap-2 min-w-0">
           <h3 className="text-sm font-semibold text-[var(--text-primary)] truncate tracking-tight">
             {item.spec.title || `${item.spec.chart_type.toUpperCase()} Chart`}
