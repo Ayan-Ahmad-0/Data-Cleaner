@@ -408,36 +408,6 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
             </div>
           </div>
 
-          {/* Chart Color / Accent */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
-                Chart Color / Accent
-              </label>
-              {spec.custom_color && (
-                <button
-                  type="button"
-                  onClick={() => setSpec({ ...spec, custom_color: null })}
-                  className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
-                >
-                  Reset to default ({getDefaultChartColor(spec.chart_type)})
-                </button>
-              )}
-            </div>
-            <div className="flex items-center justify-start">
-              <ChartColorPicker
-                color={spec.custom_color || getDefaultChartColor(spec.chart_type)}
-                onChange={(newColor) => setSpec({ ...spec, custom_color: newColor })}
-                onReset={
-                  spec.custom_color
-                    ? () => setSpec({ ...spec, custom_color: null })
-                    : undefined
-                }
-                defaultColor={getDefaultChartColor(spec.chart_type)}
-              />
-            </div>
-          </div>
-
           {/* Axes & Columns Selection */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* X Axis */}
@@ -721,6 +691,36 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Chart Color / Accent */}
+          <div className="space-y-2 pt-2 border-t border-[var(--border-hairline)]">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
+                Chart Color / Accent
+              </label>
+              {spec.custom_color && (
+                <button
+                  type="button"
+                  onClick={() => setSpec({ ...spec, custom_color: null })}
+                  className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
+                >
+                  Reset to default ({getDefaultChartColor(spec.chart_type)})
+                </button>
+              )}
+            </div>
+            <div className="flex items-center justify-start">
+              <ChartColorPicker
+                color={spec.custom_color || getDefaultChartColor(spec.chart_type)}
+                onChange={(newColor) => setSpec({ ...spec, custom_color: newColor })}
+                onReset={
+                  spec.custom_color
+                    ? () => setSpec({ ...spec, custom_color: null })
+                    : undefined
+                }
+                defaultColor={getDefaultChartColor(spec.chart_type)}
+              />
+            </div>
           </div>
         </div>
 
