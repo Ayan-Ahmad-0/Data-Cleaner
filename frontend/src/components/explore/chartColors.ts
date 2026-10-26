@@ -19,8 +19,22 @@ export function getDefaultChartColor(chartType?: string): string {
   return DEFAULT_CHART_COLOR;
 }
 
+export const BRAND_CHART_SWATCHES: ChartColorSwatch[] = [
+  { id: 'coral', label: 'Core Coral (Brand)', hex: '#FF4B3E' },
+  { id: 'emerald', label: 'Emerald Green', hex: '#10B981' },
+  { id: 'blue', label: 'Power BI Blue', hex: '#118DFF' },
+  { id: 'violet', label: 'Vibrant Violet', hex: '#7C3AED' },
+  { id: 'amber', label: 'Amber Gold', hex: '#F59E0B' },
+  { id: 'cyan', label: 'Sky Cyan', hex: '#06B6D4' },
+  { id: 'rose', label: 'Rose Pink', hex: '#EC4899' },
+  { id: 'tangerine', label: 'Warm Tangerine', hex: '#F97316' },
+  { id: 'indigo', label: 'Deep Indigo', hex: '#6366F1' },
+  { id: 'slate', label: 'Cool Slate', hex: '#64748B' },
+];
+
 export const CHART_COLOR_SWATCHES: ChartColorSwatch[] = [
   // Warm Reds & Oranges
+  { id: 'coral', label: 'Core Coral (Brand)', hex: '#FF4B3E' },
   { id: 'scarlet', label: 'Scarlet Red', hex: '#FF2400' },
   { id: 'orange', label: 'Coral Orange (Brand)', hex: '#FD4233' },
   { id: 'ruby', label: 'Crimson Ruby', hex: '#E11D48' },
