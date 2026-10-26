@@ -217,7 +217,7 @@ def build_chart(
             spec.x = FieldRef(column=list(schema.keys())[0])
 
     # For any chart type with numeric aggregation, ensure non-numeric Y columns are cast as number
-    if spec.y and spec.aggregation in ("sum", "avg", "median"):
+    if spec.y and not spec.y.formula and spec.aggregation in ("sum", "avg", "median"):
         y_col_type = schema.get(spec.y.column, "")
         if not _is_numeric_type(y_col_type, spec.y.cast_as):
             spec.y.cast_as = "number"
@@ -248,7 +248,7 @@ def build_chart(
                 notes.append(f"'{col}' read as {cast_t}")
 
     # 3. Check for cast failure warnings if cast_as is used
-    cast_fields = [f for f in (spec.x, spec.y) if f and f.cast_as in ("number", "date", "timestamp")]
+    cast_fields = [f for f in (spec.x, spec.y) if f and not f.formula and f.cast_as in ("number", "date", "timestamp")]
     if cast_fields:
         cast_con = duckdb.connect(":memory:")
         try:
