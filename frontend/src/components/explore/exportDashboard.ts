@@ -760,16 +760,22 @@ ${payloadJson}
 
       renderAllCharts();
 
-      const resizeCharts = () => {
+      const resizeCharts = (printHeight) => {
         dataPayload.cards.forEach((_, idx) => {
           const elem = document.getElementById(\`chart-elem-\${idx}\`);
-          if (elem && window.Plotly) Plotly.Plots.resize(elem);
+          if (elem && window.Plotly) {
+            if (printHeight) {
+              Plotly.relayout(elem, { height: printHeight, autosize: true });
+            } else {
+              Plotly.Plots.resize(elem);
+            }
+          }
         });
       };
 
-      window.addEventListener('resize', resizeCharts);
-      window.addEventListener('beforeprint', resizeCharts);
-      window.addEventListener('afterprint', resizeCharts);
+      window.addEventListener('resize', () => resizeCharts());
+      window.addEventListener('beforeprint', () => resizeCharts(215));
+      window.addEventListener('afterprint', () => resizeCharts(360));
       if (window.ResizeObserver) {
         const ro = new ResizeObserver(() => resizeCharts());
         ro.observe(container);
