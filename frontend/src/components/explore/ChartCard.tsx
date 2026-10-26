@@ -153,88 +153,19 @@ export const ChartCard: React.FC<ChartCardProps> = ({
                   className="fixed inset-0 z-40"
                   onClick={() => setIsColorPickerOpen(false)}
                 />
-                <div className="absolute right-0 top-full mt-1.5 z-50 w-64 p-3 bg-zinc-900 border border-zinc-800 rounded-xl shadow-xl backdrop-blur-md space-y-3 animate-in fade-in zoom-in-95 duration-100">
-                  <div className="flex items-center justify-between text-xs font-semibold text-zinc-200">
-                    <span>Chart Color</span>
-                    {item.spec.custom_color && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          onUpdateSpec(item.id, { ...item.spec, custom_color: null });
-                          setHexInput(defaultColor);
-                        }}
-                        className="text-[11px] text-zinc-400 hover:text-white hover:underline font-normal cursor-pointer transition-colors"
-                      >
-                        Reset
-                      </button>
-                    )}
-                  </div>
-
-                  {/* 10 Brand-aligned swatches in a 5x2 grid */}
-                  <div className="grid grid-cols-5 gap-1.5 pt-0.5">
-                    {BRAND_CHART_SWATCHES.map((swatch) => {
-                      const isSelected = activeColor.toLowerCase() === swatch.hex.toLowerCase();
-                      return (
-                        <button
-                          key={swatch.id}
-                          type="button"
-                          onClick={() => {
-                            onUpdateSpec(item.id, { ...item.spec, custom_color: swatch.hex });
-                            setHexInput(swatch.hex);
-                          }}
-                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all cursor-pointer relative hover:scale-105 ${
-                            isSelected
-                              ? 'ring-2 ring-offset-2 ring-white ring-offset-zinc-900 scale-105 shadow-sm'
-                              : 'hover:opacity-90'
-                          }`}
-                          style={{ backgroundColor: swatch.hex }}
-                          title={swatch.label}
-                        >
-                          {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
-                        </button>
-                      );
-                    })}
-                  </div>
-
-                  {/* Custom Hex Code Text Input (No Native Browser Inputs) */}
-                  <div className="pt-2 border-t border-zinc-800 flex items-center gap-2">
-                    <div
-                      className="w-7 h-7 rounded-md border border-zinc-700/80 shrink-0 shadow-inner"
-                      style={{ backgroundColor: activeColor }}
-                      title="Current active color"
-                    />
-                    <input
-                      type="text"
-                      value={hexInput}
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        setHexInput(val);
-                        const cleanVal = val.startsWith('#') ? val : `#${val}`;
-                        if (/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(cleanVal)) {
-                          onUpdateSpec(item.id, { ...item.spec, custom_color: cleanVal });
-                        }
-                      }}
-                      onBlur={() => {
-                        let val = hexInput.trim();
-                        if (!val.startsWith('#') && (val.length === 3 || val.length === 6)) {
-                          val = `#${val}`;
-                        }
-                        if (/^#([0-9A-Fa-f]{3}|[0-9A-Fa-f]{6})$/.test(val)) {
-                          setHexInput(val);
-                          onUpdateSpec(item.id, { ...item.spec, custom_color: val });
-                        } else {
-                          setHexInput(activeColor);
-                        }
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          (e.target as HTMLInputElement).blur();
-                        }
-                      }}
-                      placeholder="#FF4B3E"
-                      className="bg-zinc-950 border border-zinc-800 text-sm px-2 py-1 rounded-md text-zinc-300 font-mono w-full focus:outline-none focus:border-zinc-700"
-                    />
-                  </div>
+                <div className="absolute right-0 top-full mt-1.5 z-50 animate-in fade-in zoom-in-95 duration-100">
+                  <ChartColorPicker
+                    color={activeColor}
+                    onChange={(newColor) => {
+                      onUpdateSpec(item.id, { ...item.spec, custom_color: newColor });
+                    }}
+                    onReset={
+                      item.spec.custom_color
+                        ? () => onUpdateSpec(item.id, { ...item.spec, custom_color: null })
+                        : undefined
+                    }
+                    defaultColor={defaultColor}
+                  />
                 </div>
               </>
             )}
