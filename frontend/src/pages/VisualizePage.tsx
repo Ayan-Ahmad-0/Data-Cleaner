@@ -1085,7 +1085,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
           )}
 
           {/* Privacy & Escaping Guarantee Footer Notice */}
-          <div className="flex items-center justify-center gap-2 pt-2 text-xs text-[var(--text-muted)]">
+          <div className="no-print flex items-center justify-center gap-2 pt-2 text-xs text-[var(--text-muted)]">
             <ShieldCheck className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             <span>
               Column names, statistical aggregates, and small samples are sent to Gemini. Full datasets are never sent.
