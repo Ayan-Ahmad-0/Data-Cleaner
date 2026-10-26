@@ -379,6 +379,7 @@ export interface ChartFieldRef {
   cast_as?: 'number' | 'date' | 'timestamp' | 'text' | null;
   time_bucket?: 'hour' | 'day' | 'week' | 'month' | 'quarter' | 'year' | 'hour_of_day' | 'day_of_week' | null;
   bins?: number | null;
+  formula?: string | null;
 }
 
 export interface ChartFilter {
@@ -421,6 +422,7 @@ export interface PageDataOptions {
   exclude_missing: boolean;
   hide_outliers: boolean;
   cross_filters?: Record<string, any>;
+  calculated_columns?: Record<string, string>;
 }
 
 export interface TweakColumnOption {
