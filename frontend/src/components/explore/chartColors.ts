@@ -6,12 +6,14 @@ export interface ChartColorSwatch {
 }
 
 export const DEFAULT_CHART_COLOR = '#FD4233';
+export const DEFAULT_BAR_COLOR = '#8F0926';
 export const DEFAULT_LINE_COLOR = '#E11D48';
 export const DEFAULT_AREA_COLOR = '#0284C7';
 export const DEFAULT_HEATMAP_COLOR = '#FF2400';
 export const DEFAULT_HISTOGRAM_COLOR = '#EAB308';
 
 export function getDefaultChartColor(chartType?: string): string {
+  if (chartType === 'bar') return DEFAULT_BAR_COLOR;
   if (chartType === 'line') return DEFAULT_LINE_COLOR;
   if (chartType === 'area') return DEFAULT_AREA_COLOR;
   if (chartType === 'heatmap') return DEFAULT_HEATMAP_COLOR;
@@ -20,6 +22,7 @@ export function getDefaultChartColor(chartType?: string): string {
 }
 
 export const BRAND_CHART_SWATCHES: ChartColorSwatch[] = [
+  { id: 'crimson_bar', label: 'Crimson Wine (Bar Default)', hex: '#8F0926' },
   { id: 'coral', label: 'Core Coral (Brand)', hex: '#FF4B3E' },
   { id: 'emerald', label: 'Emerald Green', hex: '#10B981' },
   { id: 'blue', label: 'Power BI Blue', hex: '#118DFF' },
