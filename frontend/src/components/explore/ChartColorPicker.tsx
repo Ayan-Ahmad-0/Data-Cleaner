@@ -222,6 +222,15 @@ export const ChartColorPicker: React.FC<ChartColorPickerProps> = ({
     onChange(hex);
   };
 
+  const handleReset = () => {
+    if (defaultColor) {
+      handleSelectSwatch(defaultColor);
+    }
+    if (onReset) {
+      onReset();
+    }
+  };
+
   const toggleFormat = () => {
     setFormatMode((prev) => (prev === 'hex' ? 'rgb' : prev === 'rgb' ? 'hsl' : 'hex'));
   };
