@@ -168,7 +168,7 @@ def suggest_charts_from_stats(
             f"pie_{col.name}",
         )
 
-    # Rule 4: Categorical Ranking -> Horizontal Bar (H-Bar)
+    # Rule 4: Categorical Ranking -> Vertical Bar (Bar)
     used_cat_cols = {s.x.column for s in suggestions if s.x}
     avail_cats = [c for c in (mid_cardinality or all_categoricals) if c.name not in used_cat_cols]
     if avail_cats:
@@ -176,14 +176,14 @@ def suggest_charts_from_stats(
         cat_label = cat.name.replace("_", " ").title()
         add_spec(
             ChartSpec(
-                chart_type="hbar",
+                chart_type="bar",
                 x=FieldRef(column=cat.name),
                 aggregation="count",
                 sort="y_desc",
                 top_n=15,
                 title=f"Top {cat_label} Categories",
             ),
-            f"cat_hbar_{cat.name}",
+            f"cat_bar_{cat.name}",
         )
 
     # Rule 5: Datetime + Numeric -> Line Chart (Average metric trend over time)
