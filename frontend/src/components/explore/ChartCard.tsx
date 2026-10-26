@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   type ChartColumnStats,
   type ChartDataResponse,
@@ -8,7 +8,6 @@ import {
 import { ChartTweakPanel } from './ChartTweakPanel';
 import { PlotlyChartRenderer } from './PlotlyChartRenderer';
 import {
-  BRAND_CHART_SWATCHES,
   DEFAULT_CHART_COLOR,
   getDefaultChartColor,
 } from './chartColors';
@@ -25,7 +24,6 @@ import {
   Loader2,
   Info,
   Palette,
-  Check,
   RefreshCw,
 } from 'lucide-react';
 
@@ -89,11 +87,6 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   const activeColor =
     item.spec.custom_color ||
     (globalColor && globalColor !== DEFAULT_CHART_COLOR ? globalColor : defaultColor);
-  const [hexInput, setHexInput] = useState(activeColor);
-
-  useEffect(() => {
-    setHexInput(activeColor);
-  }, [activeColor]);
 
   // KPI card value extraction
   const kpiRaw = item.data?.rows?.length && item.data.rows[0]?.length ? item.data.rows[0][0] : 0;
