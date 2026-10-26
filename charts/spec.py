@@ -123,6 +123,41 @@ def _is_datetime_type(dtype: str, cast_as: Optional[str]) -> bool:
     return any(keyword in dt for keyword in ("DATE", "TIME", "TIMESTAMP"))
 
 
+BANNED_SQL_COMMANDS = {
+    "ATTACH", "DETACH", "COPY", "INSTALL", "LOAD", "PRAGMA", "IMPORT", "EXPORT",
+    "SYSTEM", "WRITE_PARQUET", "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE"
+}
+
+
+def validate_formula_string(formula: str) -> None:
+    """Validate a custom formula expression for syntax, character length, and disallowed commands."""
+    if not formula or not formula.strip():
+        raise InvalidChartSpecError("Custom formula expression cannot be empty.")
+    if len(formula) > 500:
+        raise InvalidChartSpecError("Custom formula exceeds maximum length of 500 characters.")
+    if ";" in formula:
+        raise InvalidChartSpecError("Semicolons are not permitted in custom formulas.")
+
+    import re
+    tokens = set(re.findall(r"\b[A-Za-z_][A-Za-z0-9_]*\b", formula.upper()))
+    banned_intersect = tokens.intersection(BANNED_SQL_COMMANDS)
+    if banned_intersect:
+        banned_word = next(iter(banned_intersect))
+        raise InvalidChartSpecError(f"Disallowed command or statement '{banned_word}' in custom formula.")
+
+    # Check balanced parentheses
+    depth = 0
+    for ch in formula:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+            if depth < 0:
+                raise InvalidChartSpecError("Unbalanced parentheses in custom formula.")
+    if depth != 0:
+        raise InvalidChartSpecError("Unbalanced parentheses in custom formula.")
+
+
 def validate_spec(spec: ChartSpec, schema: Dict[str, str], limits: Optional[ChartLimits] = None) -> None:
     """Validate a ChartSpec against the active dataset schema and semantic rules.
     
@@ -136,10 +171,12 @@ def validate_spec(spec: ChartSpec, schema: Dict[str, str], limits: Optional[Char
     """
     lim = limits or ChartLimits()
 
-    # 1. Validate column existence
+    # 1. Validate column existence or formula safety
     def check_col(field_ref: Optional[FieldRef], role: str) -> None:
         if field_ref is not None:
-            if field_ref.column not in schema:
+            if field_ref.formula:
+                validate_formula_string(field_ref.formula)
+            elif field_ref.column not in schema:
                 raise InvalidChartSpecError(
                     f"Column '{field_ref.column}' used for {role} does not exist in dataset schema."
                 )
@@ -153,25 +190,30 @@ def validate_spec(spec: ChartSpec, schema: Dict[str, str], limits: Optional[Char
 
     # 2. Aggregations vs column types
     if spec.y is not None:
-        y_type = schema[spec.y.column]
-        is_num = _is_numeric_type(y_type, spec.y.cast_as)
-        if spec.aggregation in ("sum", "avg", "median") and not is_num:
-            if y_type.upper() == "VARCHAR":
-                spec.y.cast_as = "number"
-                is_num = True
-            else:
-                raise InvalidChartSpecError(
-                    f"Aggregation '{spec.aggregation}' requires a numeric column, but '{spec.y.column}' is '{y_type}'."
-                )
+        if not spec.y.formula:
+            y_type = schema[spec.y.column]
+            is_num = _is_numeric_type(y_type, spec.y.cast_as)
+            if spec.aggregation in ("sum", "avg", "median") and not is_num:
+                if y_type.upper() == "VARCHAR":
+                    spec.y.cast_as = "number"
+                    is_num = True
+                else:
+                    raise InvalidChartSpecError(
+                        f"Aggregation '{spec.aggregation}' requires a numeric column, but '{spec.y.column}' is '{y_type}'."
+                    )
+        else:
+            # Custom formula: allowed for any aggregation; numerical aggregations TRY_CAST in compiler
+            pass
 
     # 3. Time bucket requires datetime (or cast_as date/timestamp)
     for field_ref, role in ((spec.x, "X axis"), (spec.y, "Y axis")):
         if field_ref and field_ref.time_bucket:
-            col_type = schema[field_ref.column]
-            if not _is_datetime_type(col_type, field_ref.cast_as):
-                raise InvalidChartSpecError(
-                    f"Time bucket '{field_ref.time_bucket}' on {role} requires a date or timestamp column, but '{field_ref.column}' is '{col_type}'. Use cast_as='date' or 'timestamp'."
-                )
+            if not field_ref.formula:
+                col_type = schema[field_ref.column]
+                if not _is_datetime_type(col_type, field_ref.cast_as):
+                    raise InvalidChartSpecError(
+                        f"Time bucket '{field_ref.time_bucket}' on {role} requires a date or timestamp column, but '{field_ref.column}' is '{col_type}'. Use cast_as='date' or 'timestamp'."
+                    )
 
     # 4. Chart-type semantic rules
     ctype = spec.chart_type
