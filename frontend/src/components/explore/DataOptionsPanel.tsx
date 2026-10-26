@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { type ChartColumnStats, type PageDataOptions } from '../../lib/api';
 import { Button } from '../ui/Button';
 import {
-  CHART_COLOR_SWATCHES,
   DEFAULT_CHART_COLOR,
 } from './chartColors';
 import { ChartColorPicker } from './ChartColorPicker';
@@ -17,7 +16,6 @@ import {
   Lightbulb,
   Loader2,
   Palette,
-  Check,
 } from 'lucide-react';
 
 interface DataOptionsPanelProps {
