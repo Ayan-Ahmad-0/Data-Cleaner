@@ -1054,14 +1054,14 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
 
           {/* Print-only Executive Briefing Header */}
           <div className="print-header">
-            <div className="flex items-center justify-between border-b-2 border-slate-900 pb-2 mb-3">
+            <div className="flex items-center justify-between border-b border-white/20 pb-2 mb-3 text-zinc-100">
               <div>
-                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Executive Intelligence Briefing</h1>
-                <p className="text-xs text-slate-600">
-                  Dataset: <strong>{datasetInfo.filename}</strong> • {formatNumber(datasetInfo.row_count)} records • {columns.length} columns
+                <h1 className="text-xl font-bold text-white tracking-tight">Executive Intelligence Briefing</h1>
+                <p className="text-xs text-zinc-400">
+                  Dataset: <strong className="text-zinc-200">{datasetInfo.filename}</strong> • {formatNumber(datasetInfo.row_count)} records • {columns.length} columns
                 </p>
               </div>
-              <div className="text-right text-xs text-slate-500 font-mono">
+              <div className="text-right text-xs text-zinc-400 font-mono">
                 Generated: {new Date().toLocaleDateString()}
               </div>
             </div>
@@ -1069,7 +1069,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
 
           {/* Active Chart Cards Grid */}
           {cards.length > 0 ? (
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 sm:gap-6 pt-1">
+            <div className="dashboard-grid grid grid-cols-1 xl:grid-cols-2 gap-5 sm:gap-6 pt-1">
               {cards.map((card) => (
                 <ChartCard
                   key={card.id}
