@@ -517,6 +517,8 @@ window.onerror = function(msg, url, line, col, err) {
 
         // 2. Plot all Plotly instances in the next animation frame when widths are computed
         requestAnimationFrame(() => {
+  try {
+
           chartTasks.forEach(({ chartDiv, spec, data }) => {
             const primaryColor = spec.custom_color || '#FF4B3E';
             const baseLayout = {
@@ -613,12 +615,26 @@ window.onerror = function(msg, url, line, col, err) {
               });
             }
 
-            Plotly.newPlot(chartDiv.id, traces, baseLayout, { responsive: true, displayModeBar: false })
+            console.log('Plotting chart:', chartDiv.id);
+Plotly.newPlot(chartDiv.id, traces, baseLayout, { responsive: true, displayModeBar: false })
+  .catch(function(err) {
+    var b = document.createElement('div');
+    b.id = 'inner-caught-error';
+    b.textContent = 'PLOTLY PROMISE REJECTION: ' + err.message + ' ' + err.stack;
+    document.body.prepend(b);
+  })
               .then(() => {
                 if (window.Plotly) Plotly.Plots.resize(chartDiv);
               });
           });
-        });
+  } catch(e) {
+    var b = document.createElement('div');
+    b.id = 'inner-caught-error';
+    b.style.cssText = 'color:white;background:red;padding:20px;font-size:20px;';
+    b.textContent = 'RAF ERROR: ' + e.message + ' ' + e.stack;
+    document.body.prepend(b);
+  }
+});
       }
 
       renderAllCharts();
