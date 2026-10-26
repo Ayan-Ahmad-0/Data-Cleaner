@@ -51,4 +51,5 @@ __all__ = [
     "TweakOptions",
     "default_starter_spec",
     "get_tweak_options",
+    "validate_formula",
 ]
