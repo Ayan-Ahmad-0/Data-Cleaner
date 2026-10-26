@@ -868,8 +868,17 @@ export async function parseDashboardJsonFile(file: File): Promise<DashboardSnaps
  * Triggers native browser print/save-to-PDF flow.
  */
 export function triggerPdfPrint(): void {
+  document.documentElement.classList.add('is-printing');
+  window.dispatchEvent(new Event('beforeprint'));
   window.dispatchEvent(new Event('resize'));
+
+  // 250ms allows React and Plotly to re-render all chart canvases to print geometry
   setTimeout(() => {
     window.print();
-  }, 100);
+    setTimeout(() => {
+      document.documentElement.classList.remove('is-printing');
+      window.dispatchEvent(new Event('afterprint'));
+      window.dispatchEvent(new Event('resize'));
+    }, 500);
+  }, 250);
 }
