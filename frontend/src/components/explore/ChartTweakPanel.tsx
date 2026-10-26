@@ -259,7 +259,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
     }, 350);
 
     return () => clearTimeout(timer);
-  }, [formulaExpr, metricMode, jobId, isOpen]);
+  }, [formulaExpr, formulaName, metricMode, jobId, isOpen]);
 
   const insertTokenIntoFormula = (token: string) => {
     setFormulaExpr((prev) => (prev ? `${prev} ${token}` : token));
