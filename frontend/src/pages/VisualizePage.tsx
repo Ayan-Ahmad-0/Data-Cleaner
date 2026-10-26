@@ -952,119 +952,107 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
       {/* Active Dataset Dashboard */}
       {datasetInfo && (
         <div className="space-y-3.5 sm:space-y-4">
-          {/* Row 1: Integrated File & Quick-Action Bar */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-xs shadow-xs">
-              <FileSpreadsheet className="w-4 h-4 text-[var(--accent)] shrink-0" />
-              <span className="font-semibold text-[var(--text-primary)] truncate max-w-[200px] sm:max-w-xs md:max-w-md">
-                {datasetInfo.filename}
-              </span>
-              <span className="text-[var(--text-muted)] font-mono">
-                • {formatNumber(datasetInfo.row_count)} rows
-              </span>
-              <span className="hidden sm:inline text-[var(--text-muted)] font-mono">
-                • {formatBytes(datasetInfo.file_size_bytes)}
-              </span>
-              <span className="hidden md:inline text-[var(--text-muted)]">
-                • {columns.length} cols
-              </span>
-              {aiEnabled && (
-                <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-[var(--accent)] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent-subtle)] border border-[var(--accent-border)] ml-1">
-                  <Sparkles className="w-2.5 h-2.5" /> AI Ready
+          {/* Controls Bar & Global Filter Strip (Hidden in Print/PDF) */}
+          <div className="no-print space-y-3.5 sm:space-y-4">
+            {/* Row 1: Integrated File & Quick-Action Bar */}
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="inline-flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-[var(--bg-surface)] border border-[var(--border-hairline)] text-xs shadow-xs">
+                <FileSpreadsheet className="w-4 h-4 text-[var(--accent)] shrink-0" />
+                <span className="font-semibold text-[var(--text-primary)] truncate max-w-[200px] sm:max-w-xs md:max-w-md">
+                  {datasetInfo.filename}
                 </span>
-              )}
-            </div>
+                <span className="text-[var(--text-muted)] font-mono">
+                  • {formatNumber(datasetInfo.row_count)} rows
+                </span>
+                <span className="hidden sm:inline text-[var(--text-muted)] font-mono">
+                  • {formatBytes(datasetInfo.file_size_bytes)}
+                </span>
+                <span className="hidden md:inline text-[var(--text-muted)]">
+                  • {columns.length} cols
+                </span>
+                {aiEnabled && (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[10px] text-[var(--accent)] font-semibold px-1.5 py-0.5 rounded-full bg-[var(--accent-subtle)] border border-[var(--accent-border)] ml-1">
+                    <Sparkles className="w-2.5 h-2.5" /> AI Ready
+                  </span>
+                )}
+              </div>
 
-            <div className="flex items-center gap-2">
-              {onBackToSource && (
+              <div className="flex items-center gap-2">
+                {onBackToSource && (
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={onBackToSource}
+                    className="text-xs h-7.5"
+                  >
+                    Back
+                  </Button>
+                )}
                 <Button
                   size="sm"
                   variant="secondary"
-                  onClick={onBackToSource}
+                  onClick={() => onHandoffToQuery(datasetInfo.query_id, datasetInfo.filename)}
                   className="text-xs h-7.5"
                 >
-                  Back
+                  Query data
                 </Button>
-              )}
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => onHandoffToQuery(datasetInfo.query_id, datasetInfo.filename)}
-                className="text-xs h-7.5"
-              >
-                Query data
-              </Button>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => onHandoffToClean(datasetInfo.query_id, datasetInfo.filename)}
-                className="text-xs h-7.5"
-              >
-                Clean data
-              </Button>
-              <Button
-                size="sm"
-                variant="primary"
-                leftIcon={<Share2 className="w-3.5 h-3.5" />}
-                onClick={() => setShowExportModal(true)}
-                className="text-xs h-7.5 shadow-xs"
-                title="Export standalone HTML, print PDF briefing, or share layout snapshot"
-              >
-                Share / Export
-              </Button>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={handleReset}
-                className="text-xs h-7.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-              >
-                Visualize another file
-              </Button>
-            </div>
-          </div>
-
-          {/* Row 2: Unified Command Bar (Natural Language Prompt input) */}
-          <DescribeChartBar
-            jobId={datasetInfo.query_id}
-            columns={columns}
-            pageOptions={pageOptions}
-            onChartCreated={handleChartCreatedFromText}
-            onHandoffToQuery={() => onHandoffToQuery(datasetInfo.query_id, datasetInfo.filename)}
-          />
-
-          {/* Row 3: Streamlined Global Filter Strip */}
-          <DataOptionsPanel
-            options={pageOptions}
-            columns={columns}
-            onChange={handlePageOptionsChange}
-            onReset={handleResetPageOptions}
-            viewTab={viewTab}
-            onSwitchTab={handleSwitchTab}
-            onAutoVisualize={handleAutoVisualize}
-            isAutoVisualizing={isAutoVisualizing}
-            onOpenAdvice={handleOpenAdvice}
-            loadingAdvice={loadingAdvice}
-            onAddChart={handleAddChart}
-            isAddingChart={isAddingChart}
-            globalColor={globalChartColor}
-            onGlobalColorChange={setGlobalChartColor}
-            onRemoveCrossFilter={handleRemoveCrossFilter}
-            onClearAllCrossFilters={handleClearAllCrossFilters}
-          />
-
-          {/* Print-only Executive Briefing Header */}
-          <div className="print-header">
-            <div className="flex items-center justify-between border-b border-white/20 pb-2 mb-3 text-zinc-100">
-              <div>
-                <h1 className="text-xl font-bold text-white tracking-tight">Executive Intelligence Briefing</h1>
-                <p className="text-xs text-zinc-400">
-                  Dataset: <strong className="text-zinc-200">{datasetInfo.filename}</strong> • {formatNumber(datasetInfo.row_count)} records • {columns.length} columns
-                </p>
-              </div>
-              <div className="text-right text-xs text-zinc-400 font-mono">
-                Generated: {new Date().toLocaleDateString()}
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => onHandoffToClean(datasetInfo.query_id, datasetInfo.filename)}
+                  className="text-xs h-7.5"
+                >
+                  Clean data
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  leftIcon={<Share2 className="w-3.5 h-3.5" />}
+                  onClick={() => setShowExportModal(true)}
+                  className="text-xs h-7.5 shadow-xs"
+                  title="Export standalone HTML, print PDF briefing, or share layout snapshot"
+                >
+                  Share / Export
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleReset}
+                  className="text-xs h-7.5 text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                >
+                  Visualize another file
+                </Button>
               </div>
             </div>
+
+            {/* Row 2: Unified Command Bar (Natural Language Prompt input) */}
+            <DescribeChartBar
+              jobId={datasetInfo.query_id}
+              columns={columns}
+              pageOptions={pageOptions}
+              onChartCreated={handleChartCreatedFromText}
+              onHandoffToQuery={() => onHandoffToQuery(datasetInfo.query_id, datasetInfo.filename)}
+            />
+
+            {/* Row 3: Streamlined Global Filter Strip */}
+            <DataOptionsPanel
+              options={pageOptions}
+              columns={columns}
+              onChange={handlePageOptionsChange}
+              onReset={handleResetPageOptions}
+              viewTab={viewTab}
+              onSwitchTab={handleSwitchTab}
+              onAutoVisualize={handleAutoVisualize}
+              isAutoVisualizing={isAutoVisualizing}
+              onOpenAdvice={handleOpenAdvice}
+              loadingAdvice={loadingAdvice}
+              onAddChart={handleAddChart}
+              isAddingChart={isAddingChart}
+              globalColor={globalChartColor}
+              onGlobalColorChange={setGlobalChartColor}
+              onRemoveCrossFilter={handleRemoveCrossFilter}
+              onClearAllCrossFilters={handleClearAllCrossFilters}
+            />
           </div>
 
           {/* Active Chart Cards Grid */}
