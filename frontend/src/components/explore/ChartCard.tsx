@@ -234,7 +234,13 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               </span>
             </div>
           ) : (
-            <PlotlyChartRenderer data={item.data} height={310} customColor={activeColor} />
+            <PlotlyChartRenderer
+              data={item.data}
+              height={310}
+              customColor={activeColor}
+              onPointClick={onPointClick}
+              crossFilters={crossFilters}
+            />
           )
         ) : (
           <div className="text-xs text-[var(--text-muted)]">No data available</div>
