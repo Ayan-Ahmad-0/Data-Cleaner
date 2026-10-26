@@ -420,6 +420,7 @@ export interface PageDataOptions {
   cast_overrides: Record<string, string>;
   exclude_missing: boolean;
   hide_outliers: boolean;
+  cross_filters?: Record<string, any>;
 }
 
 export interface TweakColumnOption {
