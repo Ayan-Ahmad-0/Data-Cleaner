@@ -350,11 +350,10 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           },
         },
       ];
+      const { xaxis, yaxis, ...layoutWithoutAxes } = baseLayout;
       const pieLayout = {
-        ...baseLayout,
+        ...layoutWithoutAxes,
         margin: { l: 20, r: 20, t: 15, b: 35 },
-        xaxis: undefined,
-        yaxis: undefined,
       };
       return { isBigNumber: false, primaryColor, traces, layout: pieLayout };
     }
