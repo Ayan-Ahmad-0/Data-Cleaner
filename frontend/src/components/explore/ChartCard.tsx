@@ -130,7 +130,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
               title={`Formula: ${item.spec.y.formula}`}
               className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/25 shrink-0"
             >
-              fx {item.spec.y.column}
+              <Calculator className="w-2.5 h-2.5" />
+              <span>fx {item.spec.y.column}</span>
             </span>
           )}
 
