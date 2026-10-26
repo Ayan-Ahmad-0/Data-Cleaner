@@ -12,21 +12,21 @@ export interface ChartColorPickerProps {
 // 14 signature swatches matching the exact 2-row layout from design
 const DEFAULT_SAVED_COLORS = [
   // Row 1
+  '#8F0926', // Crimson Wine (Bar Default)
   '#EF4444', // Red
   '#F97316', // Orange
   '#EAB308', // Yellow
   '#22C55E', // Green
   '#06B6D4', // Cyan
   '#3B82F6', // Blue
-  '#4F46E5', // Indigo (Signature)
   // Row 2
+  '#4F46E5', // Indigo (Signature)
   '#EC4899', // Pink
   '#E11D48', // Crimson
   '#D946EF', // Fuchsia
   '#8B5CF6', // Purple
   '#0284C7', // Sky
   '#059669', // Emerald
-  '#84CC16', // Lime
 ];
 
 function rgbToHsv(r: number, g: number, b: number): { h: number; s: number; v: number } {
