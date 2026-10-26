@@ -409,7 +409,7 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
           </div>
 
           {/* Chart Color / Accent */}
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
               <label className="text-xs font-semibold text-[var(--text-secondary)] uppercase tracking-wider">
                 Chart Color / Accent
@@ -420,55 +420,40 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
                   onClick={() => setSpec({ ...spec, custom_color: null })}
                   className="text-[11px] text-[var(--accent)] hover:underline cursor-pointer"
                 >
-                  Reset to default
+                  Reset to default ({getDefaultChartColor(spec.chart_type)})
                 </button>
               )}
             </div>
-            <div className="flex flex-wrap items-center gap-2 p-2.5 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-md)]">
-              {CHART_COLOR_SWATCHES.map((swatch) => {
-                const defaultColor = getDefaultChartColor(spec.chart_type);
-                const currentHex = spec.custom_color || defaultColor;
-                const isSelected = currentHex.toLowerCase() === swatch.hex.toLowerCase();
-                return (
-                  <button
-                    key={swatch.id}
-                    type="button"
-                    onClick={() => setSpec({ ...spec, custom_color: swatch.hex })}
-                    className={`w-7 h-7 rounded-md flex items-center justify-center transition-all cursor-pointer relative hover:scale-105 ${
-                      isSelected
-                        ? 'ring-2 ring-offset-2 ring-[var(--accent)] dark:ring-offset-zinc-900 scale-105'
-                        : 'hover:opacity-90'
-                    }`}
-                    style={{ backgroundColor: swatch.hex }}
-                    title={swatch.label}
-                  >
-                    {isSelected && <Check className="w-3.5 h-3.5 text-white stroke-[2.5]" />}
-                  </button>
-                );
-              })}
-
-              <div className="h-5 w-px bg-[var(--border-hairline)] mx-1" />
-
-              {/* Custom Color Input */}
-              <label className="relative cursor-pointer flex items-center gap-1.5">
-                <input
-                  type="color"
-                  value={
-                    spec.custom_color && spec.custom_color.startsWith('#') && spec.custom_color.length === 7
-                      ? spec.custom_color
-                      : getDefaultChartColor(spec.chart_type)
-                  }
-                  onChange={(e) => setSpec({ ...spec, custom_color: e.target.value })}
-                  className="w-6 h-6 rounded cursor-pointer border-0 p-0 opacity-0 absolute inset-0"
-                />
-                <div
-                  className="w-6 h-6 rounded-md border border-[var(--border-hairline)] shadow-2xs"
-                  style={{ backgroundColor: spec.custom_color || getDefaultChartColor(spec.chart_type) }}
-                />
-                <span className="text-xs text-[var(--text-muted)] font-mono">
-                  {spec.custom_color || 'Default'}
-                </span>
-              </label>
+            <div className="flex flex-col sm:flex-row items-start gap-4 p-3.5 bg-[var(--bg-app)] border border-[var(--border-hairline)] rounded-[var(--radius-lg)]">
+              <ChartColorPicker
+                color={spec.custom_color || getDefaultChartColor(spec.chart_type)}
+                onChange={(newColor) => setSpec({ ...spec, custom_color: newColor })}
+                onReset={
+                  spec.custom_color
+                    ? () => setSpec({ ...spec, custom_color: null })
+                    : undefined
+                }
+                defaultColor={getDefaultChartColor(spec.chart_type)}
+              />
+              <div className="flex-1 text-xs text-[var(--text-muted)] space-y-2.5 pt-1">
+                <div className="font-medium text-[var(--text-primary)]">Custom Series Color</div>
+                <p className="leading-relaxed">
+                  Interactive Figma/Sketch-style color picker. Drag across the saturation-brightness canvas, slide hue or opacity, choose from your 14 saved palette colors, or enter any Hex, RGB, or HSL code directly.
+                </p>
+                <div className="flex items-center gap-2 pt-1">
+                  <span className="text-xs text-[var(--text-secondary)] font-medium">Active:</span>
+                  <span
+                    className="w-3.5 h-3.5 rounded-full inline-block border border-black/20 dark:border-white/20 shrink-0 shadow-2xs"
+                    style={{ backgroundColor: spec.custom_color || getDefaultChartColor(spec.chart_type) }}
+                  />
+                  <span className="font-mono px-2 py-0.5 rounded bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-primary)] font-semibold text-[11px]">
+                    {spec.custom_color || getDefaultChartColor(spec.chart_type)}
+                  </span>
+                  {!spec.custom_color && (
+                    <span className="text-[11px] text-[var(--text-muted)]">(Default)</span>
+                  )}
+                </div>
+              </div>
             </div>
           </div>
 
