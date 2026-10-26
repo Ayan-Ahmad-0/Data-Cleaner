@@ -52,6 +52,8 @@ interface ChartCardProps {
   onRemove: (id: string) => void;
   onRetry?: (id: string) => void;
   globalColor?: string;
+  onPointClick?: (column: string, value: any) => void;
+  crossFilters?: Record<string, any>;
 }
 
 export const ChartCard: React.FC<ChartCardProps> = ({
@@ -63,6 +65,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   onRemove,
   onRetry,
   globalColor,
+  onPointClick,
+  crossFilters,
 }) => {
   const [isTweakOpen, setIsTweakOpen] = useState(false);
   const [isWhyOpen, setIsWhyOpen] = useState(false);
