@@ -577,7 +577,7 @@ def generate_dashboard_html(
         // 2. Plot all Plotly instances in the next animation frame when widths are computed
         requestAnimationFrame(() => {{
           chartTasks.forEach(({{ chartDiv, spec, data }}) => {{
-            const primaryColor = spec.custom_color || '#FF4B3E';
+            const primaryColor = spec.custom_color || (spec.chart_type === 'bar' ? '#8F0926' : '#FF4B3E');
             const isPie = spec.chart_type === 'pie' || spec.chart_type === 'donut';
             const isHbar = spec.chart_type === 'hbar';
             const layout = {{
