@@ -11,8 +11,6 @@ import {
   Check,
   Upload,
   Globe,
-  Sparkles,
-  FileSpreadsheet,
 } from 'lucide-react';
 import type { QueryUploadResult, PageDataOptions, ChartSpec } from '../../lib/api';
 import type { ChartCardItem } from './ChartCard';
