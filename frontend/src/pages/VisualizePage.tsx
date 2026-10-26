@@ -1020,6 +1020,8 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
                   globalColor={globalChartColor}
                   onPointClick={handleChartPointClick}
                   crossFilters={pageOptions.cross_filters}
+                  pageOptions={pageOptions}
+                  onUpdatePageOptions={handlePageOptionsChange}
                 />
               ))}
             </div>
