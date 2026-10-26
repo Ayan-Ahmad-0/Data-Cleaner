@@ -241,7 +241,7 @@ export const ChartColorPicker: React.FC<ChartColorPickerProps> = ({
         onPointerMove={(e) => {
           if (e.buttons > 0) handleSvPointer(e);
         }}
-        className="relative w-full h-34 rounded-xl overflow-hidden cursor-crosshair touch-none shadow-inner"
+        className="relative w-full h-36 rounded-xl overflow-hidden cursor-crosshair touch-none shadow-inner"
         style={{
           backgroundColor: `hsl(${hsv.h}, 100%, 50%)`,
           backgroundImage: `
