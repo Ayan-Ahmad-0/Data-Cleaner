@@ -237,7 +237,12 @@ select option:disabled {
 @media print {
   @page {
     size: letter landscape;
-    margin: 0.8cm 0.8cm;
+    margin: 0.6cm 0.6cm;
+  }
+
+  *, *::before, *::after {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 
   /* Hide interactive chrome, buttons, modals, and toolbars */
@@ -258,8 +263,6 @@ select option:disabled {
     color: #f4f4f5 !important;
     padding: 0 !important;
     margin: 0 !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
   }
 
   .container-shell {
@@ -270,7 +273,9 @@ select option:disabled {
 
   /* Force 2-Column Responsive Dashboard Grid on Print Page */
   .grid,
-  .dashboard-grid {
+  .dashboard-grid,
+  div.grid.dashboard-grid,
+  div.grid.xl\:grid-cols-2 {
     display: grid !important;
     grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
     gap: 0.75rem !important;
@@ -279,16 +284,17 @@ select option:disabled {
 
   /* Clean Dark Cards - Avoid awkward page splitting while fitting multiple cards per page */
   .chart-card,
+  .dashboard-grid > div,
   .grid > div {
     break-inside: avoid !important;
     page-break-inside: avoid !important;
     background-color: #121215 !important;
     color: #f4f4f5 !important;
-    border: 1px solid rgba(255, 255, 255, 0.12) !important;
-    border-radius: 0.75rem !important;
+    border: 1px solid rgba(255, 255, 255, 0.14) !important;
+    border-radius: 0.5rem !important;
     box-shadow: none !important;
     margin-bottom: 0.5rem !important;
-    padding: 0.75rem 1rem !important;
+    padding: 0.75rem 0.85rem !important;
     overflow: hidden !important;
   }
 
@@ -296,29 +302,31 @@ select option:disabled {
   .chart-card h3,
   .chart-card-title {
     color: #f4f4f5 !important;
-    font-size: 0.875rem !important;
+    font-size: 0.8125rem !important;
   }
 
   /* Compact Plotly chart canvas height for print so 2-4 charts fit cleanly per page */
   .js-plotly-plot,
   .chart-body,
-  .plotly {
-    max-height: 250px !important;
-    height: 250px !important;
+  .plotly,
+  .plot-container {
+    max-height: 220px !important;
+    height: 220px !important;
+    min-height: 0 !important;
   }
 
   .js-plotly-plot .plot-container {
-    height: 250px !important;
+    height: 220px !important;
   }
 
   .js-plotly-plot svg {
-    max-height: 250px !important;
+    max-height: 220px !important;
   }
 
   /* Print executive briefing banner */
   .print-header {
     display: block !important;
-    padding-bottom: 0.6rem !important;
+    padding-bottom: 0.5rem !important;
     margin-bottom: 0.75rem !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
     color: #f4f4f5 !important;
@@ -326,10 +334,12 @@ select option:disabled {
 
   .print-header h1 {
     color: #f4f4f5 !important;
+    font-size: 1.25rem !important;
   }
 
   .print-header p,
-  .print-header span {
+  .print-header span,
+  .print-header strong {
     color: #a1a1aa !important;
   }
 }
