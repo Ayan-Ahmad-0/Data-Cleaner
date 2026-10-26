@@ -196,6 +196,43 @@ export const DataOptionsPanel: React.FC<DataOptionsPanelProps> = ({
 
         {/* Right Section: Streamlined Data Filters & Theme Color */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Active Cross-Filters (Click-to-Filter) Badges */}
+          {options.cross_filters &&
+            Object.entries(options.cross_filters).map(([col, val]) => (
+              <div
+                key={col}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/30 animate-in fade-in"
+                title={`All charts filtered by ${col} = "${val}". Click ✕ to clear.`}
+              >
+                <FilterIcon className="w-3 h-3 shrink-0" />
+                <span>
+                  {col}: <strong className="font-mono">{String(val)}</strong>
+                </span>
+                {onRemoveCrossFilter && (
+                  <button
+                    type="button"
+                    onClick={() => onRemoveCrossFilter(col)}
+                    className="p-0.5 rounded hover:bg-blue-500/20 cursor-pointer ml-0.5 transition-colors"
+                    title={`Clear ${col} filter`}
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            ))}
+
+          {options.cross_filters &&
+            Object.keys(options.cross_filters).length > 1 &&
+            onClearAllCrossFilters && (
+              <button
+                type="button"
+                onClick={onClearAllCrossFilters}
+                className="text-[11px] text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-200 underline cursor-pointer mr-1"
+              >
+                Clear all
+              </button>
+            )}
+
           {/* Global Theme Color Chip */}
           {onGlobalColorChange && (
             <div className="relative">
