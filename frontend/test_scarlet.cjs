@@ -56,10 +56,10 @@ function buildHeatmapColorscale(primaryColor, isDark) {
 
   if (isDark) {
     return [
-      [0, blendWithDark(primaryColor, 0.2)],
-      [0.3, adjustBrightness(primaryColor, -40)],
-      [0.65, adjustBrightness(primaryColor, -10)],
-      [1.0, adjustBrightness(primaryColor, 20)],
+      [0, blendWithDark(primaryColor, 0.15)],
+      [0.25, adjustBrightness(primaryColor, -55)],
+      [0.6, adjustBrightness(primaryColor, -20)],
+      [1.0, primaryColor],
     ];
   } else {
     return [
