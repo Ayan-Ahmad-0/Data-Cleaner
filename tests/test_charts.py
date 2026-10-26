@@ -241,6 +241,41 @@ def test_all_chart_types_compile_and_execute():
     con.close()
 
 
+def test_all_chart_types_compile_and_execute_with_filters():
+    """Verify that every supported chart type compiles and executes with WHERE filter parameters."""
+    import duckdb
+    con = duckdb.connect(":memory:")
+    con.execute("CREATE TABLE data (dt TIMESTAMP, cat VARCHAR, cat2 VARCHAR, num DOUBLE)")
+    con.execute("INSERT INTO data VALUES ('2026-01-01 10:00:00', 'A', 'X', 10.0), ('2026-01-02 11:00:00', 'B', 'Y', 20.0), ('2026-01-03 12:00:00', 'A', 'Y', 30.0)")
+    schema = {"dt": "TIMESTAMP", "cat": "VARCHAR", "cat2": "VARCHAR", "num": "DOUBLE"}
+
+    flt = [Filter(column="cat", op="=", value="A")]
+    specs = [
+        ChartSpec(chart_type="bar", x=FieldRef(column="cat"), y=FieldRef(column="num"), aggregation="sum", filters=flt),
+        ChartSpec(chart_type="hbar", x=FieldRef(column="cat"), y=FieldRef(column="num"), aggregation="avg", filters=flt),
+        ChartSpec(chart_type="line", x=FieldRef(column="dt", time_bucket="day"), y=FieldRef(column="num"), aggregation="sum", filters=flt),
+        ChartSpec(chart_type="area", x=FieldRef(column="dt", time_bucket="day"), y=FieldRef(column="num"), aggregation="count", filters=flt),
+        ChartSpec(chart_type="histogram", x=FieldRef(column="num", bins=5), filters=flt),
+        ChartSpec(chart_type="scatter", x=FieldRef(column="num"), y=FieldRef(column="num"), filters=flt),
+        ChartSpec(chart_type="pie", x=FieldRef(column="cat"), aggregation="count", filters=flt),
+        ChartSpec(chart_type="donut", x=FieldRef(column="cat"), aggregation="count", filters=flt),
+        ChartSpec(chart_type="box", x=FieldRef(column="cat"), y=FieldRef(column="num"), filters=flt),
+        ChartSpec(chart_type="box", y=FieldRef(column="num"), filters=flt),
+        ChartSpec(chart_type="heatmap", x=FieldRef(column="cat"), y=FieldRef(column="cat2"), filters=flt),
+        ChartSpec(chart_type="big_number", y=FieldRef(column="num"), aggregation="sum", filters=flt),
+    ]
+
+    for spec in specs:
+        sql, params, _ = compile_spec(spec, schema)
+        assert len(params) == 1
+        assert params[0] == "A"
+        assert sql.count("?") == 1
+        res = con.execute(sql, params).fetchall()
+        assert len(res) >= 0
+
+    con.close()
+
+
 def test_suggest_charts_diverse_types():
     """Verify that suggest_charts_from_stats proposes donut, pie, area, and box charts when data supports it."""
     from charts.stats import ColumnStats
