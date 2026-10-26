@@ -384,6 +384,8 @@ window.onerror = function(msg, url, line, col, err) {
 
   <script>
     (function() {
+  try {
+
   var diag = document.createElement('div');
   diag.id = 'debug-diag';
   diag.style.cssText = 'color:lime;background:black;padding:10px;font-family:monospace;';
@@ -635,7 +637,14 @@ window.onerror = function(msg, url, line, col, err) {
         const ro = new ResizeObserver(() => resizeCharts());
         ro.observe(container);
       }
-    })();
-  </script>
+      } catch(e) {
+    var errBox = document.createElement('div');
+    errBox.id = 'inner-caught-error';
+    errBox.style.cssText = 'color:white;background:red;padding:20px;font-size:20px;z-index:99999;position:fixed;top:0;left:0;right:0;';
+    errBox.textContent = 'CAUGHT JS ERROR: ' + e.message + ' \nSTACK: ' + e.stack;
+    document.body.prepend(errBox);
+  }
+})();
+</script>
 </body>
 </html>
