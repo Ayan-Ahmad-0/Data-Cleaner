@@ -66,3 +66,34 @@ def test_generate_dashboard_html_escaping():
     )
     assert "<script>alert(1)</script>" not in html
     assert "&lt;script&gt;alert(1)&lt;/script&gt;" in html
+
+
+def test_generate_dashboard_html_heatmap():
+    cards = [
+        {
+            "spec": {
+                "chart_type": "heatmap",
+                "x": {"column": "department"},
+                "y": {"column": "quarter"},
+            },
+            "title": "Headcount Matrix",
+            "data": {
+                "columns": ["department", "quarter", "headcount"],
+                "rows": [
+                    ["Eng", "Q1", 50],
+                    ["Eng", "Q2", 55],
+                    ["Sales", "Q1", 30],
+                    ["Sales", "Q2", 35],
+                ],
+            },
+        }
+    ]
+    html = generate_dashboard_html(
+        title="Heatmap Report",
+        dataset_name="workforce.csv",
+        cards_data=cards,
+    )
+    assert "type: 'heatmap'" in html
+    assert "zMatrix" in html
+    assert "spec.chart_type === 'heatmap'" in html
+
