@@ -384,6 +384,12 @@ window.onerror = function(msg, url, line, col, err) {
 
   <script>
     (function() {
+  var diag = document.createElement('div');
+  diag.id = 'debug-diag';
+  diag.style.cssText = 'color:lime;background:black;padding:10px;font-family:monospace;';
+  diag.textContent = 'Plotly available: ' + (typeof window.Plotly);
+  document.body.prepend(diag);
+
       const dataPayload = JSON.parse(document.getElementById('dashboard-data').textContent);
       const container = document.getElementById('charts-container');
       const themeToggleBtn = document.getElementById('theme-toggle-btn');
