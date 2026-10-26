@@ -18,9 +18,9 @@ import {
   Check,
 } from 'lucide-react';
 import {
-  CHART_COLOR_SWATCHES,
   getDefaultChartColor,
 } from './chartColors';
+import { ChartColorPicker } from './ChartColorPicker';
 
 interface ChartTweakPanelProps {
   jobId: string;
