@@ -105,6 +105,7 @@ class ChartSpec(BaseModel):
     exclude_nulls: bool = False
     hide_outliers: bool = False  # Clip numeric axes to 1st..99th percentile
     custom_color: Optional[str] = Field(None, max_length=32)
+    trendline: Optional[TrendlineConfig] = None
 
     @field_validator("filters")
     @classmethod
@@ -294,3 +295,14 @@ def validate_spec(spec: ChartSpec, schema: Dict[str, str], limits: Optional[Char
     elif ctype in ("line", "area"):
         if spec.x is None:
             raise InvalidChartSpecError(f"{ctype.capitalize()} chart requires an X axis column.")
+
+    # 5. Trendline validation
+    if spec.trendline and spec.trendline.type != "none":
+        allowed_types = {"line", "area", "scatter", "bar"}
+        if spec.chart_type not in allowed_types:
+            raise InvalidChartSpecError(
+                f"Trendlines are not supported for '{spec.chart_type}' charts. Supported types: line, area, scatter, bar."
+            )
+        if spec.trendline.type in ("sma", "ema"):
+            if not spec.trendline.window or spec.trendline.window < 2:
+                raise InvalidChartSpecError("Moving average window must be at least 2.")
