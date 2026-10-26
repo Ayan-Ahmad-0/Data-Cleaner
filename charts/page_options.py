@@ -16,6 +16,7 @@ class PageDataOptions(BaseModel):
     exclude_missing: bool = False
     hide_outliers: bool = False  # Clip numeric axes to 1st..99th percentile
     cross_filters: Dict[str, Any] = Field(default_factory=dict)  # column -> value
+    calculated_columns: Dict[str, str] = Field(default_factory=dict)  # name -> formula expression (e.g. "Profit": "revenue - cost")
 
 
 def apply_page_options(
@@ -30,6 +31,7 @@ def apply_page_options(
     - exclude_missing adds not_null filters on the chart's X and Y columns only.
     - hide_outliers enables percentile clipping on numeric axes.
     - cross_filters injects equality filters onto all linked charts (excluding the source dimension).
+    - calculated_columns populates formulas onto matching field_refs.
     - The resulting spec must pass validate_spec.
     """
     if options is None:
@@ -37,7 +39,13 @@ def apply_page_options(
 
     new_spec = copy.deepcopy(spec)
 
-    # 1. Cast overrides
+    # 1. Calculated columns from page-wide options
+    if options.calculated_columns:
+        for field_ref in (new_spec.x, new_spec.y, new_spec.color):
+            if field_ref and not field_ref.formula and field_ref.column in options.calculated_columns:
+                field_ref.formula = options.calculated_columns[field_ref.column]
+
+    # 2. Cast overrides
     if options.cast_overrides:
         for field_ref in (new_spec.x, new_spec.y, new_spec.color):
             if field_ref and field_ref.column in options.cast_overrides:
