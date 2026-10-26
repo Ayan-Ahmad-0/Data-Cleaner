@@ -190,11 +190,21 @@ const AGGREGATIONS = [
 
 const TIME_BUCKETS = ['week', 'day', 'month', 'quarter', 'year', 'hour', 'hour_of_day', 'day_of_week'];
 
+const FORMULA_PRESETS = [
+  { label: 'Difference (A - B)', template: 'col1 - col2' },
+  { label: 'Ratio % ((A / B) * 100)', template: '(col1 * 1.0 / NULLIF(col2, 0)) * 100' },
+  { label: 'Multiplication (A * B)', template: 'col1 * col2' },
+  { label: 'Margin % ((A - B) / A * 100)', template: '((col1 - col2) * 1.0 / NULLIF(col1, 0)) * 100' },
+  { label: 'Rounded Average ROUND(A, 2)', template: 'ROUND(col1, 2)' },
+];
+
 export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   jobId,
   initialSpec,
   originalSpec,
   columns,
+  pageOptions,
+  onUpdatePageOptions,
   isOpen,
   onClose,
   onApply,
@@ -203,9 +213,68 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   const [spec, setSpec] = useState<ChartSpec>(initialSpec);
   const [tweakOptions, setTweakOptions] = useState<TweakOptionsResponse | null>(null);
 
+  // Custom Formula / Metric Builder State
+  const [metricMode, setMetricMode] = useState<'column' | 'formula'>(
+    initialSpec.y?.formula ? 'formula' : 'column'
+  );
+  const [formulaName, setFormulaName] = useState(initialSpec.y?.column || 'Custom Metric');
+  const [formulaExpr, setFormulaExpr] = useState(initialSpec.y?.formula || '');
+  const [saveToPage, setSaveToPage] = useState(true);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationResult, setValidationResult] = useState<ValidateFormulaResponse | null>(null);
+
   useEffect(() => {
     setSpec(initialSpec);
-  }, [initialSpec]);
+    if (initialSpec.y?.formula) {
+      setMetricMode('formula');
+      setFormulaName(initialSpec.y.column || 'Custom Metric');
+      setFormulaExpr(initialSpec.y.formula);
+    } else {
+      setMetricMode('column');
+      setFormulaName('Custom Metric');
+      setFormulaExpr('');
+      setValidationResult(null);
+    }
+  }, [initialSpec, isOpen]);
+
+  // Debounced DuckDB Formula Validation
+  useEffect(() => {
+    if (metricMode !== 'formula' || !formulaExpr.trim() || !isOpen) {
+      setValidationResult(null);
+      setIsValidating(false);
+      return;
+    }
+
+    setIsValidating(true);
+    const timer = setTimeout(() => {
+      validateFormula(jobId, formulaExpr.trim(), formulaName)
+        .then((res) => {
+          setValidationResult(res);
+          setIsValidating(false);
+        })
+        .catch((err) => {
+          setValidationResult({ valid: false, error: err.message });
+          setIsValidating(false);
+        });
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [formulaExpr, metricMode, jobId, isOpen]);
+
+  const insertTokenIntoFormula = (token: string) => {
+    setFormulaExpr((prev) => (prev ? `${prev} ${token}` : token));
+  };
+
+  const handleApplyPreset = (preset: typeof FORMULA_PRESETS[0]) => {
+    const numCols = columns.filter((c) => isNumericCol(c)).map((c) => `"${c.name}"`);
+    const c1 = numCols[0] || '"col_a"';
+    const c2 = numCols[1] || numCols[0] || '"col_b"';
+    const filled = preset.template.replace(/col1/g, c1).replace(/col2/g, c2);
+    setFormulaExpr(filled);
+    if (!formulaName || formulaName === 'Custom Metric') {
+      setFormulaName(preset.label.split(' ')[0]);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -216,8 +285,32 @@ export const ChartTweakPanel: React.FC<ChartTweakPanelProps> = ({
   }, [isOpen, jobId, spec]);
 
   const handleApply = () => {
-    let sanitized = adaptSpecForChartType(spec, spec.chart_type, columns);
-    if (sanitized.y && (sanitized.aggregation === 'sum' || sanitized.aggregation === 'avg' || sanitized.aggregation === 'median')) {
+    let currentSpec = { ...spec };
+    if (metricMode === 'formula' && formulaExpr.trim()) {
+      const colLabel = formulaName.trim() || 'Custom Metric';
+      const hasAgg = /(SUM|AVG|MEDIAN|COUNT|MIN|MAX)\s*\(/i.test(formulaExpr);
+      currentSpec = {
+        ...currentSpec,
+        y: {
+          column: colLabel,
+          formula: formulaExpr.trim(),
+        },
+        aggregation: hasAgg ? 'none' : currentSpec.aggregation === 'none' ? 'sum' : currentSpec.aggregation,
+      };
+
+      if (saveToPage && onUpdatePageOptions && pageOptions) {
+        onUpdatePageOptions({
+          ...pageOptions,
+          calculated_columns: {
+            ...(pageOptions.calculated_columns || {}),
+            [colLabel]: formulaExpr.trim(),
+          },
+        });
+      }
+    }
+
+    let sanitized = adaptSpecForChartType(currentSpec, currentSpec.chart_type, columns);
+    if (sanitized.y && !sanitized.y.formula && (sanitized.aggregation === 'sum' || sanitized.aggregation === 'avg' || sanitized.aggregation === 'median')) {
       const colObj = columns.find((c) => c.name === sanitized.y?.column);
       if (colObj && !isNumericCol(colObj) && !sanitized.y.cast_as) {
         sanitized = {
