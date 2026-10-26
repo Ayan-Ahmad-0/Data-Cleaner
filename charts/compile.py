@@ -214,23 +214,26 @@ def compile_spec(
         combined_where = f"WHERE ({non_null_where})" + (f" AND ({' AND '.join(where_clauses)})" if where_clauses else "")
         
         sql = f"""
-WITH stats AS (
-    SELECT MIN({x_expr}) AS min_v, MAX({x_expr}) AS max_v
+WITH filtered_data AS (
+    SELECT {x_expr} AS val
     FROM data
     {combined_where}
+),
+stats AS (
+    SELECT MIN(val) AS min_v, MAX(val) AS max_v
+    FROM filtered_data
 ),
 binned AS (
     SELECT 
         CASE 
             WHEN s.max_v = s.min_v THEN 1
-            ELSE LEAST({bins}, GREATEST(1, CAST(FLOOR(({x_expr} - s.min_v) / NULLIF((s.max_v - s.min_v) / {bins}, 0)) + 1 AS INT)))
+            ELSE LEAST({bins}, GREATEST(1, CAST(FLOOR((d.val - s.min_v) / NULLIF((s.max_v - s.min_v) / {bins}, 0)) + 1 AS INT)))
         END AS bucket,
         s.min_v,
         s.max_v,
         CASE WHEN s.max_v = s.min_v THEN 0 ELSE (s.max_v - s.min_v) / {bins} END AS step
-    FROM data d
+    FROM filtered_data d
     CROSS JOIN stats s
-    {combined_where}
 )
 SELECT 
     ROUND(min_v + (bucket - 1) * step, 4) AS bin_start,
