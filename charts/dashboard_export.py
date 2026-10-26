@@ -37,14 +37,19 @@ def generate_dashboard_html(
     escaped_title = safe_title.replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
     escaped_ds = dataset_name.replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
 
-    payload_json = json.dumps(
-        {
-            "title": safe_title,
-            "dataset_name": dataset_name,
-            "metadata": meta,
-            "cards": cards_data,
-        },
-        default=str,
+    payload_json = (
+        json.dumps(
+            {
+                "title": safe_title,
+                "dataset_name": dataset_name,
+                "metadata": meta,
+                "cards": cards_data,
+            },
+            default=str,
+        )
+        .replace("<", "\\u003c")
+        .replace(">", "\\u003e")
+        .replace("&", "\\u0026")
     )
 
     # HTML template with embedded dark/light styling and Plotly initialization
