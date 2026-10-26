@@ -8,8 +8,6 @@ import {
   type TweakOptionsResponse,
   type PageDataOptions,
   type ValidateFormulaResponse,
-  type TrendlineType,
-  type TrendlineLineStyle,
   getTweakOptions,
   validateFormula,
 } from '../../lib/api';
