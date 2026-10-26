@@ -317,13 +317,15 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
 
       const heatLayout = {
         ...baseLayout,
-        margin: {
-          ...baseLayout.margin,
-          l: 85,
-          r: 25,
-          t: 16,
-          b: 48,
-        },
+        margin: isPrinting
+          ? { l: 75, r: 16, t: 10, b: 34 }
+          : {
+              ...baseLayout.margin,
+              l: 85,
+              r: 25,
+              t: 16,
+              b: 48,
+            },
         hoverlabel: {
           bgcolor: isDark ? '#1e293b' : '#ffffff',
           bordercolor: isDark ? '#334155' : '#cbd5e1',
