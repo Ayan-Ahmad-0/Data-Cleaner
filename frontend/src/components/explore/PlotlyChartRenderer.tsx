@@ -14,6 +14,8 @@ interface PlotlyChartRendererProps {
   height?: number;
   className?: string;
   customColor?: string;
+  onPointClick?: (column: string, value: any) => void;
+  crossFilters?: Record<string, any>;
 }
 
 export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
@@ -21,6 +23,8 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
   height = 420,
   className = '',
   customColor,
+  onPointClick,
+  crossFilters,
 }) => {
   const { spec, columns, rows } = data;
   const isDark = document.documentElement.classList.contains('dark');
