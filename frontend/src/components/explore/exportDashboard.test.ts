@@ -9,16 +9,14 @@ describe('exportDashboard', () => {
     filename: 'sales_performance.csv',
     row_count: 54200,
     file_size_bytes: 2450000,
-    columns: [
-      { name: 'region', type: 'VARCHAR', kind: 'categorical', null_pct: 0 },
-      { name: 'revenue', type: 'DOUBLE', kind: 'numeric', null_pct: 0 },
-    ],
+    columns: ['region', 'revenue'],
   };
 
   const mockCards: ChartCardItem[] = [
     {
       id: 'card-1',
       spec: {
+        title: 'Total Revenue by Region',
         chart_type: 'bar',
         x: { column: 'region' },
         y: { column: 'revenue' },
@@ -26,12 +24,12 @@ describe('exportDashboard', () => {
         custom_color: '#FF4B3E',
       },
       originalSpec: {
+        title: 'Total Revenue by Region',
         chart_type: 'bar',
         x: { column: 'region' },
         y: { column: 'revenue' },
         aggregation: 'sum',
       },
-      title: 'Total Revenue by Region',
       data: {
         spec: {
           chart_type: 'bar',
