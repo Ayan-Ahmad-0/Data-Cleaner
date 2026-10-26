@@ -750,3 +750,27 @@ export async function exportToConnector(
   }
   return res.json();
 }
+
+export interface ValidateFormulaResponse {
+  valid: boolean;
+  inferred_type?: string | null;
+  sample_result?: any;
+  error?: string | null;
+}
+
+export async function validateFormula(
+  jobId: string,
+  formula: string,
+  name?: string
+): Promise<ValidateFormulaResponse> {
+  const res = await fetch(`${API_BASE}/api/charts/${jobId}/validate-formula`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ formula, name }),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to validate formula.');
+  }
+  return res.json();
+}
