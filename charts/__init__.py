@@ -31,6 +31,7 @@ from charts.service import (
     suggest_charts,
     validate_formula,
 )
+from charts.dashboard_export import generate_dashboard_html
 
 __all__ = [
     "ChartError",
@@ -63,4 +64,5 @@ __all__ = [
     "default_starter_spec",
     "get_tweak_options",
     "validate_formula",
+    "generate_dashboard_html",
 ]
