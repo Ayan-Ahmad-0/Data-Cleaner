@@ -9,11 +9,13 @@ export const DEFAULT_CHART_COLOR = '#FD4233';
 export const DEFAULT_LINE_COLOR = '#E11D48';
 export const DEFAULT_AREA_COLOR = '#0284C7';
 export const DEFAULT_HEATMAP_COLOR = '#FF2400';
+export const DEFAULT_HISTOGRAM_COLOR = '#EAB308';
 
 export function getDefaultChartColor(chartType?: string): string {
   if (chartType === 'line') return DEFAULT_LINE_COLOR;
   if (chartType === 'area') return DEFAULT_AREA_COLOR;
   if (chartType === 'heatmap') return DEFAULT_HEATMAP_COLOR;
+  if (chartType === 'histogram') return DEFAULT_HISTOGRAM_COLOR;
   return DEFAULT_CHART_COLOR;
 }
 
