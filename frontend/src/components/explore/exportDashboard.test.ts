@@ -73,4 +73,41 @@ describe('exportDashboard', () => {
     expect(html).not.toContain('</script><script>alert(1)</script>');
     expect(html).toContain('\\u003c/script\\u003e');
   });
+
+  it('generates HTML containing heatmap matrix traces for heatmap charts', () => {
+    const heatmapCard: ChartCardItem = {
+      id: 'card-hm',
+      spec: {
+        title: 'Status by Category Matrix',
+        chart_type: 'heatmap',
+        x: { column: 'category' },
+        y: { column: 'status' },
+      },
+      originalSpec: {
+        title: 'Status by Category Matrix',
+        chart_type: 'heatmap',
+        x: { column: 'category' },
+        y: { column: 'status' },
+      },
+      data: {
+        spec: { chart_type: 'heatmap', x: { column: 'category' }, y: { column: 'status' } },
+        columns: ['category', 'status', 'count'],
+        rows: [
+          ['Electronics', 'Shipped', 120],
+          ['Apparel', 'Delivered', 340],
+        ],
+        row_count: 2,
+        notes: [],
+        warnings: [],
+        elapsed_seconds: 0.02,
+      },
+      source: 'standard',
+    };
+
+    const html = generateDashboardHtml('Heatmap Report', mockDataset, [heatmapCard]);
+    expect(html).toContain('spec.chart_type === \'heatmap\'');
+    expect(html).toContain('zMatrix');
+    expect(html).toContain('type: \'heatmap\'');
+  });
 });
+
