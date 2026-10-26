@@ -17,6 +17,7 @@ import {
   Loader2,
   Palette,
   Filter as FilterIcon,
+  Calculator,
 } from 'lucide-react';
 
 interface DataOptionsPanelProps {
