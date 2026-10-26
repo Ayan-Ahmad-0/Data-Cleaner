@@ -3,6 +3,7 @@ import {
   type ChartColumnStats,
   type ChartDataResponse,
   type ChartSpec,
+  type PageDataOptions,
   exportChartCsv,
 } from '../../lib/api';
 import { ChartTweakPanel } from './ChartTweakPanel';
@@ -25,6 +26,7 @@ import {
   Info,
   Palette,
   RefreshCw,
+  Calculator,
 } from 'lucide-react';
 
 export interface ChartCardItem {
@@ -54,6 +56,8 @@ interface ChartCardProps {
   globalColor?: string;
   onPointClick?: (column: string, value: any) => void;
   crossFilters?: Record<string, any>;
+  pageOptions?: PageDataOptions;
+  onUpdatePageOptions?: (opts: PageDataOptions) => void;
 }
 
 export const ChartCard: React.FC<ChartCardProps> = ({
@@ -67,6 +71,8 @@ export const ChartCard: React.FC<ChartCardProps> = ({
   globalColor,
   onPointClick,
   crossFilters,
+  pageOptions,
+  onUpdatePageOptions,
 }) => {
   const [isTweakOpen, setIsTweakOpen] = useState(false);
   const [isWhyOpen, setIsWhyOpen] = useState(false);
@@ -116,6 +122,15 @@ export const ChartCard: React.FC<ChartCardProps> = ({
           ) : (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-[var(--accent-subtle)] text-[var(--accent)] border border-[var(--accent-border)] shrink-0">
               Custom
+            </span>
+          )}
+
+          {item.spec.y?.formula && (
+            <span
+              title={`Formula: ${item.spec.y.formula}`}
+              className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-indigo-500/10 text-indigo-500 dark:text-indigo-400 border border-indigo-500/25 shrink-0"
+            >
+              fx {item.spec.y.column}
             </span>
           )}
 
