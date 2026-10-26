@@ -197,6 +197,33 @@ export const DataOptionsPanel: React.FC<DataOptionsPanelProps> = ({
 
         {/* Right Section: Streamlined Data Filters & Theme Color */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Active Reusable Calculated Columns Chips */}
+          {options.calculated_columns &&
+            Object.entries(options.calculated_columns).map(([col, form]) => (
+              <div
+                key={`calc_${col}`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 animate-in fade-in"
+                title={`Calculated Metric: fx ${col} = ${form}. Click ✕ to remove.`}
+              >
+                <Calculator className="w-3 h-3 shrink-0" />
+                <span>
+                  fx {col}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextCalcs = { ...options.calculated_columns };
+                    delete nextCalcs[col];
+                    onChange({ ...options, calculated_columns: nextCalcs });
+                  }}
+                  className="p-0.5 rounded hover:bg-indigo-500/20 cursor-pointer ml-0.5 transition-colors"
+                  title={`Remove calculated metric "${col}"`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            ))}
+
           {/* Active Cross-Filters (Click-to-Filter) Badges */}
           {options.cross_filters &&
             Object.entries(options.cross_filters).map(([col, val]) => (
