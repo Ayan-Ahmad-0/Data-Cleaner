@@ -309,6 +309,12 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       const labels = rows.map((r) => String(r[0]));
       const values = rows.map((r) => Number(r[1]) || 0);
       const isDonut = spec.chart_type === 'donut';
+      const activeFilterVal = spec.x?.column && crossFilters ? crossFilters[spec.x.column] : null;
+      const colors = labels.map((lbl, idx) => {
+        const c = activePalette[idx % activePalette.length];
+        if (activeFilterVal == null) return c;
+        return String(lbl) === String(activeFilterVal) ? c : hexToRgba(c, 0.25);
+      });
       const traces: any[] = [
         {
           type: 'pie',
@@ -318,7 +324,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           textinfo: 'label+percent',
           hoverinfo: 'label+value+percent',
           marker: {
-            colors: activePalette,
+            colors,
             line: { color: isDark ? '#18181b' : '#ffffff', width: 2 },
           },
         },
@@ -330,6 +336,11 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
     if (spec.chart_type === 'hbar') {
       const categories = rows.map((r) => String(r[0])).reverse();
       const values = rows.map((r) => Number(r[1]) || 0).reverse();
+      const activeFilterVal = spec.x?.column && crossFilters ? crossFilters[spec.x.column] : null;
+      const colors = categories.map((cat) => {
+        if (activeFilterVal == null) return primaryColor;
+        return String(cat) === String(activeFilterVal) ? primaryColor : hexToRgba(primaryColor, 0.25);
+      });
       const traces: any[] = [
         {
           type: 'bar',
@@ -337,7 +348,7 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
           x: values,
           y: categories,
           marker: {
-            color: primaryColor,
+            color: colors,
             line: { color: primaryDark, width: 1 },
           },
         },
@@ -409,13 +420,18 @@ export const PlotlyChartRenderer: React.FC<PlotlyChartRendererProps> = ({
       } else {
         const categories = rows.map((r) => String(r[0]));
         const values = rows.map((r) => Number(r[1]) || 0);
+        const activeFilterVal = spec.x?.column && crossFilters ? crossFilters[spec.x.column] : null;
+        const colors = categories.map((cat) => {
+          if (activeFilterVal == null) return primaryColor;
+          return String(cat) === String(activeFilterVal) ? primaryColor : hexToRgba(primaryColor, 0.25);
+        });
         const traces: any[] = [
           {
             type: 'bar',
             x: categories,
             y: values,
             marker: {
-              color: primaryColor,
+              color: colors,
               line: { color: primaryDark, width: 1 },
             },
           },
