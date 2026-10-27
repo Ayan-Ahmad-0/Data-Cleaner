@@ -80,10 +80,13 @@ def resolve_job_parquet_paths(
     if clean_pq.exists():
         return clean_pq, staged_pq if staged_pq.exists() else None
 
-    # Check convert-only or query-only directory
-    for folder_name in ("convert_jobs", "query_jobs"):
+    # Check convert-only, query-only, or modeling directory
+    for folder_name in ("convert_jobs", "query_jobs", "modeling"):
         q_dir = Path(f"data/{folder_name}").resolve() / job_id
         if q_dir.exists() and q_dir.is_dir():
+            merged_pq = q_dir / "merged.parquet"
+            if merged_pq.exists():
+                return merged_pq, None
             parquet_files = list(q_dir.glob("**/*.parquet"))
             if parquet_files:
                 return parquet_files[0], None
