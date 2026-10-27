@@ -37,6 +37,7 @@ interface SqlQueryBoxProps {
   datasetName?: string;
   onClose?: () => void;
   initialMode?: 'sql' | 'ask_ai';
+  initialSql?: string;
 }
 
 interface QueryHistoryItem {
@@ -51,6 +52,7 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
   datasetName = 'cleaned dataset',
   onClose,
   initialMode,
+  initialSql,
 }) => {
   const [exploreMode, setExploreMode] = useState<'sql' | 'ask_ai'>(initialMode || 'ask_ai');
 
@@ -64,7 +66,13 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
   const [schemaFilter, setSchemaFilter] = useState<string>('');
   const [activeTable, setActiveTable] = useState<string>('data');
 
-  const [sql, setSql] = useState<string>('SELECT * FROM data LIMIT 100;');
+  const [sql, setSql] = useState<string>(initialSql || 'SELECT * FROM data LIMIT 100;');
+
+  useEffect(() => {
+    if (initialSql) {
+      setSql(initialSql);
+    }
+  }, [initialSql]);
   const [isRunning, setIsRunning] = useState<boolean>(false);
   const [isExporting, setIsExporting] = useState<boolean>(false);
   const [result, setResult] = useState<ExploreQueryResult | null>(null);
