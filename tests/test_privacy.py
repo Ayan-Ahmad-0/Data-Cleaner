@@ -120,7 +120,7 @@ def test_compiler_pii_masking(tmp_path):
             SELECT 1 as id, 'alice@example.com' as email, '123-45-6789' as ssn, 500.0 as amount
             UNION ALL
             SELECT 2 as id, 'bob.builder@gmail.com' as email, '234-56-7890' as ssn, 750.0 as amount
-        ) TO '{str(input_pq).replace('\\', '/')}' (FORMAT PARQUET);
+        ) TO '{input_pq.as_posix()}' (FORMAT PARQUET);
     """)
     con.close()
 
@@ -142,7 +142,7 @@ def test_compiler_pii_masking(tmp_path):
 
     # Verify masked output values
     con = duckdb.connect(":memory:")
-    rows = con.execute(f"SELECT email, ssn, amount FROM read_parquet('{str(output_pq).replace('\\', '/')}')").fetchall()
+    rows = con.execute(f"SELECT email, ssn, amount FROM read_parquet('{output_pq.as_posix()}')").fetchall()
     con.close()
 
     assert rows[0][0] == "a***@example.com"
