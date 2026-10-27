@@ -80,10 +80,10 @@ Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL
 
 ---
 
-## CleanFlow Web Interface & Analytics Studio
+## Datamorph Web Interface & Analytics Studio
 
 <!-- Add: images/web_interface.png -->
-![CleanFlow Web Interface](images/web_interface.png)
+![Datamorph Web Interface](images/web_interface.png)
 
 <!-- Add: images/erd_studio.png -->
 ![Model Data ERD Studio](images/erd_studio.png)
