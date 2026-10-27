@@ -89,12 +89,20 @@ class ClipOutliersConfig(BaseModel):
         return self
 
 
+class MaskPiiConfig(BaseModel):
+    strategy: Literal["partial_mask", "sha256_hash", "redact"] = "partial_mask"
+    entity_type: Optional[str] = None
+
+    model_config = {"extra": "forbid"}
+
+
 class ColumnRule(BaseModel):
     trim_and_normalize: Optional[TrimAndNormalizeConfig] = None
     cast_type: Optional[CastTypeConfig] = None
     parse_timestamp: Optional[ParseTimestampConfig] = None
     clip_outliers: Optional[ClipOutliersConfig] = None
     handle_nulls: Optional[HandleNullsConfig] = None
+    mask_pii: Optional[MaskPiiConfig] = None
 
     model_config = {"extra": "forbid"}
 
