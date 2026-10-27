@@ -146,7 +146,24 @@ class RecipeCompiler:
             ctes.append(cte_filled)
             last_cte_name = "filled"
 
-        # 5. Final query with Dedupe qualify
+        # 5. Masking CTE (for GDPR/HIPAA mask_pii)
+        mask_replaces = []
+        for col, rule in recipe.columns.items():
+            if rule.mask_pii:
+                macro = MaskPiiMacro(
+                    strategy=rule.mask_pii.strategy,
+                    entity_type=rule.mask_pii.entity_type,
+                )
+                mask_expr = macro.to_sql(col)
+                mask_replaces.append(f"{mask_expr} AS {quote_ident(col)}")
+
+        if mask_replaces:
+            replace_expr = ", ".join(mask_replaces)
+            cte_masked = f"masked AS (\n    SELECT * REPLACE ({replace_expr}) FROM {last_cte_name}\n)"
+            ctes.append(cte_masked)
+            last_cte_name = "masked"
+
+        # 6. Final query with Dedupe qualify
         final_query = f"SELECT *\nFROM {last_cte_name}"
         if recipe.dedupe:
             dedupe_macro = DedupeMacro(
