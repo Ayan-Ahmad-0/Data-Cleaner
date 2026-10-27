@@ -464,29 +464,57 @@ class ModelingService:
             raise ValueError(f"Unsupported export format '{export_format}'. Expected mermaid, dbml, or sql_ddl.")
 
     def create_query_handoff(self, session_id: str) -> Dict[str, Any]:
-        """Prepare a multi-table JOIN query string to pre-fill the SQL Query Box."""
+        """Prepare a multi-table JOIN query string, materializing merged.parquet for SQL & AI exploration."""
         state = self._load_state(session_id)
         if not state.tables:
-            return {"sql": "SELECT 1;", "tables": []}
+            return {
+                "query_id": session_id,
+                "filename": f"merged_{session_id}.parquet",
+                "row_count": 0,
+                "columns": [],
+                "file_size_bytes": 0,
+                "detected_format": "PARQUET",
+                "sql": "SELECT 1;",
+                "tables": [],
+                "relationships_count": 0,
+            }
 
         table_names = list(state.tables.keys())
         first_table = table_names[0]
+        con = self._build_duckdb_connection(session_id)
+        merged_pq = self._get_session_dir(session_id) / "merged.parquet"
 
         if not state.relationships:
-            return {
-                "sql": f'SELECT * FROM "{first_table}" LIMIT 50;',
-                "tables": table_names,
-            }
+            query = f'SELECT * FROM "{first_table}"'
+            sql = 'SELECT * FROM data LIMIT 100;'
+        else:
+            base_tbl = state.relationships[0].from_table
+            joins = []
+            joined_tables = {base_tbl}
+            for r in state.relationships:
+                if r.to_table not in joined_tables:
+                    joins.append(f'LEFT JOIN "{r.to_table}" ON "{r.from_table}"."{r.from_column}" = "{r.to_table}"."{r.to_column}"')
+                    joined_tables.add(r.to_table)
+                elif r.from_table not in joined_tables:
+                    joins.append(f'LEFT JOIN "{r.from_table}" ON "{r.from_table}"."{r.from_column}" = "{r.to_table}"."{r.to_column}"')
+                    joined_tables.add(r.from_table)
+            query = f'SELECT * FROM "{base_tbl}" {" ".join(joins)}'
+            sql = 'SELECT * FROM data LIMIT 100;'
 
-        # Compose multi-table join from relationships
-        first_rel = state.relationships[0]
-        sql = (
-            f'SELECT *\n'
-            f'FROM "{first_rel.from_table}" c\n'
-            f'JOIN "{first_rel.to_table}" p ON c."{first_rel.from_column}" = p."{first_rel.to_column}"\n'
-            f'LIMIT 50;'
-        )
+        # Materialize merged parquet in session dir for exploration and AI Analyst
+        con.execute(f"COPY ({query}) TO '{merged_pq.as_posix()}' (FORMAT PARQUET)")
+        desc = con.execute(f"DESCRIBE SELECT * FROM read_parquet('{merged_pq.as_posix()}')").fetchall()
+        row_count = con.execute(f"SELECT count(*) FROM read_parquet('{merged_pq.as_posix()}')").fetchone()[0]
+        cols = [r[0] for r in desc]
+        file_size = merged_pq.stat().st_size if merged_pq.exists() else 0
+
         return {
+            "query_id": session_id,
+            "filename": f"multi_table_{session_id[:10]}.parquet",
+            "row_count": row_count,
+            "columns": cols,
+            "file_size_bytes": file_size,
+            "detected_format": "PARQUET",
             "sql": sql,
             "tables": table_names,
             "relationships_count": len(state.relationships),
