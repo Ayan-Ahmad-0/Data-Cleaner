@@ -103,3 +103,50 @@ def test_clean_profile_for_prompt_auto_scrubs_pii():
     assert "pii_detected" in scrubbed["columns"]["user_email"]
     # category samples should remain untouched
     assert scrubbed["columns"]["category"]["sample_values"][0] == "Electronics"
+
+
+def test_compiler_pii_masking(tmp_path):
+    import duckdb
+    from core.compiler import RecipeCompiler
+    from core.recipe_schema import Recipe, ColumnRule, MaskPiiConfig
+
+    input_pq = tmp_path / "raw.parquet"
+    output_pq = tmp_path / "clean.parquet"
+
+    # Create dummy dataset
+    con = duckdb.connect(":memory:")
+    con.execute(f"""
+        COPY (
+            SELECT 1 as id, 'alice@example.com' as email, '123-45-6789' as ssn, 500.0 as amount
+            UNION ALL
+            SELECT 2 as id, 'bob.builder@gmail.com' as email, '234-56-7890' as ssn, 750.0 as amount
+        ) TO '{str(input_pq).replace('\\', '/')}' (FORMAT PARQUET);
+    """)
+    con.close()
+
+    recipe = Recipe(
+        columns={
+            "email": ColumnRule(
+                mask_pii=MaskPiiConfig(strategy="partial_mask", entity_type="email")
+            ),
+            "ssn": ColumnRule(
+                mask_pii=MaskPiiConfig(strategy="sha256_hash", entity_type="ssn")
+            ),
+        }
+    )
+
+    compiler = RecipeCompiler()
+    res = compiler.execute_clean(recipe, input_pq, output_pq)
+
+    assert res.rows_out == 2
+
+    # Verify masked output values
+    con = duckdb.connect(":memory:")
+    rows = con.execute(f"SELECT email, ssn, amount FROM read_parquet('{str(output_pq).replace('\\', '/')}')").fetchall()
+    con.close()
+
+    assert rows[0][0] == "a***@example.com"
+    assert rows[1][0] == "b***@gmail.com"
+    assert len(rows[0][1]) == 16  # SHA-256 hash length
+    assert len(rows[1][1]) == 16
+    assert rows[0][2] == 500.0
