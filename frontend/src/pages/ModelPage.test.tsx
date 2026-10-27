@@ -186,10 +186,12 @@ describe('Model Data (ERD) Studio - Comprehensive Production Test Suite', () => 
 
       // Check button states
       const autoDetectBtn = screen.getByRole('button', { name: /Auto-Detect Keys/i });
+      const downloadCsvBtn = screen.getByRole('button', { name: /Download Merged CSV/i });
       const exportErdBtn = screen.getByRole('button', { name: /Export ERD/i });
       const querySqlBtn = screen.getByRole('button', { name: /Query in SQL Studio/i });
 
       expect(autoDetectBtn).toBeDisabled();
+      expect(downloadCsvBtn).toBeDisabled();
       expect(exportErdBtn).toBeDisabled();
       expect(querySqlBtn).toBeDisabled();
     });
@@ -208,11 +210,13 @@ describe('Model Data (ERD) Studio - Comprehensive Production Test Suite', () => 
       });
 
       const autoDetectBtn = screen.getByRole('button', { name: /Auto-Detect Keys/i });
+      const downloadCsvBtn = screen.getByRole('button', { name: /Download Merged CSV/i });
       const exportErdBtn = screen.getByRole('button', { name: /Export ERD/i });
       const querySqlBtn = screen.getByRole('button', { name: /Query in SQL Studio/i });
 
       // Needs at least 2 tables to detect relationships
       expect(autoDetectBtn).toBeDisabled();
+      expect(downloadCsvBtn).not.toBeDisabled();
       expect(exportErdBtn).not.toBeDisabled();
       expect(querySqlBtn).not.toBeDisabled();
     });
@@ -227,10 +231,12 @@ describe('Model Data (ERD) Studio - Comprehensive Production Test Suite', () => 
       });
 
       const autoDetectBtn = screen.getByRole('button', { name: /Auto-Detect Keys/i });
+      const downloadCsvBtn = screen.getByRole('button', { name: /Download Merged CSV/i });
       const exportErdBtn = screen.getByRole('button', { name: /Export ERD/i });
       const querySqlBtn = screen.getByRole('button', { name: /Query in SQL Studio/i });
 
       expect(autoDetectBtn).not.toBeDisabled();
+      expect(downloadCsvBtn).not.toBeDisabled();
       expect(exportErdBtn).not.toBeDisabled();
       expect(querySqlBtn).not.toBeDisabled();
     });
