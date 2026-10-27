@@ -8,11 +8,12 @@ import { ResultsPage } from './pages/ResultsPage';
 import { ConvertPage } from './pages/ConvertPage';
 import { QueryPage } from './pages/QueryPage';
 import { VisualizePage } from './pages/VisualizePage';
+import { ModelPage } from './pages/ModelPage';
 import { approveAndClean, getJobDetail, type JobDetailResponse, type QueryUploadResult } from './lib/api';
 import { formatNumber } from './lib/format';
 
 export function App() {
-  const [appMode, setAppMode] = useState<'clean' | 'convert' | 'query' | 'visualize'>('clean');
+  const [appMode, setAppMode] = useState<'clean' | 'convert' | 'query' | 'visualize' | 'model'>('clean');
   const [currentStep, setCurrentStep] = useState<number>(1);
   const [jobId, setJobId] = useState<string | null>(null);
   const [jobData, setJobData] = useState<JobDetailResponse | null>(null);
