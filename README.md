@@ -1,5 +1,5 @@
-# One-Click AI Data Cleaner Vectorized Data Profiling, Cleaning, and Exploration Engine
-Vectorized multi-format profiling, cleaning, exploration, and visualization pipeline powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 10 GB datasets, extracts single-pass statistical profiles without full table scans, parameterizes deterministic SQL transformation macros, compiles sandboxed analytical charts, and verifies output with automated reconciliation tests.
+# One-Click AI Data Cleaner Vectorized Data Profiling, Cleaning, Modeling, and Exploration Engine
+Vectorized multi-format profiling, cleaning, relational modeling, exploration, and visualization pipeline powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 10 GB datasets, extracts single-pass statistical profiles without full table scans, models multi-table relational ERDs with DuckDB joins, compiles sandboxed analytical charts, and verifies output with automated reconciliation tests.
 
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.1+-FFF000?style=flat&logo=duckdb&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=flat&logo=python&logoColor=white)
@@ -14,6 +14,7 @@ Vectorized multi-format profiling, cleaning, exploration, and visualization pipe
 ![Vite](https://img.shields.io/badge/Vite-8.0+-646CFF?style=flat&logo=vite&logoColor=white)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-v4-06B6D4?style=flat&logo=tailwindcss&logoColor=white)
 ![Plotly](https://img.shields.io/badge/Plotly-3.0+-3F4F75?style=flat&logo=plotly&logoColor=white)
+![Playwright](https://img.shields.io/badge/Playwright-E2E-2EAD33?style=flat&logo=playwright&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=flat&logo=docker&logoColor=white)
 ![Pytest](https://img.shields.io/badge/Pytest-8.0+-0A9EDC?style=flat&logo=pytest&logoColor=white)
 
@@ -22,30 +23,35 @@ Vectorized multi-format profiling, cleaning, exploration, and visualization pipe
 ## Overview
 
 1. **Ingest** raw CSV, Parquet, JSON, NDJSON, Excel (.xlsx), and SQLite (.db) files into zstandard-compressed columnar Parquet with all-varchar staging, preventing data loss from speculative type inference.
-2. **Execute Four Operating Modes** dynamically from a single unified interface: full profile-guided cleaning (**Clean Data**), zero-profiling stream conversion (**Convert Only**), zero-cleaning SQL exploration (**Query Data**), and immediate visual dashboard exploration (**Visualize Data**).
-3. **Profile** candidate keys, null token distributions, whitespace anomalies, and timestamp format drift in a single DuckDB aggregation pass, producing compact profiles smaller than 100 KB.
-4. **Draft** structured cleaning recipes using Gemini LLM or heuristic offline safe fallbacks constrained strictly to a fixed macro menu without raw SQL generation.
-5. **Compile** parameterized recipes into unified vectorized Common Table Expression (CTE) SQL chains executed entirely in-process by DuckDB at over 1,300,000 rows per second.
-6. **Verify** cleaned datasets through post-execution re-profiling, constraint assertions, and exact row-level reconciliation deltas.
-7. **Query Interactively** via the integrated AI Analyst (translates natural English questions into sandboxed DuckDB SQL with auto-correction) or the direct SQL Query Studio guarded by sqlglot AST parsing and resource ceilings.
-8. **Visualize Instantly** via vectorized DuckDB chart SQL compilation across 11 chart types (including Donut, Box plots, and Heatmaps), AI Auto-Visualize dashboard generation, natural language chart drafting ("Describe chart..."), interactive tweak controls, 20 curated modern analytics color palettes, 10-query per-user concurrency with queue buffering, and inline one-click render retries.
-9. **Handoff Seamlessly** between pipelines: post-clean results and stream conversion outputs provide 1-click downstream handoffs into AI Analyst queries, direct SQL exploration, or the visual analytics dashboard targeting verified cleaned datasets (`cleaned.parquet`).
+2. **Connect Cloud & Database Sources** directly to cloud object stores (AWS S3) and enterprise databases (PostgreSQL) for automated ingestion, schema extraction, and bi-directional dataset synchronization.
+3. **Execute Five Operating Modes** dynamically from a single unified interface: full profile-guided cleaning (**Clean Data**), zero-profiling stream conversion (**Convert Only**), zero-cleaning SQL exploration (**Query Data**), immediate visual dashboard exploration (**Visualize Data**), and visual multi-table relational modeling (**Model Data (ERD)**).
+4. **Model Relational Schemas** visually in the Model Data Studio with draggable table entity cards, interactive column connection dots, Bezier relationship links, cardinality indicators (1:1, 1:N, N:N), join previews, schema exports (Mermaid, DBML, PostgreSQL DDL), and one-click merged dataset CSV download.
+5. **Profile** candidate keys, null token distributions, whitespace anomalies, and timestamp format drift in a single DuckDB aggregation pass, producing compact profiles smaller than 100 KB.
+6. **Draft** structured cleaning recipes using Gemini LLM or heuristic offline safe fallbacks constrained strictly to a fixed macro menu without raw SQL generation.
+7. **Compile** parameterized recipes into unified vectorized Common Table Expression (CTE) SQL chains executed entirely in-process by DuckDB at over 1,300,000 rows per second.
+8. **Verify** cleaned datasets through post-execution re-profiling, constraint assertions, and exact row-level reconciliation deltas.
+9. **Query Interactively** via the integrated AI Analyst (translates natural English questions into sandboxed DuckDB SQL with auto-correction) or the direct SQL Query Studio guarded by sqlglot AST parsing and resource ceilings.
+10. **Visualize Instantly** via vectorized DuckDB chart SQL compilation across 11 chart types (bar, hbar, line, area, histogram with `#8F0926` default, scatter, pie, donut, box, heatmap, big number), AI Auto-Visualize dashboard generation, natural language chart drafting, interactive tweak controls, and 20 curated modern analytics palettes.
+11. **Handoff Seamlessly** between pipelines: multi-table ERD sessions, post-clean results, and stream conversion outputs provide 1-click downstream handoffs into AI Analyst queries, direct SQL exploration, or the visual analytics dashboard targeting verified cleaned datasets (`cleaned.parquet` or `merged.parquet`).
 
-Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 100% PII masking and 100% injection defense across 226 passing automated tests. Deployed locally via Docker Compose and FastAPI.
+Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 100% PII masking and 100% injection defense across 331 passing automated tests (292 Pytest + 39 Vitest). Deployed locally via Docker Compose and FastAPI.
 
 ---
 
 ## Architecture
 
-Raw Files (CSV, Parquet, JSON, NDJSON, XLSX, SQLite) → Format Stager → Canonical Parquet → Profiler / Mode Router → AI Analyst / CTE Compiler / Chart Compiler → Verifier → Sandboxed SQL & Visualization Studio
+Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL) → Format Stager → Canonical Parquet → Profiler / Mode Router → AI Analyst / CTE Compiler / Chart Compiler / Relational Joiner → Verifier → Sandboxed SQL, Visualization & ERD Studio
 
 | Stage | Purpose | Format | Storage |
 |---|---|---|---|
 | Ingestion | Staging raw input without speculative type coercion | Parquet (ZSTD, all-varchar) | Local disk (`data/jobs/{id}/staged.parquet`) |
 | Format Adapter | Sniffing, sheet/table selection, and schema flattening | In-memory Arrow tables | Temporary memory buffers |
+| Cloud & DB Connectors | External database and bucket streaming (PostgreSQL, S3) | Arrow / Parquet stream | Local disk / Connection sockets |
 | Convert-Only Mode | Direct stream conversion between formats | Target format (Parquet, CSV, XLSX, etc.) | Local disk (`data/convert_jobs/{id}/`) |
 | Query-Only Mode | Direct upload-to-sandbox indexing for instant queries | Parquet (ZSTD) | Local disk (`data/query_jobs/{id}/`) |
 | Visualize Mode | Zero-cleaning dataset staging for instant analytical charts | Parquet (ZSTD) | Local disk (`data/query_jobs/{id}/`) |
+| Model Data Mode | Multi-table relational staging and ERD visual schema modeling | Multi-table Parquet (`tables/*.parquet`) | Local disk (`data/modeling/{session_id}/`) |
+| Relational Joiner | Multi-table JOIN compilation and dataset merge | Materialized Parquet (`merged.parquet`) | Local disk (`data/modeling/{session_id}/merged.parquet`) |
 | Profiling | Single-pass statistical and defect extraction | JSON (`profile.json`, <100 KB) | Memory / Job Storage |
 | AI Recipe Drafting | Parameterizing macro menu and quality report | Pydantic Recipe Schema | Memory / Job Storage |
 | CTE Compilation | Vectorized data cleaning and concrete type casting | DuckDB CTE SQL Query | In-process execution |
@@ -54,7 +60,7 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX, SQLite) → Format Stager → Canon
 | Chart Compilation | Compiling declarative specs with automated TRY_CAST aggregations | SQL / Plotly JSON Data | DuckDB memory session |
 | AI Chart Planner | AI Auto-Visualize and prompt-to-chart plan synthesis | JSON Visualization Plan | DuckDB memory session |
 | SQL Studio & Dashboard | Sandboxed interactive exploration and chart tweaking | DuckDB Views / React Dashboards | In-Browser / Memory Session |
-| Multi-Format Export | Delivering cleaned dataset in downstream formats | Parquet, CSV, JSON, NDJSON, XLSX | Local disk / API download |
+| Multi-Format Export | Delivering cleaned or joined dataset in downstream formats | Parquet, CSV, JSON, NDJSON, XLSX | Local disk / API download |
 
 ### Architecture Diagram
 
@@ -65,11 +71,12 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX, SQLite) → Format Stager → Canon
 
 - **Execution Engine** — DuckDB 1.1+ (in-process vectorized columnar SQL, multi-threaded aggregation, >1,300,000 rows/s cleaning throughput, zero network overhead)
 - **SQL Security & AST** — sqlglot 30.0+ (strict read-only SELECT validation, 100% forbidden AST node denial rate, 5.0s query timeout ceiling)
-- **Backend Framework** — FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13 (223 passing automated unit & integration tests)
+- **Backend Framework** — FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13 (292 passing automated unit & integration tests)
 - **Schema & Validation** — Pydantic v2 (strict allowlist models with `extra="forbid"`, 100% PII redaction for names, emails, phones, SSNs)
 - **AI Reasoning** — Google GenAI SDK (`gemini-3.5-flash` / `gemini-3-flash-preview`), 30-question NL-to-SQL benchmark set with offline heuristic fallback
-- **Visualization Engine** — Plotly.js, React 19, Lucide Icons, 20-color analytics palette with brand coral `#FD4233`, dedicated 10-query concurrency controller
-- **Frontend Architecture** — React 19, TypeScript 5.0+, Vite, Tailwind CSS (fluid 1600px high-density layout, sub-1s cold build)
+- **Visualization Engine** — Plotly.js, React 19, Lucide Icons, 20-color analytics palette with default histogram `#8F0926`, dedicated 10-query concurrency controller
+- **Frontend Architecture** — React 19, TypeScript 5.0+, Vite, Tailwind CSS (fluid 1600px high-density layout, sub-1s cold build, 39 passing Vitest tests)
+- **End-to-End Testing** — Playwright (comprehensive ERD canvas drag-and-drop, zoom/pan, modal link, join preview, and handoff assertions)
 
 ---
 
@@ -77,6 +84,9 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX, SQLite) → Format Stager → Canon
 
 <!-- Add: images/web_interface.png -->
 ![CleanFlow Web Interface](images/web_interface.png)
+
+<!-- Add: images/erd_studio.png -->
+![Model Data ERD Studio](images/erd_studio.png)
 
 <!-- Add: images/ai_analyst.png -->
 ![AI Analyst and SQL Query Studio](images/ai_analyst.png)
@@ -89,7 +99,7 @@ Raw Files (CSV, Parquet, JSON, NDJSON, XLSX, SQLite) → Format Stager → Canon
 ## Pipeline Flow
 
 ```
-Input File (CSV, Parquet, JSON, NDJSON, XLSX, SQLite)
+Input Sources (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, PostgreSQL, S3)
 │
 ├───► [Mode 1: Convert Only] ──► [formats/convert.py] ───────► (data/convert_jobs/{id}/output.*)
 │                                                            │
@@ -111,6 +121,20 @@ Input File (CSV, Parquet, JSON, NDJSON, XLSX, SQLite)
 │                                                            ▼
 │                                             [frontend/src/pages/VisualizePage.tsx]
 │                                             (High-Density Dashboard, Tweak Panels, 20 Colors)
+│
+├───► [Mode 5: Model Data (ERD)] ► [core/modeling/service.py] ► (data/modeling/{session_id}/tables/*.parquet)
+│                                                            │
+│                                                            ├───► [Auto-Detect Keys & Link Modal]
+│                                                            ├───► [DuckDB Join Preview Drawer]
+│                                                            ├───► [Export Schema: Mermaid / DBML / DDL]
+│                                                            ├───► (data/modeling/{session_id}/export.csv)
+│                                                            │
+│                                                            ▼
+│                                             [create_query_handoff()]
+│                                             (Materializes merged.parquet)
+│                                                            │
+│                                                            ├───► [Ask AI Analyst Workspace]
+│                                                            └───► [Sandboxed SQL Query Box]
 │
 └───► [Mode 2: Clean Data]
       │
@@ -183,6 +207,7 @@ Evaluated across a comprehensive 30-question test suite spanning 10 analytical d
 | **PII & Data Leakage** | Datasets with personal names, emails, phones, SSNs | Sensitive regex pattern matching + sample redaction | **100.0% Redacted** (0 emails/SSNs transmitted; `(sample hidden)`) |
 | **Interactive Query Latency** | Direct SQL aggregation against 100K+ rows | In-process vectorized DuckDB columnar engine | **2.0 ms** execution latency |
 | **Chart Compilation Latency** | Declarative spec compiled to DuckDB aggregate query | Vectorized SQL generator with TRY_CAST coercion | **< 15.0 ms** compilation & execution |
+| **Relational Join Execution** | Multi-table relational DuckDB join across foreign keys | In-process columnar JOIN compilation to Parquet | **< 20.0 ms** join & match ratio calculation |
 | **Resource Safety Ceilings** | Unbounded user queries or runaway Cartesian joins | sqlglot AST validation + 5.0s timeout + 10,000 row cap | **100.0% Enforced** (Zero runaway thread lockups) |
 
 ### Streaming Format Conversion Benchmarks
@@ -217,6 +242,9 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 | `verification.json` | Audit record containing before/after row delta counts, duplicate reconciliation, and assertion status |
 | `convert_jobs/{id}/*` | Isolated directory containing direct format conversion outputs and intermediate Parquet buffers |
 | `query_jobs/{id}/*` | Isolated directory containing indexed Parquet datasets for instant Query Data and Visualize Data exploration |
+| `modeling/{session_id}/tables/*.parquet` | Physical staging directory for multi-table relational entities staged in Model Data (ERD) Studio |
+| `modeling/{session_id}/state.json` | Persisted session graph containing entity coordinates, extracted primary keys, and relationship links |
+| `modeling/{session_id}/merged.parquet` | Materialized DuckDB multi-table joined dataset serving SQL Studio and AI Analyst handoff queries |
 
 ---
 
@@ -225,10 +253,11 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 - **Vectorized In-Process Execution** — DuckDB executes all CTE operations in SIMD-accelerated C++ kernels directly against columnar Parquet buffers, eliminating JVM or network socket overhead.
 - **Strict Macro Allowlist** — The AI generator has no access to raw SQL generation. It selects and parameterizes macros from a closed schema (`trim_and_normalize`, `cast_type`, `clip_outliers`, `handle_nulls`, `parse_timestamp`, `dedupe`).
 - **AST Sandboxed SQL Studio** — All interactive SQL queries are parsed through `sqlglot` prior to execution. DDL, DML, file system calls, and external table references are denied at parse time before reaching the query engine.
-- **Declarative Chart SQL Compilation** — Visualizations compile declarative `ChartSpec` contracts into safe DuckDB SQL using `TRY_CAST` type coercions, ensuring untyped varchar columns aggregate reliably into numerical sums, averages, and histograms.
+- **Declarative Chart SQL Compilation** — Visualizations compile declarative `ChartSpec` contracts into safe DuckDB SQL using `TRY_CAST` type coercions, ensuring untyped varchar columns aggregate reliably into numerical sums, averages, and histograms with `#8F0926` default branding.
+- **Relational ERD Canvas Modeling** — Users visually stage multiple independent tables, inspect column data types, connect entity keys via Bezier curve links, and execute relational JOINs entirely in-process using DuckDB.
 - **Dedicated Chart Concurrency Architecture** — Dashboard chart execution decouples from interactive SQL queries using a dedicated `_chart_controller` allowing up to 10 concurrent analytical chart queries per user and 20 globally with a 15.0-second queue timeout, preventing per-user concurrency bottlenecks when loading multi-card dashboards.
 - **Single-Click Error Recovery** — Individual chart cards feature isolated error boundaries with an integrated "Retry Render" action, allowing users to re-execute transient failures without reloading or re-configuring specs.
-- **Cleaned Dataset Handoff Priority** — Downstream visualization and query routes inspect and prioritize `cleaned.parquet` over raw `staged.parquet`, ensuring post-clean charts immediately reflect deduplicated, typed, and normalized data.
+- **Cleaned Dataset Handoff Priority** — Downstream visualization and query routes inspect and prioritize `cleaned.parquet` and `merged.parquet` over raw `staged.parquet`, ensuring post-clean charts immediately reflect deduplicated, typed, and normalized data.
 - **Strict Query Resource Caps** — Interactive SQL queries enforce a 5.0-second execution timeout, a 10,000-row return limit, a 100 MB export ceiling, and a 2-worker concurrency guard.
 - **Autonomous AI Analyst Error Recovery** — If an AI-synthesized SQL query fails during sandbox execution, the error and schema context are fed back to the model for an autonomous single-retry correction pass.
 - **SQL Injection Prevention** — All column identifiers and parameters passed into SQL generation are sanitized using `quote_ident()` with double-quote escaping.
@@ -258,6 +287,7 @@ data-cleaner/
 │   └── storage.py              # File path manager for job artifacts and outputs
 ├── charts/                     # Vectorized DuckDB charting engine
 │   ├── compile.py              # Declarative ChartSpec to safe DuckDB SQL compiler with TRY_CAST
+│   ├── dashboard_export.py     # Standalone HTML executive dashboard exporter with embedded Plotly
 │   ├── errors.py               # Chart query validation and execution error hierarchy
 │   ├── limits.py               # Point caps, bucket maximums, and timeout guards
 │   ├── page_options.py         # Global chart controls (cast overrides, outlier clipping, null exclusion)
@@ -265,7 +295,7 @@ data-cleaner/
 │   ├── shape.py                # Raw DuckDB tabular result reshaper for Plotly traces
 │   ├── spec.py                 # Declarative Pydantic specification models for charts
 │   ├── stats.py                # Lightweight column metrics profiler for visualization
-│   ├── suggest.py              # Rule-based heuristic starter chart recommendation engine
+│   ├── suggest.py              # Rule-based starter chart suggestion engine with #8F0926 histogram default
 │   └── tweak.py                # Interactive chart configuration mutators
 ├── charts_ai/                  # AI-assisted charting and natural language visualization
 │   ├── context.py              # Dataset schema and token profiler context builder for LLM
@@ -277,7 +307,13 @@ data-cleaner/
 │   ├── quality.py              # Chart relevance, variety, and layout scoring metrics
 │   ├── schemas.py              # Pydantic validation schemas for raw LLM outputs
 │   └── service.py              # Chart AI service orchestrator (plan, synthesize, suggest)
-├── core/                       # Core data cleaning engine
+├── connectors/                 # Cloud object storage and database connectors
+│   ├── base.py                 # Base connector interface contracts and credential schemas
+│   ├── postgres.py             # PostgreSQL direct table ingestion and export provider
+│   ├── registry.py             # Connector registry for provider lookup and capabilities
+│   ├── router.py               # Connector API router for testing, imports, and exports
+│   └── s3.py                   # AWS S3 bucket object streaming and staging provider
+├── core/                       # Core data cleaning, modeling, and wrangling engine
 │   ├── ai/                     # LLM integration and recipe generation
 │   │   ├── fallback.py         # Rule-based offline heuristic recipe generator
 │   │   ├── gemini_client.py    # Google GenAI SDK interface with model fallback
@@ -289,6 +325,12 @@ data-cleaner/
 │   │   ├── dedupe.py           # Deduplication with QUALIFY row_number() windowing
 │   │   ├── numbers.py          # Numeric casting, bounds clipping, and null imputation
 │   │   └── strings.py          # Whitespace trimming and null token mapping
+│   ├── modeling/               # Multi-table relational modeling & ERD subsystem
+│   │   ├── detector.py         # Heuristic primary key and foreign key auto-detection
+│   │   ├── models.py           # Pydantic data models for modeling sessions, tables, and links
+│   │   └── service.py          # Modeling session orchestrator, DuckDB joins, and merged Parquet
+│   ├── wrangler/               # Interactive data wrangling and PII detection
+│   │   └── service.py          # In-memory cell editing, regex PII detection, and formula evaluation
 │   ├── compiler.py             # Vectorized CTE compiler and execution engine
 │   ├── converter.py            # Raw CSV to all-varchar ZSTD Parquet converter
 │   ├── profiler.py             # Single-pass statistical and defect profiler
@@ -320,10 +362,20 @@ data-cleaner/
 │   ├── run_experiments.py      # Baseline experimental runner
 │   └── scorer.py               # Precision, recall, and F1 calculation engine
 ├── frontend/                   # React 19 + TypeScript + Vite web interface
-│   ├── src/                    # UI screens (Upload, Report, Approval, Results, Convert, Query, Visualize)
+│   ├── e2e/                    # Playwright end-to-end specifications
+│   │   └── erd-modeler.spec.ts # ERD canvas, drag-and-drop, link, and handoff test suite
+│   ├── src/                    # UI screens and components
+│   │   ├── components/         # Reusable design system, charts, connectors, and ERD components
+│   │   │   ├── connectors/     # ConnectorModal for S3 and PostgreSQL ingestion
+│   │   │   ├── explore/        # SqlQueryBox, AskAiTab, and PlotlyChartRenderer
+│   │   │   ├── modeling/       # ErdCanvas, TableEntityCard, RelationshipModal, JoinPreviewDrawer
+│   │   │   ├── ui/             # Core UI buttons, badges, modals, and callouts
+│   │   │   └── wrangler/       # Interactive cell grid and PII mask controls
+│   │   ├── pages/              # ModelPage, QueryPage, VisualizePage, ConvertPage, UploadPage
+│   │   └── lib/                # API client layer, formatters, and chartColors definitions
 │   ├── package.json            # Node dependency declarations
 │   └── vite.config.ts          # Vite build configuration with proxy support
-├── tests/                      # Pytest test suite (223 unit and integration tests)
+├── tests/                      # Pytest test suite (292 unit and integration tests)
 ├── .github/workflows/ci.yml    # GitHub Actions multi-version CI workflow (Python 3.11/3.12, Node 20)
 ├── demo.py                     # Autonomous end-to-end CLI demonstration runner
 ├── docker-compose.yml          # Containerized multi-stage service deployment
@@ -350,7 +402,7 @@ DUCKDB_MEMORY_LIMIT=4GB
 DUCKDB_THREADS=4
 ```
 
-- **Connection Secrets** — No external database connection strings are required; DuckDB runs in-process with ephemeral or file-backed storage.
+- **Connection Secrets** — External connectors (PostgreSQL, S3) accept credentials through request bodies or environment variables; no default connection string is stored in code.
 - **Deployment Keys** — If `GEMINI_API_KEY` is not provided, the pipeline operates in offline deterministic heuristic mode without failure.
 - **Memory Quirks** — On memory-constrained systems (e.g. 8 GB RAM total), adjust `DUCKDB_MEMORY_LIMIT=2GB` to prevent OS swapping during multi-GB dataset conversions.
 
@@ -378,10 +430,22 @@ python demo.py 25000
 
 ### 4. Run full test suite
 ```bash
+# Run backend test suite (292 tests)
 pytest -v tests/
+
+# Run frontend unit test suite (39 tests)
+cd frontend
+npm install
+npm test -- --run
 ```
 
-### 5. Launch interactive web application
+### 5. Run Playwright E2E test suite
+```bash
+cd frontend
+npx playwright test e2e/erd-modeler.spec.ts
+```
+
+### 6. Launch interactive web application
 ```bash
 # Terminal 1: Backend
 uvicorn app.main:app --reload --port 8000
@@ -392,14 +456,14 @@ npm install
 npm run dev
 ```
 
-### 6. Run with Docker Compose
+### 7. Run with Docker Compose
 ```bash
 docker compose up --build
 ```
 
 | Service | URL | Description |
 |---|---|---|
-| Web Application | http://localhost:5173 | Interactive 4-mode React UI (Development) |
+| Web Application | http://localhost:5173 | Interactive 5-mode React UI (Development) |
 | Unified API & UI | http://localhost:8000 | FastAPI backend serving API and static production frontend |
 | API Documentation | http://localhost:8000/docs | Interactive OpenAPI Swagger UI |
 | Health Endpoint | http://localhost:8000/api/health | Service readiness and engine status |
@@ -408,6 +472,9 @@ docker compose up --build
 
 ## Challenges Solved
 
+- **Multi-Table SQL Studio Handoff Empty State** — Symptom: In Model Data (ERD) Studio, clicking "Query in SQL Studio" navigated to a blank upload dropzone instead of loading the staged multi-table session. Diagnosis: `onHandoffToQuery` in `App.tsx` switched mode to `'query'` without passing the session identifier or SQL statement, and `QueryPage.tsx` did not accept initial dataset props, defaulting to `queryResult = null`. Fix: Expanded `QueryHandoffResult` in `api.ts`, stored the handoff payload in `queryTarget`, `queryInitialSql`, and `queryInitialMode` state in `App.tsx`, initialized `queryResult` from `initialDataset` in `QueryPage.tsx`, and forwarded `initialSql` and `initialMode` to `SqlQueryBox.tsx`.
+- **ERD Canvas Native Pinch/Scroll Page-Zoom Collision** — Symptom: Using the mouse wheel or trackpad pinch on the ERD modeling canvas zoomed the entire browser viewport rather than zooming only the canvas viewport. Diagnosis: React attaches synthetic `onWheel` event handlers as passive by default (`{ passive: true }`), causing `e.preventDefault()` calls within React event listeners to be silently ignored by modern browser engines. Fix: Bound a native wheel listener with `{ passive: false }` directly on the canvas element ref in a `useEffect` hook, calculating cursor-directed focal zoom and clamping scale between 0.25x and 2.5x.
+- **ERD Bezier Line Cardinality Badge Visual Clashing** — Symptom: The cardinality pill badge (`1:N · 100%`) overlapped directly on top of the relational link line, visually severing the text. Diagnosis: The badge SVG coordinate `y={midY - 12}` centered the badge directly on the Bezier spline curve. Fix: Elevated the badge pill container above the Bezier curve (`y={midY - 26}`), added an opaque surface background with border hairline, and rendered a subtle vertical stem connecting the badge to the underlying curve midpoint.
 - **Type Inference Sampling Bias** — Symptom: Ingesting dirty CSVs directly into standard typed SQL engines failed on row 50,000 due to unexpected string tokens in numeric columns. Diagnosis: DuckDB's automatic CSV sniffer uses sample rows that miss corruptions occurring deeper in large files. Fix: Implemented two-stage ingestion where CSVs are initially converted to Parquet with `all_varchar=true`, deferring type casting to compiled CTE stages after complete statistical profiling.
 - **Binder Error on Untyped String Aggregations in Charts** — Symptom: Chart query execution failed with `Binder Error: No function matches the given name and argument types 'avg(VARCHAR)'`. Diagnosis: Staging parquet files preserves raw columns as `VARCHAR` to avoid speculative ingestion loss, causing DuckDB aggregation functions like `avg()` and `sum()` to reject untyped string inputs. Fix: Added automated type detection and safe `TRY_CAST(col AS DOUBLE)` wrapping inside `charts/compile.py` for numeric Y-axis aggregates, histograms, and scatter plots.
 - **Group-By Column Shadowing in Category Charts** — Symptom: Chart generation crashed with `Binder Error: column must appear in the GROUP BY clause or must be part of an aggregate function`. Diagnosis: Group-by CTE queries aliased transformed category expressions using identical names as raw columns, creating identifier collisions during DuckDB query planning. Fix: Ensured discrete internal column aliasing and explicit GROUP BY clause projection alignment in `charts/compile.py`.
