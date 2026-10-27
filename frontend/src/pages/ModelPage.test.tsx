@@ -29,6 +29,7 @@ vi.mock('../lib/api', async () => {
     handoffModelingToQuery: vi.fn(),
     exportModelingSchema: vi.fn(),
     previewModelingJoin: vi.fn(),
+    downloadModelingMergedCsv: vi.fn(),
   };
 });
 
