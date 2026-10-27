@@ -14,6 +14,7 @@ from core.macros.dedupe import DedupeMacro
 from core.macros.strings import TrimAndNormalizeMacro
 from core.macros.numbers import CastTypeMacro, ClipOutliersMacro, HandleNullsMacro
 from core.macros.dates import ParseTimestampMacro
+from core.macros.privacy import MaskPiiMacro
 from core.recipe_schema import Recipe
 from core.validator import RecipeValidator
 
