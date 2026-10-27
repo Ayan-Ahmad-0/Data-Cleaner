@@ -327,8 +327,19 @@ export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
 
           <Button
             size="sm"
+            variant="secondary"
+            onClick={() => handleHandoff('ask_ai')}
+            disabled={tablesCount === 0}
+            leftIcon={<Bot className="w-3.5 h-3.5 text-purple-400" />}
+            className="text-xs font-semibold cursor-pointer border-purple-500/30 hover:border-purple-500/60 hover:bg-purple-500/10 text-purple-300"
+          >
+            Ask AI Analyst
+          </Button>
+
+          <Button
+            size="sm"
             variant="primary"
-            onClick={handleHandoffQuery}
+            onClick={() => handleHandoff('sql')}
             disabled={tablesCount === 0}
             leftIcon={<Terminal className="w-3.5 h-3.5" />}
             className="text-xs bg-[#FF4B3E] hover:bg-[#E03E32] font-semibold shadow-xs cursor-pointer"
