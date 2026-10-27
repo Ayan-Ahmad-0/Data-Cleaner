@@ -264,6 +264,7 @@ def suggest_charts_from_stats(
                 chart_type="histogram",
                 x=FieldRef(column=num.name, cast_as=num_cast, bins=25),
                 aggregation="count",
+                custom_color="#8F0926",
                 title=f"{num_label} Distribution",
             ),
             f"hist_{num.name}",
