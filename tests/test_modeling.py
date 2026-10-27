@@ -214,3 +214,76 @@ def test_sqlite_database_extraction(temp_modeling_service, tmp_path):
     assert fk_rel.from_column == "category_id"
     assert fk_rel.to_column == "id"
     assert fk_rel.status == "confirmed"
+
+
+def test_modeling_api_endpoints(sample_csv_tables):
+    """Test REST API endpoints for modeling session creation, file uploads, and schema export."""
+    from fastapi.testclient import TestClient
+    from app.main import app
+
+    customers_csv, orders_csv = sample_csv_tables
+    client = TestClient(app)
+
+    # 1. Create session
+    resp = client.post("/api/modeling/sessions")
+    assert resp.status_code == 200
+    data = resp.json()
+    session_id = data["session_id"]
+    assert session_id.startswith("model_")
+
+    # 2. Upload customers table
+    with open(customers_csv, "rb") as f:
+        resp = client.post(
+            f"/api/modeling/sessions/{session_id}/tables",
+            files={"file": ("customers.csv", f, "text/csv")},
+        )
+    assert resp.status_code == 200
+    state = resp.json()
+    assert "customers" in state["tables"]
+
+    # 3. Upload orders table
+    with open(orders_csv, "rb") as f:
+        resp = client.post(
+            f"/api/modeling/sessions/{session_id}/tables",
+            files={"file": ("orders.csv", f, "text/csv")},
+        )
+    assert resp.status_code == 200
+    state = resp.json()
+    assert "orders" in state["tables"]
+    assert len(state["relationships"]) >= 1
+
+    # 4. Preview Join
+    resp = client.post(
+        f"/api/modeling/sessions/{session_id}/preview-join",
+        json={
+            "from_table": "orders",
+            "from_column": "customer_id",
+            "to_table": "customers",
+            "to_column": "id",
+            "join_type": "INNER",
+        },
+    )
+    assert resp.status_code == 200
+    join_res = resp.json()
+    assert join_res["matched_rows"] == 4
+    assert len(join_res["sample_rows"]) == 4
+
+    # 5. Export schema
+    resp = client.get(f"/api/modeling/sessions/{session_id}/export?format=mermaid")
+    assert resp.status_code == 200
+    exp = resp.json()
+    assert exp["format"] == "mermaid"
+    assert "erDiagram" in exp["content"]
+
+    # 6. Handoff query
+    resp = client.post(f"/api/modeling/sessions/{session_id}/handoff-query")
+    assert resp.status_code == 200
+    handoff = resp.json()
+    assert "SELECT" in handoff["sql"]
+
+    # 7. Delete table
+    resp = client.delete(f"/api/modeling/sessions/{session_id}/tables/customers")
+    assert resp.status_code == 200
+    state_after = resp.json()
+    assert "customers" not in state_after["tables"]
+
