@@ -24,13 +24,26 @@ CRITICAL CONSTRAINTS:
 """
 
 
+from core.privacy.detector import PiiDetector
+from core.privacy.masking import mask_value
+
+
 def clean_profile_for_prompt(profile_data: Dict[str, Any], privacy_mode: bool = False) -> Dict[str, Any]:
-    """Scrub raw sample values if privacy_mode is active."""
+    """Scrub raw sample values if privacy_mode is active or if PII is detected."""
     cleaned = copy.deepcopy(profile_data)
-    if privacy_mode:
-        for col_name, col_meta in cleaned.get("columns", {}).items():
-            if "sample_values" in col_meta:
+    for col_name, col_meta in cleaned.get("columns", {}).items():
+        if "sample_values" in col_meta and col_meta["sample_values"]:
+            if privacy_mode:
                 col_meta["sample_values"] = []
+            else:
+                # Auto-detect sensitive PII in samples even if privacy_mode is False
+                detected = PiiDetector.scan_column(col_name, col_meta["sample_values"])
+                if detected and detected.confidence >= 0.5:
+                    col_meta["sample_values"] = [
+                        mask_value(v, detected.entity_type, strategy=detected.suggested_strategy)
+                        for v in col_meta["sample_values"]
+                    ]
+                    col_meta["pii_detected"] = detected.to_dict()
     return cleaned
 
 
