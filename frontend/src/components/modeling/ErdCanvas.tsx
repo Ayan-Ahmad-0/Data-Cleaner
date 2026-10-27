@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import {
   ZoomIn,
   ZoomOut,
@@ -46,12 +46,46 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
   // Selected table
   const [selectedTable, setSelectedTable] = useState<string | null>(null);
 
-  // Wheel zoom
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const zoomFactor = e.deltaY < 0 ? 1.05 : 0.95;
-    setZoom((prev) => Math.min(Math.max(0.4, prev * zoomFactor), 2.0));
-  };
+  // Non-passive native wheel listener to prevent whole-page browser zoom on Ctrl+Wheel or trackpad pinch
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleNativeWheel = (e: WheelEvent) => {
+      // Crucial: Cancels native browser webpage zoom
+      e.preventDefault();
+      e.stopPropagation();
+
+      const rect = container.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+
+      // Smooth zoom scaling towards cursor
+      const zoomFactor = e.deltaY < 0 ? 1.08 : 0.92;
+
+      setZoom((prevZoom) => {
+        const newZoom = Math.min(Math.max(0.35, prevZoom * zoomFactor), 2.5);
+
+        // Adjust pan coordinates so the point under the cursor stays fixed in world space
+        setPan((prevPan) => {
+          const worldX = (mouseX - prevPan.x) / prevZoom;
+          const worldY = (mouseY - prevPan.y) / prevZoom;
+          return {
+            x: Math.round(mouseX - worldX * newZoom),
+            y: Math.round(mouseY - worldY * newZoom),
+          };
+        });
+
+        return newZoom;
+      });
+    };
+
+    container.addEventListener('wheel', handleNativeWheel, { passive: false });
+
+    return () => {
+      container.removeEventListener('wheel', handleNativeWheel);
+    };
+  }, []);
 
   // Canvas Pan Handlers
   const handleMouseDownBackground = (e: React.MouseEvent) => {
