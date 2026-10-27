@@ -383,9 +383,10 @@ class ModelingService:
             {join_type} JOIN "{to_table}" p ON c."{from_column}" = p."{to_column}"
             LIMIT 10
         """
-        df = con.execute(sample_query).fetchdf()
-        columns = list(df.columns)
-        records = df.where(df.notnull(), None).to_dict(orient="records")
+        rel = con.execute(sample_query)
+        columns = [desc[0] for desc in rel.description] if rel.description else []
+        raw_rows = rel.fetchall()
+        records = [dict(zip(columns, row)) for row in raw_rows]
 
         return JoinPreviewResult(
             from_table=from_table,
