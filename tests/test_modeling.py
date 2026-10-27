@@ -275,11 +275,31 @@ def test_modeling_api_endpoints(sample_csv_tables):
     assert exp["format"] == "mermaid"
     assert "erDiagram" in exp["content"]
 
-    # 6. Handoff query
+    # 6. Handoff query (materializes merged.parquet for SQL exploration & AI Analyst)
     resp = client.post(f"/api/modeling/sessions/{session_id}/handoff-query")
     assert resp.status_code == 200
     handoff = resp.json()
     assert "SELECT" in handoff["sql"]
+    assert handoff["query_id"] == session_id
+    assert handoff["row_count"] == 4
+
+    # 6b. Verify SQL and AI exploration endpoints resolve the merged modeling dataset
+    resp = client.get(f"/api/explore/{session_id}/schema")
+    assert resp.status_code == 200
+    schema_info = resp.json()
+    assert schema_info["row_count"] == 4
+    col_names = [c["name"] for c in schema_info["columns"]]
+    assert "name" in col_names
+    assert "total_amount" in col_names
+
+    resp = client.post(
+        f"/api/explore/{session_id}/query",
+        json={"sql": "SELECT name, total_amount FROM data ORDER BY total_amount DESC LIMIT 5;"},
+    )
+    assert resp.status_code == 200
+    q_data = resp.json()
+    assert q_data["row_count_returned"] == 4
+    assert len(q_data["rows"]) == 4
 
     # 7. Export merged CSV
     resp = client.get(f"/api/modeling/sessions/{session_id}/export-csv")
