@@ -84,7 +84,7 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
   const [showHistory, setShowHistory] = useState<boolean>(false);
   const [history, setHistory] = useState<QueryHistoryItem[]>(() => {
     try {
-      const stored = sessionStorage.getItem(`cleanflow_sql_history_${jobId}`);
+      const stored = sessionStorage.getItem(`datamorph_sql_history_${jobId}`) || sessionStorage.getItem(`cleanflow_sql_history_${jobId}`);
       return stored ? JSON.parse(stored) : [];
     } catch {
       return [];
