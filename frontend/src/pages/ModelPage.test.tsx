@@ -245,6 +245,11 @@ describe('Model Data (ERD) Studio - Comprehensive Production Test Suite', () => 
       const mockHandoff = vi.fn();
       (api.createModelingSession as any).mockResolvedValue(mockTwoTablesSessionState);
       (api.handoffModelingToQuery as any).mockResolvedValue({
+        query_id: 'model_two_tables',
+        filename: 'multi_table_model_two_tables',
+        row_count: 4,
+        columns: ['id', 'name', 'order_id'],
+        file_size_bytes: 1024,
         sql: 'SELECT * FROM customers JOIN orders ON customers.id = orders.customer_id',
         tables: ['customers', 'orders'],
       });
@@ -259,7 +264,44 @@ describe('Model Data (ERD) Studio - Comprehensive Production Test Suite', () => 
 
       await waitFor(() => {
         expect(api.handoffModelingToQuery).toHaveBeenCalledWith('model_two_tables');
-        expect(mockHandoff).toHaveBeenCalledWith('model_two_tables', 'multi_table_model_two_tables');
+        expect(mockHandoff).toHaveBeenCalledWith(
+          'model_two_tables',
+          'multi_table_model_two_tables',
+          expect.objectContaining({ tables: ['customers', 'orders'] }),
+          'sql'
+        );
+      });
+    });
+
+    it('triggers AI Analyst handoff when the Ask AI Analyst button is clicked', async () => {
+      const mockHandoff = vi.fn();
+      (api.createModelingSession as any).mockResolvedValue(mockTwoTablesSessionState);
+      (api.handoffModelingToQuery as any).mockResolvedValue({
+        query_id: 'model_two_tables',
+        filename: 'multi_table_model_two_tables',
+        row_count: 4,
+        columns: ['id', 'name', 'order_id'],
+        file_size_bytes: 1024,
+        sql: 'SELECT * FROM customers JOIN orders ON customers.id = orders.customer_id',
+        tables: ['customers', 'orders'],
+      });
+
+      render(<ModelPage onHandoffToQuery={mockHandoff} />);
+
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /Ask AI Analyst/i })).not.toBeDisabled();
+      });
+
+      fireEvent.click(screen.getByRole('button', { name: /Ask AI Analyst/i }));
+
+      await waitFor(() => {
+        expect(api.handoffModelingToQuery).toHaveBeenCalledWith('model_two_tables');
+        expect(mockHandoff).toHaveBeenCalledWith(
+          'model_two_tables',
+          'multi_table_model_two_tables',
+          expect.objectContaining({ tables: ['customers', 'orders'] }),
+          'ask_ai'
+        );
       });
     });
   });
