@@ -163,7 +163,6 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
   return (
     <div
       ref={containerRef}
-      onWheel={handleWheel}
       onMouseDown={handleMouseDownBackground}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
