@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Trash2, ArrowRight, CheckCircle2 } from 'lucide-react';
 import type { Relationship, TableMetadata } from '../../lib/api';
 import { Button } from '../ui/Button';
@@ -20,13 +20,23 @@ export const RelationshipModal: React.FC<RelationshipModalProps> = ({
   onSave,
   onDelete,
 }) => {
-  if (!isOpen || !relationship) return null;
+  const [fromTable, setFromTable] = useState(relationship?.from_table || '');
+  const [fromColumn, setFromColumn] = useState(relationship?.from_column || '');
+  const [toTable, setToTable] = useState(relationship?.to_table || '');
+  const [toColumn, setToColumn] = useState(relationship?.to_column || '');
+  const [cardinality, setCardinality] = useState(relationship?.cardinality || '1:N');
 
-  const [fromTable, setFromTable] = useState(relationship.from_table);
-  const [fromColumn, setFromColumn] = useState(relationship.from_column);
-  const [toTable, setToTable] = useState(relationship.to_table);
-  const [toColumn, setToColumn] = useState(relationship.to_column);
-  const [cardinality, setCardinality] = useState(relationship.cardinality);
+  useEffect(() => {
+    if (relationship) {
+      setFromTable(relationship.from_table);
+      setFromColumn(relationship.from_column);
+      setToTable(relationship.to_table);
+      setToColumn(relationship.to_column);
+      setCardinality(relationship.cardinality);
+    }
+  }, [relationship]);
+
+  if (!isOpen || !relationship) return null;
 
   const fromCols = tables[fromTable]?.columns || [];
   const toCols = tables[toTable]?.columns || [];
