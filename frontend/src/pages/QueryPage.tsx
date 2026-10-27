@@ -429,7 +429,8 @@ export const QueryPage: React.FC<QueryPageProps> = ({
           <SqlQueryBox
             jobId={queryResult.query_id}
             datasetName={queryResult.filename}
-            initialMode="ask_ai"
+            initialMode={initialMode}
+            initialSql={initialSql}
           />
         </div>
       )}
