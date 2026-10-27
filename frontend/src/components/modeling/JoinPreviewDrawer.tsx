@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { X, Settings2, Table, Loader2, ArrowRight } from 'lucide-react';
+import { X, Settings2, Table, Loader2, ArrowRight, Download } from 'lucide-react';
 import type { Relationship, JoinPreviewResult } from '../../lib/api';
-import { previewModelingJoin } from '../../lib/api';
+import { previewModelingJoin, downloadModelingMergedCsv } from '../../lib/api';
 import { Button } from '../ui/Button';
 
 interface JoinPreviewDrawerProps {
@@ -18,9 +18,22 @@ export const JoinPreviewDrawer: React.FC<JoinPreviewDrawerProps> = ({
   onEditRelationship,
 }) => {
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [joinType, setJoinType] = useState('INNER');
   const [preview, setPreview] = useState<JoinPreviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const handleDownloadJoinCsv = async () => {
+    if (!relationship || !sessionId) return;
+    setDownloading(true);
+    try {
+      await downloadModelingMergedCsv(sessionId, relationship.id);
+    } catch (err: any) {
+      setError(err.message || 'Failed to download joined CSV.');
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   useEffect(() => {
     if (!relationship || !sessionId) return;
@@ -90,6 +103,18 @@ export const JoinPreviewDrawer: React.FC<JoinPreviewDrawerProps> = ({
               </button>
             ))}
           </div>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleDownloadJoinCsv}
+            disabled={downloading}
+            leftIcon={downloading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5 text-emerald-400" />}
+            className="text-xs h-7 px-2.5 cursor-pointer border border-[var(--border-hairline)]"
+            title="Download this JOIN query result as CSV"
+          >
+            Download CSV
+          </Button>
 
           <Button
             size="sm"
