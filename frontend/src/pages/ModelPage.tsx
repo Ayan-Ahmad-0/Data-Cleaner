@@ -5,12 +5,10 @@ import {
   Terminal,
   Database,
   Layers,
-  Link,
-  Table as TableIcon,
   Loader2,
   CheckCircle2,
   AlertTriangle,
-  Plus,
+  X,
 } from 'lucide-react';
 import {
   createModelingSession,
@@ -24,7 +22,6 @@ import {
   handoffModelingToQuery,
   type ModelingSessionState,
   type Relationship,
-  type TableMetadata,
 } from '../lib/api';
 import { ErdCanvas } from '../components/modeling/ErdCanvas';
 import { MultiTableDropzone } from '../components/modeling/MultiTableDropzone';
