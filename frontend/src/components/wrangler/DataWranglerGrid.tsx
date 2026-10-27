@@ -176,18 +176,16 @@ export const DataWranglerGrid: React.FC<DataWranglerGridProps> = ({
       {/* Top Header & Search Bar */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[var(--accent-subtle)] text-[#FF4B3E] flex items-center justify-center border border-[var(--border-hairline)]">
-            <Sliders className="w-4 h-4" />
-          </div>
+          <Sliders className="w-4 h-4 text-[var(--text-muted)] shrink-0" />
           <div>
-            <h3 className="text-base font-semibold text-[var(--text-primary)] tracking-tight flex items-center gap-2">
+            <h3 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight flex items-center gap-2">
               <span>Interactive Data Wrangler</span>
               <span className="text-[11px] font-normal font-mono text-[var(--text-muted)] bg-[var(--bg-subtle)] px-2 py-0.5 rounded border border-[var(--border-hairline)]">
                 {formatNumber(rowCount)} rows · {columns.length} columns
               </span>
             </h3>
-            <p className="text-xs text-[var(--text-secondary)]">
-              Right-click or click <span className="font-mono text-[#FF4B3E] font-bold">⋮</span> on any column header to split, change casing, impute, or replace nulls.
+            <p className="text-xs text-[var(--text-muted)]">
+              Right-click or click column menu to split delimiters, convert casing, impute, or replace nulls.
             </p>
           </div>
         </div>
@@ -200,7 +198,7 @@ export const DataWranglerGrid: React.FC<DataWranglerGridProps> = ({
             placeholder="Filter preview rows..."
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
-            className="w-full pl-8 pr-3 py-1.5 bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg text-xs text-[var(--text-primary)] outline-none"
+            className="w-full pl-8 pr-3 py-1.5 bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[var(--border-strong)] rounded-lg text-xs text-[var(--text-primary)] outline-none"
           />
         </div>
       </div>
