@@ -1099,9 +1099,178 @@ def get_wrangle_history(job_id: str):
         raise HTTPException(status_code=500, detail=f"Failed to get wrangle history: {e}")
 
 
+# ==============================================================================
+# Multi-Table Staging & ERD Visualizer Endpoints
+# ==============================================================================
+from core.modeling.service import ModelingService
+from core.modeling.models import Relationship
+
+modeling_service = ModelingService()
+
+
+@app.post("/api/modeling/sessions")
+def create_modeling_session():
+    """Create a new multi-table modeling session."""
+    session_id = modeling_service.create_session()
+    state = modeling_service.get_session_state(session_id)
+    return state.model_dump()
+
+
+@app.get("/api/modeling/sessions/{session_id}")
+def get_modeling_session(session_id: str):
+    """Retrieve full session state (staged tables, columns, relationships)."""
+    try:
+        state = modeling_service.get_session_state(session_id)
+        return state.model_dump()
+    except Exception as e:
+        logger.exception("Failed to retrieve modeling session %s: %s", session_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/modeling/sessions/{session_id}/tables")
+async def upload_modeling_table(
+    session_id: str,
+    file: UploadFile = File(...),
+    table_name: Optional[str] = Form(None),
+):
+    """Upload a CSV, Parquet, JSON, Excel, or SQLite file into the modeling session."""
+    import tempfile
+    suffix = Path(file.filename or "upload").suffix.lower()
+
+    with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
+        shutil.copyfileobj(file.file, tmp)
+        tmp_path = Path(tmp.name)
+
+    try:
+        if suffix in (".db", ".sqlite", ".sqlite3"):
+            modeling_service.add_sqlite_database(session_id, tmp_path)
+        else:
+            modeling_service.add_table(
+                session_id=session_id,
+                file_path=tmp_path,
+                original_filename=file.filename or "table",
+                table_name=table_name,
+            )
+
+        state = modeling_service.get_session_state(session_id)
+        return state.model_dump()
+    except Exception as e:
+        logger.exception("Failed to add table to session %s: %s", session_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to add table: {e}")
+    finally:
+        if tmp_path.exists():
+            tmp_path.unlink()
+
+
+@app.delete("/api/modeling/sessions/{session_id}/tables/{table_name}")
+def delete_modeling_table(session_id: str, table_name: str):
+    """Remove a staged table and its linked relationships from the session."""
+    try:
+        modeling_service.remove_table(session_id, table_name)
+        state = modeling_service.get_session_state(session_id)
+        return state.model_dump()
+    except Exception as e:
+        logger.exception("Failed to remove table %s from session %s: %s", table_name, session_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/modeling/sessions/{session_id}/tables/{table_name}/position")
+async def update_modeling_table_position(
+    session_id: str,
+    table_name: str,
+    request: Request,
+):
+    """Save canvas coordinates for a table entity card."""
+    try:
+        body = await request.json()
+        x = float(body.get("x", 0.0))
+        y = float(body.get("y", 0.0))
+        modeling_service.update_table_position(session_id, table_name, x, y)
+        return {"status": "ok"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/modeling/sessions/{session_id}/detect")
+def detect_modeling_relationships(session_id: str):
+    """Re-run primary key and foreign key overlap detection."""
+    try:
+        modeling_service.detect_relationships(session_id)
+        state = modeling_service.get_session_state(session_id)
+        return state.model_dump()
+    except Exception as e:
+        logger.exception("Failed to detect relationships for session %s: %s", session_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/modeling/sessions/{session_id}/relationships")
+async def save_modeling_relationship(session_id: str, request: Request):
+    """Create or update a relationship."""
+    try:
+        body = await request.json()
+        rel = Relationship(**body)
+        saved = modeling_service.add_or_update_relationship(session_id, rel)
+        return saved.model_dump()
+    except Exception as e:
+        logger.exception("Failed to save relationship for session %s: %s", session_id, e)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.delete("/api/modeling/sessions/{session_id}/relationships/{rel_id}")
+def delete_modeling_relationship(session_id: str, rel_id: str):
+    """Delete a relationship by ID."""
+    try:
+        modeling_service.delete_relationship(session_id, rel_id)
+        return {"status": "ok", "deleted": rel_id}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/modeling/sessions/{session_id}/preview-join")
+async def preview_modeling_join(session_id: str, request: Request):
+    """Preview a JOIN between two tables and inspect match stats."""
+    try:
+        body = await request.json()
+        result = modeling_service.preview_join(
+            session_id=session_id,
+            from_table=body["from_table"],
+            from_column=body["from_column"],
+            to_table=body["to_table"],
+            to_column=body["to_column"],
+            join_type=body.get("join_type", "INNER"),
+        )
+        return result.model_dump()
+    except Exception as e:
+        logger.exception("Failed to preview join for session %s: %s", session_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.get("/api/modeling/sessions/{session_id}/export")
+def export_modeling_schema(session_id: str, format: str = "mermaid"):
+    """Export relational schema as Mermaid ERD, DBML, or SQL DDL."""
+    try:
+        content = modeling_service.export_schema(session_id, export_format=format)
+        return {"format": format, "content": content}
+    except Exception as e:
+        logger.exception("Failed to export schema for session %s: %s", session_id, e)
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@app.post("/api/modeling/sessions/{session_id}/handoff-query")
+def handoff_modeling_to_query(session_id: str):
+    """Prepare a pre-composed SQL JOIN query for the SQL Query Box."""
+    try:
+        handoff = modeling_service.create_query_handoff(session_id)
+        return handoff
+    except Exception as e:
+        logger.exception("Failed to create query handoff for session %s: %s", session_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 # Mount built frontend assets if present
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
     from fastapi.staticfiles import StaticFiles
     app.mount("/", StaticFiles(directory=str(frontend_dist), html=True), name="frontend")
+
 
