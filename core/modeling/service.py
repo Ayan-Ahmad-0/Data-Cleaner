@@ -491,3 +491,40 @@ class ModelingService:
             "tables": table_names,
             "relationships_count": len(state.relationships),
         }
+
+    def export_joined_csv(self, session_id: str, output_path: Path, join_rel_id: Optional[str] = None) -> Path:
+        """Execute relational JOIN in DuckDB and export the full merged dataset as CSV."""
+        con = self._build_duckdb_connection(session_id)
+        state = self._load_state(session_id)
+        if not state.tables:
+            raise ValueError("No tables staged in modeling session.")
+
+        if join_rel_id:
+            rel = next((r for r in state.relationships if r.id == join_rel_id), None)
+            if not rel:
+                raise ValueError(f"Relationship '{join_rel_id}' not found.")
+            query = (
+                f'SELECT * FROM "{rel.from_table}" '
+                f'JOIN "{rel.to_table}" '
+                f'ON "{rel.from_table}"."{rel.from_column}" = "{rel.to_table}"."{rel.to_column}"'
+            )
+        elif state.relationships:
+            # Build full chained multi-table join
+            base_tbl = state.relationships[0].from_table
+            joins = []
+            joined_tables = {base_tbl}
+            for r in state.relationships:
+                if r.to_table not in joined_tables:
+                    joins.append(f'LEFT JOIN "{r.to_table}" ON "{r.from_table}"."{r.from_column}" = "{r.to_table}"."{r.to_column}"')
+                    joined_tables.add(r.to_table)
+                elif r.from_table not in joined_tables:
+                    joins.append(f'LEFT JOIN "{r.from_table}" ON "{r.from_table}"."{r.from_column}" = "{r.to_table}"."{r.to_column}"')
+                    joined_tables.add(r.from_table)
+            query = f'SELECT * FROM "{base_tbl}" {" ".join(joins)}'
+        else:
+            first_tbl = list(state.tables.keys())[0]
+            query = f'SELECT * FROM "{first_tbl}"'
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        con.execute(f"COPY ({query}) TO '{output_path.as_posix()}' (HEADER, DELIMITER ',')")
+        return output_path

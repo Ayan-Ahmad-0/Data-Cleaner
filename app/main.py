@@ -1267,6 +1267,26 @@ def handoff_modeling_to_query(session_id: str):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@app.get("/api/modeling/sessions/{session_id}/export-csv")
+def export_modeling_merged_csv(session_id: str, rel_id: Optional[str] = None):
+    """Execute JOIN and return merged CSV download from DuckDB."""
+    import tempfile
+    from fastapi.responses import FileResponse
+    try:
+        tmp_csv = Path(tempfile.mktemp(suffix=".csv"))
+        modeling_service.export_joined_csv(session_id, tmp_csv, join_rel_id=rel_id)
+        filename = f"merged_{session_id}.csv" if not rel_id else f"join_{rel_id}.csv"
+        return FileResponse(
+            path=str(tmp_csv),
+            media_type="text/csv",
+            filename=filename,
+        )
+    except Exception as e:
+        logger.exception("Failed to export merged CSV for session %s: %s", session_id, e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+
 # Mount built frontend assets if present
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
