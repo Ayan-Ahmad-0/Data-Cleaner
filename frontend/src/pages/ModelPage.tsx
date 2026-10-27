@@ -232,13 +232,14 @@ export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
     }
   };
 
-  // Query handoff to SQL Studio
-  const handleHandoffQuery = async () => {
+  // Query handoff to SQL Studio or AI Analyst
+  const handleHandoff = async (mode: 'sql' | 'ask_ai' = 'sql') => {
     if (!sessionId) return;
     try {
+      showToast(mode === 'ask_ai' ? 'Preparing data for AI Analyst...' : 'Preparing data for SQL Studio...');
       const handoff = await handoffModelingToQuery(sessionId);
-      if (onHandoffToQuery && handoff.tables.length > 0) {
-        onHandoffToQuery(sessionId, `multi_table_${sessionId}`);
+      if (onHandoffToQuery && handoff.tables && handoff.tables.length > 0) {
+        onHandoffToQuery(sessionId, handoff.filename || `multi_table_${sessionId}`, handoff, mode);
       } else {
         navigator.clipboard.writeText(handoff.sql);
         showToast('Multi-table JOIN query copied to clipboard!');
@@ -247,6 +248,8 @@ export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
       setError(err.message || 'Failed to create query handoff.');
     }
   };
+
+  const handleHandoffQuery = () => handleHandoff('sql');
 
   // Download full merged CSV from DuckDB
   const handleDownloadMergedCsv = async () => {
