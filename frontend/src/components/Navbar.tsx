@@ -1,6 +1,6 @@
 import React from 'react';
 import { APP_NAME } from '../config';
-import { CleanFlowLogo } from './CleanFlowLogo';
+import { DatamorphLogo } from './DatamorphLogo';
 import { ThemeToggle } from './ThemeToggle';
 import { Stepper, type StepItem } from './ui/Stepper';
 
