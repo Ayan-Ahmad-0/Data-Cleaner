@@ -1,7 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright E2E configuration for CleanFlow
+ * Playwright E2E configuration for Datamorph
  */
 export default defineConfig({
   testDir: './e2e',

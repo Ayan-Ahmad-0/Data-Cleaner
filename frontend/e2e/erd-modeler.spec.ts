@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('CleanFlow - Model Data (ERD) Studio E2E Specification', () => {
+test.describe('Datamorph - Model Data (ERD) Studio E2E Specification', () => {
   const mockSessionId = 'model_e2e_session';
 
   const mockCustomers = {

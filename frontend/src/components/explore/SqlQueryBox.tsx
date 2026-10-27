@@ -154,7 +154,7 @@ export const SqlQueryBox: React.FC<SqlQueryBoxProps> = ({
       const filtered = prev.filter((h) => h.sql.trim() !== item.sql.trim());
       const updated = [item, ...filtered].slice(0, 10);
       try {
-        sessionStorage.setItem(`cleanflow_sql_history_${jobId}`, JSON.stringify(updated));
+        sessionStorage.setItem(`datamorph_sql_history_${jobId}`, JSON.stringify(updated));
       } catch (err) {
         console.warn('Failed to save query history:', err);
       }
