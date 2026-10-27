@@ -159,25 +159,25 @@ export function App() {
       />
 
       <main className="flex-1 w-full">
-        {/* Centered Mode Switcher (Clean Data vs Convert Only vs Query Data vs Visualize Data) - visible when selecting mode or uploading */}
+        {/* Centered Mode Switcher (Clean Data vs Convert Only vs Query Data vs Visualize Data vs Model Data) - visible when selecting mode or uploading */}
         {currentStep === 1 && (
           <div className="pt-4 sm:pt-5 pb-0 flex justify-center items-center">
-            <div className="inline-flex items-center bg-[var(--bg-subtle)] p-1 rounded-[var(--radius-lg)] border border-[var(--border-hairline)] shadow-[var(--shadow-card)]">
+            <div className="inline-flex items-center gap-1 bg-[var(--bg-subtle)] p-1 rounded-xl border border-[var(--border-hairline)] shadow-2xs">
               {([
                 { key: 'clean' as const, label: 'Clean Data' },
                 { key: 'convert' as const, label: 'Convert Only' },
                 { key: 'query' as const, label: 'Query Data' },
                 { key: 'visualize' as const, label: 'Visualize Data' },
-                { key: 'model' as const, label: 'Model Data (ERD)' },
+                { key: 'model' as const, label: 'Model Data' },
               ]).map((tab) => (
                 <button
                   key={tab.key}
                   type="button"
                   onClick={() => setAppMode(tab.key)}
-                  className={`relative px-4 sm:px-5 py-2 text-sm font-medium rounded-[var(--radius-md)] transition-all duration-200 cursor-pointer select-none whitespace-nowrap ${
+                  className={`px-4 sm:px-4.5 py-1.5 text-xs sm:text-sm font-medium rounded-lg transition-all duration-150 cursor-pointer select-none whitespace-nowrap border ${
                     appMode === tab.key
-                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm border-t-2 border-t-[var(--accent)] border-x border-b border-x-[var(--border-hairline)] border-b-[var(--border-hairline)]'
-                      : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border-t-2 border-transparent'
+                      ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] font-semibold shadow-xs border-[var(--border-hairline)]'
+                      : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)]'
                   }`}
                 >
                   {tab.label}
