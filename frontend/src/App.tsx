@@ -8,8 +8,13 @@ import { ResultsPage } from './pages/ResultsPage';
 import { ConvertPage } from './pages/ConvertPage';
 import { QueryPage } from './pages/QueryPage';
 import { VisualizePage } from './pages/VisualizePage';
-import { ModelPage } from './pages/ModelPage';
-import { approveAndClean, getJobDetail, type JobDetailResponse, type QueryUploadResult } from './lib/api';
+import {
+  approveAndClean,
+  getJobDetail,
+  type JobDetailResponse,
+  type QueryUploadResult,
+  type QueryHandoffResult,
+} from './lib/api';
 import { formatNumber } from './lib/format';
 
 export function App() {
@@ -19,6 +24,9 @@ export function App() {
   const [jobData, setJobData] = useState<JobDetailResponse | null>(null);
   const [visualizeTarget, setVisualizeTarget] = useState<QueryUploadResult | null>(null);
   const [visualizeReturnMode, setVisualizeReturnMode] = useState<'clean' | 'convert' | null>(null);
+  const [queryTarget, setQueryTarget] = useState<QueryUploadResult | null>(null);
+  const [queryInitialSql, setQueryInitialSql] = useState<string | undefined>(undefined);
+  const [queryInitialMode, setQueryInitialMode] = useState<'sql' | 'ask_ai'>('ask_ai');
 
   const [fileMeta, setFileMeta] = useState<{
     name: string;
