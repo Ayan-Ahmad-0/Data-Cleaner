@@ -47,7 +47,7 @@ export const Navbar: React.FC<NavbarProps> = ({
             aria-label={`Go to ${APP_NAME} home`}
             className="flex items-center shrink-0 cursor-pointer select-none rounded-[var(--radius-xs)] focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2 p-1 text-left"
           >
-            <CleanFlowLogo size="md" />
+            <DatamorphLogo size="md" />
           </button>
 
           {fileName && appMode === 'clean' && (
