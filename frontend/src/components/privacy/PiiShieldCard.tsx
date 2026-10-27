@@ -91,22 +91,10 @@ export const PiiShieldCard: React.FC<PiiShieldCardProps> = ({ jobId, onMaskAppli
 
   if (loading) {
     return (
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-4 sm:p-5 flex items-center justify-between shadow-2xs">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-muted)] shrink-0">
-            <Loader2 className="w-5 h-5 animate-spin text-[#FF4B3E]" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm sm:text-base font-semibold text-[var(--text-primary)] tracking-tight">
-                Privacy & Regulatory Compliance
-              </h3>
-              <Tag variant="neutral" font="mono">Scanning...</Tag>
-            </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              Scanning dataset for credit cards, SSNs, phone numbers, emails, and IP addresses...
-            </p>
-          </div>
+      <div className="flex items-center justify-between px-5 py-3.5 sm:py-4 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl shadow-2xs text-sm text-[var(--text-muted)]">
+        <div className="flex items-center gap-3">
+          <Loader2 className="w-5 h-5 animate-spin text-[#FF4B3E] shrink-0" />
+          <span className="text-[var(--text-secondary)]">Scanning dataset for sensitive identifiers...</span>
         </div>
       </div>
     );
@@ -114,39 +102,26 @@ export const PiiShieldCard: React.FC<PiiShieldCardProps> = ({ jobId, onMaskAppli
 
   const hasPii = findings.length > 0;
 
-  // When clean (no PII detected): Full-sized card with comfortable proportions matching dashboard cards
+  // When clean (no PII detected): Sleek bar design with full comfortable height and padding
   if (!hasPii) {
     return (
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 shadow-2xs">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shrink-0">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm sm:text-base font-semibold text-[var(--text-primary)] tracking-tight">
-                GDPR & HIPAA Privacy Shield
-              </h3>
-              <Tag variant="ok" font="mono">
-                Compliance Ready
-              </Tag>
-            </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              No unmasked credit cards, SSNs, phone numbers, or emails detected.
-            </p>
+      <div className="flex items-center justify-between px-5 py-3.5 sm:py-4 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl shadow-2xs">
+        <div className="flex items-center gap-3">
+          <ShieldCheck className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="flex flex-wrap items-center gap-2 text-sm">
+            <span className="font-semibold text-[var(--text-primary)]">Privacy Compliance:</span>
+            <span className="text-[var(--text-secondary)]">No sensitive PII detected (GDPR & HIPAA compliant)</span>
           </div>
         </div>
-
-        <Button
-          size="sm"
-          variant="ghost"
+        <button
+          type="button"
           onClick={fetchFindings}
-          disabled={loading || applying}
-          leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />}
-          className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] cursor-pointer"
+          className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] border border-[var(--border-hairline)] transition-colors cursor-pointer shrink-0"
+          title="Re-run PII scanner"
         >
-          Re-scan
-        </Button>
+          <RefreshCw className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+          <span>Re-scan</span>
+        </button>
       </div>
     );
   }
@@ -154,37 +129,27 @@ export const PiiShieldCard: React.FC<PiiShieldCardProps> = ({ jobId, onMaskAppli
   // When PII is detected: Present a high-density, authoritative data governance audit table
   return (
     <div className="bg-[var(--bg-surface)] border border-amber-500/30 rounded-xl overflow-hidden shadow-2xs">
-      <div className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 bg-[var(--bg-subtle)] border-b border-[var(--border-hairline)]">
-        <div className="flex items-center gap-3.5">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-amber-500/10 border border-amber-500/20 text-amber-400 shrink-0">
-            <ShieldAlert className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm sm:text-base font-semibold text-[var(--text-primary)] tracking-tight">
-                Sensitive Data & PII Detection
-              </h3>
-              <Tag variant="warn" font="mono">
-                {findings.length} columns flagged
-              </Tag>
-            </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              Automatic pattern detection identified sensitive identifiers in this dataset.
-            </p>
-          </div>
+      <div className="p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 bg-[var(--bg-subtle)] border-b border-[var(--border-hairline)]">
+        <div className="flex items-center gap-2.5">
+          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+            Sensitive Data & PII Detection
+          </h3>
+          <Tag variant="warn" font="mono">
+            {findings.length} columns flagged
+          </Tag>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <Button
-            size="sm"
-            variant="ghost"
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
             onClick={fetchFindings}
             disabled={loading || applying}
-            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />}
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] border border-[var(--border-hairline)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] bg-[var(--bg-surface)] hover:bg-[var(--bg-hover)] border border-[var(--border-hairline)] transition-colors cursor-pointer"
           >
-            Re-scan
-          </Button>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Re-scan</span>
+          </button>
           <Button
             size="sm"
             variant="primary"
