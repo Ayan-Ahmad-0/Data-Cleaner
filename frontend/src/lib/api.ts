@@ -1141,3 +1141,24 @@ export async function handoffModelingToQuery(sessionId: string): Promise<QueryHa
   return res.json();
 }
 
+export async function downloadModelingMergedCsv(sessionId: string, relId?: string): Promise<void> {
+  const url = relId
+    ? `${API_BASE}/api/modeling/sessions/${sessionId}/export-csv?rel_id=${encodeURIComponent(relId)}`
+    : `${API_BASE}/api/modeling/sessions/${sessionId}/export-csv`;
+  const res = await fetch(url);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to download merged CSV.');
+  }
+  const blob = await res.blob();
+  const downloadUrl = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = downloadUrl;
+  a.download = relId ? `joined_${relId.slice(0, 16)}.csv` : `merged_${sessionId.slice(0, 12)}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  window.URL.revokeObjectURL(downloadUrl);
+}
+
+
