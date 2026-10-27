@@ -241,6 +241,18 @@ export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
     }
   };
 
+  // Download full merged CSV from DuckDB
+  const handleDownloadMergedCsv = async () => {
+    if (!sessionId) return;
+    try {
+      showToast('Exporting merged dataset from DuckDB...');
+      await downloadModelingMergedCsv(sessionId);
+      showToast('Merged CSV downloaded successfully!');
+    } catch (err: any) {
+      setError(err.message || 'Failed to download merged CSV.');
+    }
+  };
+
   const tablesCount = session ? Object.keys(session.tables).length : 0;
   const relationshipsCount = session ? session.relationships.length : 0;
 
@@ -278,6 +290,18 @@ export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
             className="text-xs border border-[var(--border-hairline)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] cursor-pointer"
           >
             Auto-Detect Keys
+          </Button>
+
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={handleDownloadMergedCsv}
+            disabled={tablesCount === 0}
+            leftIcon={<Download className="w-3.5 h-3.5 text-emerald-400" />}
+            className="text-xs border border-[var(--border-hairline)] bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] cursor-pointer"
+            title="Execute relational JOIN in DuckDB and download the complete merged dataset as CSV"
+          >
+            Download Merged CSV
           </Button>
 
           <Button
