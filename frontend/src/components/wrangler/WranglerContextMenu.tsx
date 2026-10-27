@@ -99,7 +99,7 @@ export const WranglerContextMenu: React.FC<WranglerContextMenuProps> = ({
             className="w-full px-3.5 py-2 text-left flex items-center justify-between hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
-              <Scissors className="w-3.5 h-3.5 text-[#FF4B3E]" />
+              <Scissors className="w-3.5 h-3.5 text-[var(--text-muted)]" />
               <span>Split by Delimiter...</span>
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
@@ -116,7 +116,7 @@ export const WranglerContextMenu: React.FC<WranglerContextMenuProps> = ({
               className="w-full px-3.5 py-2 text-left flex items-center justify-between hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
-                <CaseSensitive className="w-3.5 h-3.5 text-[#FF4B3E]" />
+                <CaseSensitive className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                 <span>Change Casing</span>
               </div>
               <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
@@ -179,7 +179,7 @@ export const WranglerContextMenu: React.FC<WranglerContextMenuProps> = ({
               className="w-full px-3.5 py-2 text-left flex items-center justify-between hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2.5">
-                <Sparkles className="w-3.5 h-3.5 text-[#FF4B3E]" />
+                <Sparkles className="w-3.5 h-3.5 text-[var(--text-muted)]" />
                 <span>Impute Missing Values</span>
               </div>
               <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
@@ -252,7 +252,7 @@ export const WranglerContextMenu: React.FC<WranglerContextMenuProps> = ({
             className="w-full px-3.5 py-2 text-left flex items-center justify-between hover:bg-[var(--bg-hover)] transition-colors cursor-pointer"
           >
             <div className="flex items-center gap-2.5">
-              <Search className="w-3.5 h-3.5 text-[#FF4B3E]" />
+              <Search className="w-3.5 h-3.5 text-[var(--text-muted)]" />
               <span>Replace NULLs with Constant...</span>
             </div>
             <ChevronRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
