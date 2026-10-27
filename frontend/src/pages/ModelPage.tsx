@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   X,
   Download,
+  Bot,
 } from 'lucide-react';
 import {
   createModelingSession,
@@ -24,6 +25,7 @@ import {
   downloadModelingMergedCsv,
   type ModelingSessionState,
   type Relationship,
+  type QueryHandoffResult,
 } from '../lib/api';
 import { ErdCanvas } from '../components/modeling/ErdCanvas';
 import { MultiTableDropzone } from '../components/modeling/MultiTableDropzone';
@@ -35,7 +37,12 @@ import { Button } from '../components/ui/Button';
 import { MAX_FILE_SIZE_BYTES } from '../config';
 
 interface ModelPageProps {
-  onHandoffToQuery?: (jobId: string, filename: string) => void;
+  onHandoffToQuery?: (
+    jobId: string,
+    filename: string,
+    handoff?: QueryHandoffResult,
+    initialMode?: 'sql' | 'ask_ai'
+  ) => void;
 }
 
 export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
