@@ -1,5 +1,5 @@
 import React from 'react';
-import { Undo2, RotateCcw, History, CheckCircle2, Loader2 } from 'lucide-react';
+import { Undo2, RotateCcw, History, Loader2 } from 'lucide-react';
 import { Button } from '../ui/Button';
 import type { WrangleHistoryItem } from '../../lib/api';
 
