@@ -5,9 +5,8 @@ import {
   Trash2,
   GripHorizontal,
   Search,
-  Layers,
 } from 'lucide-react';
-import type { TableMetadata, ColumnMetadata } from '../../lib/api';
+import type { TableMetadata } from '../../lib/api';
 
 interface TableEntityCardProps {
   table: TableMetadata;

@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { UploadCloud, FileUp, Loader2, Database, AlertCircle } from 'lucide-react';
+import { UploadCloud, Loader2 } from 'lucide-react';
 
 interface MultiTableDropzoneProps {
   onUploadFiles: (files: File[]) => Promise<void>;

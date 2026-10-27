@@ -1,8 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import {
   ZoomIn,
   ZoomOut,
-  Maximize2,
   RotateCcw,
   Sparkles,
 } from 'lucide-react';
