@@ -977,6 +977,12 @@ export interface SchemaExportResult {
 }
 
 export interface QueryHandoffResult {
+  query_id: string;
+  filename: string;
+  row_count: number;
+  columns: string[];
+  file_size_bytes: number;
+  detected_format?: string;
   sql: string;
   tables: string[];
   relationships_count?: number;
