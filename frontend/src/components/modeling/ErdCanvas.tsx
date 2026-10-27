@@ -295,20 +295,32 @@ export const ErdCanvas: React.FC<ErdCanvasProps> = ({
                   className="group-hover:stroke-[#FF4B3E] transition-colors"
                 />
 
-                {/* Cardinality pill at midpoint */}
+                {/* Small visual stem connecting pill to line */}
+                <line
+                  x1={midX}
+                  y1={midY - 8}
+                  x2={midX}
+                  y2={midY}
+                  stroke={rel.status === 'confirmed' ? '#10B981' : '#3B82F6'}
+                  strokeWidth="1.5"
+                  className="group-hover:stroke-[#FF4B3E] transition-colors"
+                />
+
+                {/* Elevated Cardinality pill floating cleanly above curve */}
                 <foreignObject
-                  x={midX - 38}
-                  y={midY - 12}
-                  width="76"
-                  height="24"
-                  className="overflow-visible"
+                  x={midX - 48}
+                  y={midY - 26}
+                  width="96"
+                  height="26"
+                  className="overflow-visible pointer-events-auto"
                 >
                   <div
-                    className="flex items-center justify-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-[var(--bg-surface)] border border-[var(--border-hairline)] shadow-xs group-hover:border-[#FF4B3E] group-hover:text-[#FF4B3E] transition-all cursor-pointer"
+                    className="flex items-center justify-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-[var(--bg-surface)] border border-[var(--border-hairline)] shadow-md group-hover:border-[#FF4B3E] group-hover:text-[#FF4B3E] transition-all cursor-pointer select-none"
                     title={`Click to preview join: ${rel.from_table}.${rel.from_column} → ${rel.to_table}.${rel.to_column} (${Math.round(rel.match_ratio * 100)}% match)`}
                   >
-                    <span>{rel.cardinality}</span>
-                    <span className="text-[9px] text-[var(--text-muted)]">
+                    <span className="text-[10px] font-bold text-[var(--text-primary)]">{rel.cardinality}</span>
+                    <span className="text-[9px] text-[var(--text-muted)]">·</span>
+                    <span className="text-[10px] font-medium text-emerald-400">
                       {Math.round(rel.match_ratio * 100)}%
                     </span>
                   </div>
