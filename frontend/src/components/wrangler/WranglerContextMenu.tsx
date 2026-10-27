@@ -6,9 +6,7 @@ import {
   Search,
   Trash2,
   Edit3,
-  ArrowRight,
   Database,
-  Check,
   ChevronRight,
   X,
 } from 'lucide-react';
