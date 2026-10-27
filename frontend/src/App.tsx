@@ -137,6 +137,25 @@ export function App() {
     setAppMode('visualize');
   };
 
+  const handleHandoffToQuery = (
+    targetJobId: string,
+    filename: string,
+    handoff?: QueryHandoffResult,
+    initialMode: 'sql' | 'ask_ai' = 'sql'
+  ) => {
+    setQueryTarget({
+      query_id: targetJobId,
+      filename: filename,
+      row_count: handoff?.row_count || 0,
+      columns: handoff?.columns || [],
+      file_size_bytes: handoff?.file_size_bytes || 0,
+      detected_format: handoff?.detected_format || 'PARQUET',
+    });
+    setQueryInitialSql(handoff?.sql || 'SELECT * FROM data LIMIT 100;');
+    setQueryInitialMode(initialMode);
+    setAppMode('query');
+  };
+
   // Determine max step the user is allowed to navigate to
   const maxAllowedStep = useMemo(() => {
     if (!jobId) return 1;
@@ -196,18 +215,23 @@ export function App() {
         )}
 
         {appMode === 'model' ? (
-          <ModelPage onHandoffToQuery={(_id, _name) => setAppMode('query')} />
+          <ModelPage onHandoffToQuery={handleHandoffToQuery} />
         ) : appMode === 'convert' ? (
           <ConvertPage
             onHandoffToClean={handleHandoffToClean}
             onHandoffToVisualize={handleHandoffToVisualize}
           />
         ) : appMode === 'query' ? (
-          <QueryPage onHandoffToClean={handleHandoffToClean} />
+          <QueryPage
+            initialDataset={queryTarget}
+            initialSql={queryInitialSql}
+            initialMode={queryInitialMode}
+            onHandoffToClean={handleHandoffToClean}
+          />
         ) : appMode === 'visualize' ? (
           <VisualizePage
             initialDataset={visualizeTarget}
-            onHandoffToQuery={(_id, _name) => setAppMode('query')}
+            onHandoffToQuery={(id, name) => handleHandoffToQuery(id, name)}
             onHandoffToClean={handleHandoffToClean}
             onBackToSource={visualizeReturnMode ? () => setAppMode(visualizeReturnMode) : undefined}
           />
