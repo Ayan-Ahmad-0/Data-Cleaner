@@ -1,4 +1,4 @@
-"""CleanFlow Cloud and Database Connectors package."""
+"""Datamorph Cloud and Database Connectors package."""
 
 from connectors.base import (
     BaseConnector,
