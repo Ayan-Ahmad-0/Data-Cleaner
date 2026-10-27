@@ -91,7 +91,7 @@ def test_s3_export_success_mock(tmp_path: Path):
         res = connector.export_dataset(
             source_parquet_path=source_pq,
             config={
-                "bucket": "cleanflow-bucket",
+                "bucket": "datamorph-bucket",
                 "prefix": "processed",
                 "filename": "orders.parquet",
                 "export_format": "parquet",
@@ -101,7 +101,7 @@ def test_s3_export_success_mock(tmp_path: Path):
         assert isinstance(res, SyncResult)
         assert res.success is True
         assert res.rows_transferred == 1500
-        assert res.destination_uri == "s3://cleanflow-bucket/processed/orders.parquet"
+        assert res.destination_uri == "s3://datamorph-bucket/processed/orders.parquet"
         mock_con.close.assert_called_once()
 
 
