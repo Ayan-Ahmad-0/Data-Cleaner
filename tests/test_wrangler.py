@@ -36,7 +36,7 @@ def wrangler_env(tmp_path):
                 NULL AS email,
                 300.0 AS score,
                 NULL AS status
-        ) TO '{str(clean_pq).replace('\\', '/')}' (FORMAT PARQUET);
+        ) TO '{clean_pq.as_posix()}' (FORMAT PARQUET);
     """)
     con.close()
 
