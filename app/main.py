@@ -7,6 +7,7 @@ import os
 import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
+import duckdb
 from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
