@@ -29,7 +29,7 @@ export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
     <div className={`flex items-center gap-2.5 sm:gap-3 select-none ${className}`}>
       {/* Datamorph 4-petal geometric icon */}
       <img
-        src="/cleanflow-icon.png"
+        src="/datamorph-icon.png"
         alt="Datamorph"
         className={`${iconDimensions} shrink-0 object-contain`}
       />
