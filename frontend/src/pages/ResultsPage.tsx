@@ -3,9 +3,11 @@ import { getDownloadUrl, type JobDetailResponse } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
 import { formatNumber, formatPercent } from '../lib/format';
-import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal, Bot, BarChart3, Database } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal, Bot, BarChart3, Database, Sliders } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
 import { ConnectorModal } from '../components/connectors/ConnectorModal';
+import { PiiShieldCard } from '../components/privacy/PiiShieldCard';
+import { DataWranglerGrid } from '../components/wrangler/DataWranglerGrid';
 
 interface ResultsPageProps {
   jobData: JobDetailResponse | null;
@@ -17,6 +19,7 @@ interface ResultsPageProps {
 export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, onGoToUpload, onHandoffToVisualize }) => {
   const [showExplore, setShowExplore] = useState<boolean>(false);
   const [showExportModal, setShowExportModal] = useState<boolean>(false);
+  const [showWrangler, setShowWrangler] = useState<boolean>(true);
   const [exploreInitialMode, setExploreInitialMode] = useState<'ask_ai' | 'sql'>('ask_ai');
   const verification = jobData?.verification;
   const comparison = verification?.comparison;
