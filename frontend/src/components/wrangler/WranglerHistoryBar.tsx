@@ -23,7 +23,7 @@ export const WranglerHistoryBar: React.FC<WranglerHistoryBarProps> = ({
       {/* History status & pills */}
       <div className="flex items-center gap-3 overflow-x-auto py-0.5">
         <div className="flex items-center gap-1.5 text-[var(--text-muted)] font-medium shrink-0">
-          <History className="w-4 h-4 text-[#FF4B3E]" />
+          <History className="w-3.5 h-3.5 text-[var(--text-muted)]" />
           <span>Wrangle History:</span>
         </div>
 
@@ -60,9 +60,9 @@ export const WranglerHistoryBar: React.FC<WranglerHistoryBarProps> = ({
           disabled={!canUndo || isMutating}
           leftIcon={
             isMutating ? (
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-[#FF4B3E]" />
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--text-primary)]" />
             ) : (
-              <Undo2 className="w-3.5 h-3.5" />
+              <Undo2 className="w-3.5 h-3.5 text-[var(--text-muted)]" />
             )
           }
           className="text-xs h-8 px-3"
