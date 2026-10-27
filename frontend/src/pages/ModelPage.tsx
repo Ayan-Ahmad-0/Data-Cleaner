@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   X,
+  Download,
 } from 'lucide-react';
 import {
   createModelingSession,
@@ -20,6 +21,7 @@ import {
   saveModelingRelationship,
   deleteModelingRelationship,
   handoffModelingToQuery,
+  downloadModelingMergedCsv,
   type ModelingSessionState,
   type Relationship,
 } from '../lib/api';
