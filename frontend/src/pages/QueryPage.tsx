@@ -20,10 +20,18 @@ import { ConnectorModal } from '../components/connectors/ConnectorModal';
 import { MAX_FILE_SIZE_BYTES } from '../config';
 
 interface QueryPageProps {
+  initialDataset?: QueryUploadResult | null;
+  initialSql?: string;
+  initialMode?: 'sql' | 'ask_ai';
   onHandoffToClean: (jobId: string, filename: string) => void;
 }
 
-export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
+export const QueryPage: React.FC<QueryPageProps> = ({
+  initialDataset = null,
+  initialSql,
+  initialMode = 'ask_ai',
+  onHandoffToClean,
+}) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [detectedFormat, setDetectedFormat] = useState<string>('');
   const [sheetNames, setSheetNames] = useState<string[]>([]);
@@ -39,7 +47,13 @@ export const QueryPage: React.FC<QueryPageProps> = ({ onHandoffToClean }) => {
   const [uploadStage, setUploadStage] = useState<'inspecting' | 'uploading' | 'converting'>('uploading');
   const [error, setError] = useState<string | null>(null);
 
-  const [queryResult, setQueryResult] = useState<QueryUploadResult | null>(null);
+  const [queryResult, setQueryResult] = useState<QueryUploadResult | null>(initialDataset || null);
+
+  React.useEffect(() => {
+    if (initialDataset) {
+      setQueryResult(initialDataset);
+    }
+  }, [initialDataset]);
   const [showConnectorModal, setShowConnectorModal] = useState<boolean>(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
