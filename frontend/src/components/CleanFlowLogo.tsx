@@ -1,6 +1,6 @@
 import React from 'react';
 
-interface CleanFlowLogoProps {
+export interface CleanFlowLogoProps {
   size?: 'sm' | 'md' | 'lg';
   showTagline?: boolean;
   className?: string;
