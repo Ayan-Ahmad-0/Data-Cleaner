@@ -2,12 +2,10 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   MoreVertical,
   Sliders,
-  Table as TableIcon,
   Search,
   CheckCircle2,
   AlertCircle,
   Loader2,
-  Sparkles,
 } from 'lucide-react';
 import {
   applyWrangleAction,
@@ -29,7 +27,7 @@ interface DataWranglerGridProps {
 
 export const DataWranglerGrid: React.FC<DataWranglerGridProps> = ({
   jobId,
-  datasetName,
+  datasetName: _datasetName,
   onDatasetChanged,
 }) => {
   const [columns, setColumns] = useState<WrangleColumn[]>([]);
