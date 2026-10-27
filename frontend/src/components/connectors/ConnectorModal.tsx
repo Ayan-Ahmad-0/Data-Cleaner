@@ -144,7 +144,7 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
               </h2>
               <span className="text-xs text-[var(--text-muted)]">
                 {mode === 'import'
-                  ? 'Stream external data directly into CleanFlow local DuckDB engine'
+                  ? 'Stream external data directly into Datamorph local DuckDB engine'
                   : 'Push cleaned results directly to external storage or warehouse tables'}
               </span>
             </div>
