@@ -1,6 +1,6 @@
 """Privacy, PII detection, and data masking module."""
 
-from core.privacy.detector import PiiDetector, PiiDetectionResult
+from core.privacy.detector import PiiDetector, PiiDetectionResult, luhn_checksum
 from core.privacy.masking import (
     mask_email,
     mask_credit_card,
@@ -14,6 +14,7 @@ from core.privacy.masking import (
 __all__ = [
     "PiiDetector",
     "PiiDetectionResult",
+    "luhn_checksum",
     "mask_email",
     "mask_credit_card",
     "mask_ssn",
