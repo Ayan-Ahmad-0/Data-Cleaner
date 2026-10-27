@@ -29,7 +29,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
     if (!supportedExts.includes(ext)) {
       setError({
         message: 'Unsupported file format.',
-        recovery: `File extension '${ext}' is not supported. CleanFlow supports CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), and SQLite (.db).`,
+        recovery: `File extension '${ext}' is not supported. Datamorph supports CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), and SQLite (.db).`,
       });
       return;
     }
