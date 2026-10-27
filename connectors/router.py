@@ -99,9 +99,30 @@ def export_dataset_to_destination(
         logger.warning("Could not resolve dataset for job %s: %s", job_id, e)
         raise HTTPException(status_code=404, detail=f"Dataset for job '{job_id}' not found or expired.")
 
+    temp_masked_pq: Optional[Path] = None
+    export_source = source_path
+
     try:
+        # Enforce GDPR/HIPAA PII masking on outbound destination export if requested
+        if payload.options and (payload.options.get("mask_pii") or payload.options.get("enforce_privacy")):
+            from core.privacy.detector import PiiDetector
+            from core.recipe_schema import Recipe, ColumnRule, MaskPiiConfig
+            from core.compiler import RecipeCompiler
+
+            detected_pii = PiiDetector.scan_dataset(source_path)
+            if detected_pii:
+                temp_masked_pq = source_path.parent / f".export_masked_{uuid.uuid4().hex[:8]}.parquet"
+                mask_rules = {
+                    res.column_name: ColumnRule(
+                        mask_pii=MaskPiiConfig(strategy=res.suggested_strategy, entity_type=res.entity_type)
+                    )
+                    for res in detected_pii
+                }
+                RecipeCompiler().execute_clean(Recipe(columns=mask_rules), source_path, temp_masked_pq)
+                export_source = temp_masked_pq
+
         result = connector.export_dataset(
-            source_parquet_path=source_path,
+            source_parquet_path=export_source,
             config=payload.config,
             options=payload.options,
         )
@@ -111,6 +132,12 @@ def export_dataset_to_destination(
     except Exception as e:
         logger.exception("Export to %s failed for job %s: %s", payload.connector_type, job_id, e)
         raise HTTPException(status_code=500, detail=f"Failed to export dataset: {str(e)}")
+    finally:
+        if temp_masked_pq and temp_masked_pq.exists():
+            try:
+                temp_masked_pq.unlink(missing_ok=True)
+            except Exception:
+                pass
 
 
 @router.post("/import", response_model=ImportDatasetResponse)
