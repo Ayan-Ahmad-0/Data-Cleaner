@@ -168,6 +168,7 @@ export function App() {
                 { key: 'convert' as const, label: 'Convert Only' },
                 { key: 'query' as const, label: 'Query Data' },
                 { key: 'visualize' as const, label: 'Visualize Data' },
+                { key: 'model' as const, label: 'Model Data (ERD)' },
               ]).map((tab) => (
                 <button
                   key={tab.key}
@@ -186,7 +187,9 @@ export function App() {
           </div>
         )}
 
-        {appMode === 'convert' ? (
+        {appMode === 'model' ? (
+          <ModelPage onHandoffToQuery={(_id, _name) => setAppMode('query')} />
+        ) : appMode === 'convert' ? (
           <ConvertPage
             onHandoffToClean={handleHandoffToClean}
             onHandoffToVisualize={handleHandoffToVisualize}
