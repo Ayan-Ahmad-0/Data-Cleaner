@@ -249,8 +249,6 @@ export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
     }
   };
 
-  const handleHandoffQuery = () => handleHandoff('sql');
-
   // Download full merged CSV from DuckDB
   const handleDownloadMergedCsv = async () => {
     if (!sessionId) return;
