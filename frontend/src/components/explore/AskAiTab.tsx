@@ -630,7 +630,7 @@ export const AskAiTab: React.FC<AskAiTabProps> = ({
                 Ask Questions in Plain English
               </h3>
               <p className="text-xs text-[var(--text-secondary)] max-w-md mx-auto">
-                CleanFlow translates your question into a fast, read-only DuckDB query, executes it safely in the sandbox, and shows you both the answer and the exact SQL used.
+                Datamorph translates your question into a fast, read-only DuckDB query, executes it safely in the sandbox, and shows you both the answer and the exact SQL used.
               </p>
             </div>
           </div>
