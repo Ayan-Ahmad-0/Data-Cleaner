@@ -63,7 +63,7 @@ def test_detector_identifies_pii_columns():
     assert res_card.suggested_strategy == "sha256_hash"
 
     # 3. SSNs
-    ssns = ["123-45-6789", "987-65-4321", "234-56-7890"]
+    ssns = ["123-45-6789", "456-78-1234", "234-56-7890"]
     res_ssn = PiiDetector.scan_column("ssn", ssns)
     assert res_ssn is not None
     assert res_ssn.entity_type == "ssn"
