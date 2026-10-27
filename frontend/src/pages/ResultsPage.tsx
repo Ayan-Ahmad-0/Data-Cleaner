@@ -284,8 +284,32 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
               <BarChart3 className="w-4 h-4 text-[#FF4B3E]" />
               <span>Visualize Data</span>
             </button>
+
+            <button
+              type="button"
+              onClick={() => setShowWrangler(!showWrangler)}
+              className={`inline-flex items-center gap-2.5 px-5 py-2.5 rounded-lg text-sm font-semibold border transition-all cursor-pointer ${
+                showWrangler
+                  ? 'bg-[#FF4B3E]/10 border-[#FF4B3E] text-[#FF4B3E]'
+                  : 'bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] border-[var(--border-hairline)]'
+              }`}
+            >
+              <Sliders className="w-4 h-4" />
+              <span>Data Wrangler</span>
+            </button>
           </div>
         </div>
+      )}
+
+      {/* GDPR & HIPAA Privacy Shield Card */}
+      <PiiShieldCard jobId={jobId} />
+
+      {/* Interactive Data Wrangler Grid */}
+      {showWrangler && (
+        <DataWranglerGrid
+          jobId={jobId}
+          datasetName={jobData.job.filename}
+        />
       )}
 
       {/* Exploration Box when active */}
