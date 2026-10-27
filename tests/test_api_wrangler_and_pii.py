@@ -35,7 +35,7 @@ def populated_job():
                 '234-56-7890' AS ssn,
                 NULL AS status,
                 NULL AS score
-        ) TO '{str(clean_pq).replace('\\', '/')}' (FORMAT PARQUET);
+        ) TO '{clean_pq.as_posix()}' (FORMAT PARQUET);
     """)
     con.close()
     return job_id
