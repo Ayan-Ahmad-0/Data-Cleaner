@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Shield,
   ShieldAlert,
   ShieldCheck,
-  Lock,
-  Hash,
-  EyeOff,
   CheckCircle2,
   Loader2,
   RefreshCw,
