@@ -8,6 +8,7 @@ import { ResultsPage } from './pages/ResultsPage';
 import { ConvertPage } from './pages/ConvertPage';
 import { QueryPage } from './pages/QueryPage';
 import { VisualizePage } from './pages/VisualizePage';
+import { ModelPage } from './pages/ModelPage';
 import {
   approveAndClean,
   getJobDetail,
