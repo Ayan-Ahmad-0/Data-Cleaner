@@ -30,6 +30,8 @@ import { JoinPreviewDrawer } from '../components/modeling/JoinPreviewDrawer';
 import { SchemaExportModal } from '../components/modeling/SchemaExportModal';
 import { Button } from '../components/ui/Button';
 
+import { MAX_FILE_SIZE_BYTES } from '../config';
+
 interface ModelPageProps {
   onHandoffToQuery?: (jobId: string, filename: string) => void;
 }
@@ -71,12 +73,30 @@ export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
     setTimeout(() => setToastMessage(null), 3000);
   };
 
+  // Supported extensions
+  const SUPPORTED_EXTENSIONS = ['.csv', '.tsv', '.parquet', '.json', '.ndjson', '.jsonl', '.xlsx', '.db', '.sqlite', '.sqlite3'];
+
   // Upload multiple files
   const handleUploadFiles = async (files: File[]) => {
     if (!sessionId) return;
     setIsUploading(true);
     setError(null);
     try {
+      // Validate all files first
+      for (const file of files) {
+        const lastDot = file.name.lastIndexOf('.');
+        const ext = lastDot !== -1 ? file.name.slice(lastDot).toLowerCase() : '';
+        if (!SUPPORTED_EXTENSIONS.includes(ext)) {
+          throw new Error(`Unsupported file type '${ext || file.name}'. Please upload CSV, Parquet, Excel, JSON, or SQLite database files.`);
+        }
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+          throw new Error(`File '${file.name}' exceeds the 10GB limit.`);
+        }
+        if (file.size === 0) {
+          throw new Error(`File '${file.name}' is empty (0 bytes).`);
+        }
+      }
+
       let latestState: ModelingSessionState | null = session;
       for (const file of files) {
         latestState = await uploadModelingTable(sessionId, file);
