@@ -281,9 +281,17 @@ def test_modeling_api_endpoints(sample_csv_tables):
     handoff = resp.json()
     assert "SELECT" in handoff["sql"]
 
-    # 7. Delete table
+    # 7. Export merged CSV
+    resp = client.get(f"/api/modeling/sessions/{session_id}/export-csv")
+    assert resp.status_code == 200
+    assert "text/csv" in resp.headers["content-type"]
+    assert "name" in resp.text
+    assert "total_amount" in resp.text
+
+    # 8. Delete table
     resp = client.delete(f"/api/modeling/sessions/{session_id}/tables/customers")
     assert resp.status_code == 200
     state_after = resp.json()
     assert "customers" not in state_after["tables"]
+
 
