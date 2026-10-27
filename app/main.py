@@ -978,8 +978,8 @@ def apply_job_pii_masking(job_id: str, payload: ApplyPiiMaskingRequest):
         clean_csv = storage.clean_csv_path(job_id)
         c_conn = duckdb.connect(":memory:")
         c_conn.execute(
-            f"COPY (SELECT * FROM read_parquet('{str(clean_pq).replace('\\', '/')}')) "
-            f"TO '{str(clean_csv).replace('\\', '/')}' (HEADER, DELIMITER ',');"
+            f"COPY (SELECT * FROM read_parquet('{clean_pq.as_posix()}')) "
+            f"TO '{clean_csv.as_posix()}' (HEADER, DELIMITER ',');"
         )
         c_conn.close()
 
@@ -1018,8 +1018,8 @@ def apply_wrangle_action(job_id: str, payload: WrangleActionRequest):
         if clean_pq.exists():
             c_conn = duckdb.connect(":memory:")
             c_conn.execute(
-                f"COPY (SELECT * FROM read_parquet('{str(clean_pq).replace('\\', '/')}')) "
-                f"TO '{str(clean_csv).replace('\\', '/')}' (HEADER, DELIMITER ',');"
+                f"COPY (SELECT * FROM read_parquet('{clean_pq.as_posix()}')) "
+                f"TO '{clean_csv.as_posix()}' (HEADER, DELIMITER ',');"
             )
             c_conn.close()
 
@@ -1045,8 +1045,8 @@ def undo_wrangle_action(job_id: str):
         if clean_pq.exists():
             c_conn = duckdb.connect(":memory:")
             c_conn.execute(
-                f"COPY (SELECT * FROM read_parquet('{str(clean_pq).replace('\\', '/')}')) "
-                f"TO '{str(clean_csv).replace('\\', '/')}' (HEADER, DELIMITER ',');"
+                f"COPY (SELECT * FROM read_parquet('{clean_pq.as_posix()}')) "
+                f"TO '{clean_csv.as_posix()}' (HEADER, DELIMITER ',');"
             )
             c_conn.close()
 
@@ -1070,8 +1070,8 @@ def reset_wrangle_actions(job_id: str):
         if clean_pq.exists():
             c_conn = duckdb.connect(":memory:")
             c_conn.execute(
-                f"COPY (SELECT * FROM read_parquet('{str(clean_pq).replace('\\', '/')}')) "
-                f"TO '{str(clean_csv).replace('\\', '/')}' (HEADER, DELIMITER ',');"
+                f"COPY (SELECT * FROM read_parquet('{clean_pq.as_posix()}')) "
+                f"TO '{clean_csv.as_posix()}' (HEADER, DELIMITER ',');"
             )
             c_conn.close()
 
