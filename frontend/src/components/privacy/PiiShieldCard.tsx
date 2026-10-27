@@ -5,7 +5,6 @@ import {
   CheckCircle2,
   Loader2,
   RefreshCw,
-  Sparkles,
 } from 'lucide-react';
 import { detectJobPii, applyJobPiiMasking, type PiiFinding } from '../../lib/api';
 import { Button } from '../ui/Button';
@@ -63,10 +62,9 @@ export const PiiShieldCard: React.FC<PiiShieldCardProps> = ({ jobId, onMaskAppli
       const res = await applyJobPiiMasking(jobId, payload);
       setSuccessMessage(res.message);
       onMaskApplied?.(findings.length);
-      // Re-scan after masking
       setTimeout(() => {
         fetchFindings();
-      }, 1200);
+      }, 1000);
     } catch (err: any) {
       setError(err.message || 'Failed to apply PII masking.');
     } finally {
@@ -77,161 +75,155 @@ export const PiiShieldCard: React.FC<PiiShieldCardProps> = ({ jobId, onMaskAppli
   const getEntityBadge = (entity: string) => {
     switch (entity.toLowerCase()) {
       case 'credit_card':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">Credit Card</span>;
+        return <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-rose-500/10 text-rose-400 border border-rose-500/20">CREDIT_CARD</span>;
       case 'ssn':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">US SSN</span>;
+        return <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">US_SSN</span>;
       case 'email':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-500/10 text-blue-400 border border-blue-500/20">Email</span>;
+        return <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">EMAIL</span>;
       case 'phone':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-purple-500/10 text-purple-400 border border-purple-500/20">Phone</span>;
+        return <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">PHONE</span>;
       case 'ip':
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-teal-500/10 text-teal-400 border border-teal-500/20">IP Address</span>;
+        return <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-teal-500/10 text-teal-400 border border-teal-500/20">IP_ADDR</span>;
       default:
-        return <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border-hairline)]">{entity}</span>;
+        return <span className="px-1.5 py-0.5 rounded text-[10px] font-mono font-medium bg-[var(--bg-subtle)] text-[var(--text-muted)] border border-[var(--border-hairline)]">{entity.toUpperCase()}</span>;
     }
   };
 
   if (loading) {
     return (
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl p-5 flex items-center justify-center gap-3 text-sm text-[var(--text-muted)] shadow-2xs">
-        <Loader2 className="w-4 h-4 animate-spin text-[#FF4B3E]" />
-        <span>Scanning dataset for GDPR/HIPAA sensitive identifiers...</span>
+      <div className="flex items-center justify-between px-4 py-2.5 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg text-xs text-[var(--text-muted)]">
+        <div className="flex items-center gap-2">
+          <Loader2 className="w-3.5 h-3.5 animate-spin text-[var(--text-muted)]" />
+          <span>Scanning dataset for sensitive identifiers...</span>
+        </div>
       </div>
     );
   }
 
   const hasPii = findings.length > 0;
 
+  // When clean (no PII detected): Keep it ultra-compact, sleek, and understated (no AI slop)
+  if (!hasPii) {
+    return (
+      <div className="flex items-center justify-between px-4 py-2 bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-lg text-xs text-[var(--text-muted)]">
+        <div className="flex items-center gap-2">
+          <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span className="font-medium text-[var(--text-secondary)]">Privacy Compliance:</span>
+          <span>No sensitive PII detected (GDPR & HIPAA compliant)</span>
+        </div>
+        <button
+          type="button"
+          onClick={fetchFindings}
+          className="inline-flex items-center gap-1.5 text-[11px] font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
+          title="Re-run PII scanner"
+        >
+          <RefreshCw className="w-3 h-3" />
+          <span>Re-scan</span>
+        </button>
+      </div>
+    );
+  }
+
+  // When PII is detected: Present a high-density, authoritative data governance audit table
   return (
-    <div className={`bg-[var(--bg-surface)] border rounded-xl overflow-hidden shadow-2xs transition-all ${
-      hasPii ? 'border-amber-500/30' : 'border-[var(--border-hairline)]'
-    }`}>
-      {/* Header banner */}
-      <div className="p-4 sm:p-5 flex flex-wrap items-center justify-between gap-4 bg-[var(--bg-subtle)] border-b border-[var(--border-hairline)]">
-        <div className="flex items-center gap-3.5">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center border ${
-            hasPii
-              ? 'bg-amber-500/10 border-amber-500/25 text-amber-400'
-              : 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-          }`}>
-            {hasPii ? <ShieldAlert className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-base font-semibold text-[var(--text-primary)] tracking-tight">
-                GDPR & HIPAA Privacy Shield
-              </h3>
-              <Tag variant={hasPii ? 'warn' : 'ok'} font="mono">
-                {hasPii ? `${findings.length} PII Columns Flagged` : 'Compliance Ready'}
-              </Tag>
-            </div>
-            <p className="text-xs text-[var(--text-secondary)] mt-0.5">
-              {hasPii
-                ? 'Automatic pattern detection identified sensitive identifiers in this dataset.'
-                : 'No unmasked credit cards, SSNs, phone numbers, or emails detected.'}
-            </p>
-          </div>
+    <div className="bg-[var(--bg-surface)] border border-[var(--border-hairline)] rounded-xl overflow-hidden shadow-2xs">
+      <div className="p-3.5 sm:p-4 flex flex-wrap items-center justify-between gap-3 bg-[var(--bg-subtle)] border-b border-[var(--border-hairline)]">
+        <div className="flex items-center gap-2.5">
+          <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+          <h3 className="text-sm font-semibold text-[var(--text-primary)] tracking-tight">
+            Sensitive Data & PII Detection
+          </h3>
+          <Tag variant="warn" font="mono">
+            {findings.length} columns flagged
+          </Tag>
         </div>
 
-        <div className="flex items-center gap-2.5">
-          <Button
-            size="sm"
-            variant="ghost"
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
             onClick={fetchFindings}
             disabled={loading || applying}
-            leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />}
-            className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] transition-colors cursor-pointer"
           >
-            Re-scan
+            <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} />
+            <span>Re-scan</span>
+          </button>
+          <Button
+            size="sm"
+            variant="primary"
+            onClick={handleApplyMasking}
+            disabled={applying}
+            leftIcon={applying ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : undefined}
+            className="text-xs h-7 px-3 bg-[#FF4B3E] hover:bg-[#E03E32]"
+          >
+            {applying ? 'Masking...' : 'Anonymize Flagged Columns'}
           </Button>
-          {hasPii && (
-            <Button
-              size="sm"
-              variant="primary"
-              onClick={handleApplyMasking}
-              disabled={applying}
-              leftIcon={applying ? <Loader2 className="w-4 h-4 animate-spin text-white" /> : <Sparkles className="w-4 h-4 text-white" />}
-              className="bg-[#FF4B3E] hover:bg-[#E03E32] text-xs font-semibold shadow-xs"
-            >
-              {applying ? 'Masking in DuckDB...' : 'One-Click Anonymize'}
-            </Button>
-          )}
         </div>
       </div>
 
-      {/* Success banner */}
       {successMessage && (
-        <div className="mx-5 mt-4 p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 shrink-0" />
+        <div className="px-4 py-2 bg-emerald-500/10 border-b border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2 font-sans">
+          <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
           <span>{successMessage}</span>
         </div>
       )}
 
-      {/* Error banner */}
       {error && (
-        <div className="mx-5 mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
-          <ShieldAlert className="w-4 h-4 shrink-0" />
+        <div className="px-4 py-2 bg-red-500/10 border-b border-red-500/20 text-red-400 text-xs flex items-center gap-2 font-sans">
+          <ShieldAlert className="w-3.5 h-3.5 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
-      {/* Findings table */}
-      {hasPii ? (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="border-b border-[var(--border-hairline)] text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
-                <th className="py-2.5 px-4 font-semibold uppercase tracking-wider font-mono">Column</th>
-                <th className="py-2.5 px-4 font-semibold uppercase tracking-wider">Entity Type</th>
-                <th className="py-2.5 px-4 font-semibold uppercase tracking-wider">Confidence</th>
-                <th className="py-2.5 px-4 font-semibold uppercase tracking-wider">Sample Preview</th>
-                <th className="py-2.5 px-4 font-semibold uppercase tracking-wider text-right">Masking Strategy</th>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr className="border-b border-[var(--border-hairline)] text-[var(--text-muted)] font-medium bg-[var(--bg-surface)]">
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider font-mono text-[11px]">Column</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider font-mono text-[11px]">Entity</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider font-mono text-[11px]">Confidence</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider font-mono text-[11px]">Masked Sample</th>
+              <th className="py-2 px-4 font-semibold uppercase tracking-wider font-mono text-[11px] text-right">Strategy</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[var(--border-hairline)] font-mono text-xs">
+            {findings.map((f) => (
+              <tr key={f.column_name} className="hover:bg-[var(--bg-hover)] transition-colors">
+                <td className="py-2 px-4 font-semibold text-[var(--text-primary)]">
+                  {f.column_name}
+                </td>
+                <td className="py-2 px-4">
+                  {getEntityBadge(f.entity_type)}
+                </td>
+                <td className="py-2 px-4 text-[var(--text-secondary)]">
+                  {Math.round(f.confidence * 100)}%
+                </td>
+                <td className="py-2 px-4 text-[var(--text-muted)]">
+                  <span className="bg-[var(--bg-subtle)] px-2 py-0.5 rounded border border-[var(--border-hairline)]">
+                    {f.sample_preview_masked}
+                  </span>
+                </td>
+                <td className="py-2 px-4 text-right">
+                  <select
+                    value={strategies[f.column_name] || f.suggested_strategy}
+                    onChange={(e) =>
+                      setStrategies({
+                        ...strategies,
+                        [f.column_name]: e.target.value as 'partial_mask' | 'sha256_hash' | 'redact',
+                      })
+                    }
+                    className="bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded px-2 py-1 text-xs text-[var(--text-primary)] outline-none cursor-pointer"
+                  >
+                    <option value="partial_mask">Partial Mask (***-1234)</option>
+                    <option value="sha256_hash">SHA-256 Hash</option>
+                    <option value="redact">Redact ([REDACTED])</option>
+                  </select>
+                </td>
               </tr>
-            </thead>
-            <tbody className="divide-y divide-[var(--border-hairline)]">
-              {findings.map((f) => (
-                <tr key={f.column_name} className="hover:bg-[var(--bg-hover)] transition-colors">
-                  <td className="py-2.5 px-4 font-mono font-medium text-[var(--text-primary)]">
-                    {f.column_name}
-                  </td>
-                  <td className="py-2.5 px-4">
-                    {getEntityBadge(f.entity_type)}
-                  </td>
-                  <td className="py-2.5 px-4 font-mono text-[var(--text-secondary)]">
-                    {Math.round(f.confidence * 100)}%
-                  </td>
-                  <td className="py-2.5 px-4 font-mono text-xs text-[var(--text-muted)]">
-                    <span className="bg-[var(--bg-subtle)] px-2 py-0.5 rounded border border-[var(--border-hairline)] inline-block">
-                      {f.sample_preview_masked}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-4 text-right">
-                    <select
-                      value={strategies[f.column_name] || f.suggested_strategy}
-                      onChange={(e) =>
-                        setStrategies({
-                          ...strategies,
-                          [f.column_name]: e.target.value as 'partial_mask' | 'sha256_hash' | 'redact',
-                        })
-                      }
-                      className="bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-md px-2 py-1 text-xs text-[var(--text-primary)] outline-none cursor-pointer"
-                    >
-                      <option value="partial_mask">Partial Mask (***-1234)</option>
-                      <option value="sha256_hash">SHA-256 Hash (Unique Joins)</option>
-                      <option value="redact">Full Redact ([REDACTED])</option>
-                    </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      ) : (
-        <div className="p-5 text-xs text-[var(--text-secondary)] flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-          <span>All dataset columns conform to standard privacy rules. You can safely export to cloud or database targets.</span>
-        </div>
-      )}
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };
