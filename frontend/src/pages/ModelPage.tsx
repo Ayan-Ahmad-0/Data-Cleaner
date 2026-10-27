@@ -223,7 +223,7 @@ export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
   const relationshipsCount = session ? session.relationships.length : 0;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-65px)] bg-[var(--bg-app)]">
+    <div className="flex flex-col flex-1 h-full min-h-0 bg-[var(--bg-app)] border-t border-[var(--border-hairline)]">
       {/* Top Action Header */}
       <div className="px-5 py-3 bg-[var(--bg-surface)] border-b border-[var(--border-hairline)] flex flex-wrap items-center justify-between gap-3 shrink-0">
         <div className="flex items-center gap-3">
