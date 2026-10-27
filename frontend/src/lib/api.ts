@@ -911,3 +911,233 @@ export async function getWrangleHistory(jobId: string): Promise<WrangleHistoryRe
   }
   return res.json();
 }
+
+// ==============================================================================
+// Multi-Table Staging & ERD Visualizer API
+// ==============================================================================
+
+export interface ColumnMetadata {
+  name: string;
+  data_type: string;
+  is_nullable: boolean;
+  is_pk: boolean;
+  is_fk: boolean;
+  distinct_count?: number;
+  null_count?: number;
+  sample_values?: any[];
+}
+
+export interface TableMetadata {
+  table_name: string;
+  row_count: number;
+  file_size_bytes: number;
+  original_filename: string;
+  columns: ColumnMetadata[];
+  position_x: number;
+  position_y: number;
+}
+
+export interface Relationship {
+  id: string;
+  from_table: string;
+  from_column: string;
+  to_table: string;
+  to_column: string;
+  cardinality: string;
+  confidence: number;
+  match_ratio: number;
+  orphan_count: number;
+  status: 'detected' | 'confirmed' | 'manual';
+}
+
+export interface ModelingSessionState {
+  session_id: string;
+  created_at: string;
+  tables: Record<string, TableMetadata>;
+  relationships: Relationship[];
+}
+
+export interface JoinPreviewResult {
+  from_table: string;
+  from_column: string;
+  to_table: string;
+  to_column: string;
+  join_type: string;
+  matched_rows: number;
+  total_child_rows: number;
+  match_ratio: number;
+  orphan_count: number;
+  columns: string[];
+  sample_rows: Record<string, any>[];
+}
+
+export interface SchemaExportResult {
+  format: string;
+  content: string;
+}
+
+export interface QueryHandoffResult {
+  sql: string;
+  tables: string[];
+  relationships_count?: number;
+}
+
+export async function createModelingSession(): Promise<ModelingSessionState> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to create modeling session.');
+  }
+  return res.json();
+}
+
+export async function getModelingSession(sessionId: string): Promise<ModelingSessionState> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to load modeling session.');
+  }
+  return res.json();
+}
+
+export async function uploadModelingTable(
+  sessionId: string,
+  file: File,
+  tableName?: string
+): Promise<ModelingSessionState> {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (tableName) {
+    formData.append('table_name', tableName);
+  }
+
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/tables`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to upload table to modeling session.');
+  }
+  return res.json();
+}
+
+export async function deleteModelingTable(
+  sessionId: string,
+  tableName: string
+): Promise<ModelingSessionState> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/tables/${tableName}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to remove table.');
+  }
+  return res.json();
+}
+
+export async function updateModelingTablePosition(
+  sessionId: string,
+  tableName: string,
+  x: number,
+  y: number
+): Promise<{ status: string }> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/tables/${tableName}/position`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ x, y }),
+  });
+  if (!res.ok) {
+    return { status: 'error' };
+  }
+  return res.json();
+}
+
+export async function detectModelingRelationships(sessionId: string): Promise<ModelingSessionState> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/detect`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to detect relationships.');
+  }
+  return res.json();
+}
+
+export async function saveModelingRelationship(
+  sessionId: string,
+  relationship: Relationship
+): Promise<Relationship> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/relationships`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(relationship),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to save relationship.');
+  }
+  return res.json();
+}
+
+export async function deleteModelingRelationship(
+  sessionId: string,
+  relId: string
+): Promise<{ status: string }> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/relationships/${relId}`, {
+    method: 'DELETE',
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to delete relationship.');
+  }
+  return res.json();
+}
+
+export async function previewModelingJoin(
+  sessionId: string,
+  params: {
+    from_table: string;
+    from_column: string;
+    to_table: string;
+    to_column: string;
+    join_type?: string;
+  }
+): Promise<JoinPreviewResult> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/preview-join`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to preview join.');
+  }
+  return res.json();
+}
+
+export async function exportModelingSchema(
+  sessionId: string,
+  format: 'mermaid' | 'dbml' | 'sql_ddl' = 'mermaid'
+): Promise<SchemaExportResult> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/export?format=${format}`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to export schema.');
+  }
+  return res.json();
+}
+
+export async function handoffModelingToQuery(sessionId: string): Promise<QueryHandoffResult> {
+  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/handoff-query`, {
+    method: 'POST',
+  });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to prepare query handoff.');
+  }
+  return res.json();
+}
+
