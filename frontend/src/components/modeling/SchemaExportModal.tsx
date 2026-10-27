@@ -14,8 +14,6 @@ export const SchemaExportModal: React.FC<SchemaExportModalProps> = ({
   sessionId,
   onClose,
 }) => {
-  if (!isOpen) return null;
-
   const [activeTab, setActiveTab] = useState<'mermaid' | 'dbml' | 'sql_ddl'>('mermaid');
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
@@ -23,7 +21,7 @@ export const SchemaExportModal: React.FC<SchemaExportModalProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!isOpen || !sessionId) return;
 
     const fetchExport = async () => {
       setLoading(true);
@@ -39,7 +37,9 @@ export const SchemaExportModal: React.FC<SchemaExportModalProps> = ({
     };
 
     fetchExport();
-  }, [sessionId, activeTab]);
+  }, [isOpen, sessionId, activeTab]);
+
+  if (!isOpen) return null;
 
   const handleCopy = () => {
     if (!content) return;
