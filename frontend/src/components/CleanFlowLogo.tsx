@@ -27,18 +27,18 @@ export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
 
   return (
     <div className={`flex items-center gap-2.5 sm:gap-3 select-none ${className}`}>
-      {/* CleanFlow 4-petal geometric icon */}
+      {/* Datamorph 4-petal geometric icon */}
       <img
         src="/cleanflow-icon.png"
-        alt="CleanFlow"
+        alt="Datamorph"
         className={`${iconDimensions} shrink-0 object-contain`}
       />
 
       {!iconOnly && (
         <div className="flex items-center gap-2.5 sm:gap-3.5 leading-none">
           <div className={`font-bold tracking-tight font-sans flex items-baseline ${textSizes}`}>
-            <span className="text-[var(--text-primary)]">Clean</span>
-            <span className="text-[var(--accent)]">Flow</span>
+            <span className="text-[var(--text-primary)]">Data</span>
+            <span className="text-[var(--accent)]">morph</span>
           </div>
           {showTagline && (
             <span className="hidden md:inline-flex items-center text-xs lg:text-sm font-normal text-[var(--text-muted)] tracking-normal pl-2.5 sm:pl-3.5 hairline-l whitespace-nowrap">
@@ -50,3 +50,6 @@ export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
     </div>
   );
 };
+
+export const DatamorphLogo = CleanFlowLogo;
+export type DatamorphLogoProps = CleanFlowLogoProps;
