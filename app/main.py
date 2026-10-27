@@ -900,6 +900,204 @@ def ask_chart_from_text(job_id: str, payload: AIAskRequest):
         raise HTTPException(status_code=500, detail=f"Failed to process chart request: {e}")
 
 
+# ---------------------------------------------------------
+# Interactive Data Wrangler & PII Masking API Endpoints
+# ---------------------------------------------------------
+
+class WrangleActionRequest(BaseModel):
+    action: str
+    column: str
+    params: Optional[Dict[str, Any]] = Field(default_factory=dict)
+
+
+class ApplyPiiMaskingRequest(BaseModel):
+    columns: Dict[str, Dict[str, Any]]
+
+
+@app.get("/api/jobs/{job_id}/pii/detect")
+def detect_job_pii(job_id: str):
+    """Scan dataset columns for sensitive PII entities."""
+    from core.privacy.detector import PiiDetector
+    from explore.service import resolve_job_parquet_paths, DataNotFoundError
+
+    try:
+        clean_pq, orig_pq = resolve_job_parquet_paths(job_id, storage=storage)
+        target_path = clean_pq if clean_pq and clean_pq.exists() else orig_pq
+        if not target_path or not target_path.exists():
+            raise HTTPException(status_code=404, detail="Dataset not found")
+
+        findings = PiiDetector.scan_dataset(target_path)
+        return {
+            "job_id": job_id,
+            "detected_count": len(findings),
+            "findings": [f.to_dict() for f in findings],
+        }
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed PII detection for job %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed PII detection: {e}")
+
+
+@app.post("/api/jobs/{job_id}/pii/apply")
+def apply_job_pii_masking(job_id: str, payload: ApplyPiiMaskingRequest):
+    """Apply masking transformations to sensitive PII columns."""
+    from core.recipe_schema import Recipe, ColumnRule, MaskPiiConfig
+    from core.compiler import RecipeCompiler
+    from core.wrangler.service import DataWranglerService
+    from explore.service import resolve_job_parquet_paths, DataNotFoundError
+
+    try:
+        clean_pq, _ = resolve_job_parquet_paths(job_id, storage=storage)
+        if not clean_pq or not clean_pq.exists():
+            raise HTTPException(status_code=404, detail="Dataset not found")
+
+        # Ensure wrangle baseline exists
+        wrangler = DataWranglerService(storage=storage)
+        wrangler.ensure_baseline_snapshot(job_id)
+
+        mask_rules = {}
+        for col, cfg in payload.columns.items():
+            strat = cfg.get("strategy", "partial_mask")
+            ent = cfg.get("entity_type")
+            mask_rules[col] = ColumnRule(
+                mask_pii=MaskPiiConfig(strategy=strat, entity_type=ent)
+            )
+
+        recipe = Recipe(columns=mask_rules)
+        compiler = RecipeCompiler()
+
+        # Execute into temporary file then swap
+        temp_pq = clean_pq.parent / f".temp_masked_{job_id[:8]}.parquet"
+        compiler.execute_clean(recipe, clean_pq, temp_pq)
+        if temp_pq.exists():
+            shutil.move(temp_pq, clean_pq)
+
+        # Update CSV
+        clean_csv = storage.clean_csv_path(job_id)
+        c_conn = duckdb.connect(":memory:")
+        c_conn.execute(
+            f"COPY (SELECT * FROM read_parquet('{str(clean_pq).replace('\\', '/')}')) "
+            f"TO '{str(clean_csv).replace('\\', '/')}' (HEADER, DELIMITER ',');"
+        )
+        c_conn.close()
+
+        row_count, cols, preview = wrangler._get_dataset_info(clean_pq)
+        return {
+            "success": True,
+            "message": f"Successfully masked {len(payload.columns)} PII columns.",
+            "row_count": row_count,
+            "columns": cols,
+            "preview_rows": preview,
+        }
+    except DataNotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        logger.exception("Failed applying PII masking for job %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed applying PII masking: {e}")
+
+
+@app.post("/api/jobs/{job_id}/wrangle")
+def apply_wrangle_action(job_id: str, payload: WrangleActionRequest):
+    """Execute point-and-click cell/column wrangle mutation."""
+    from core.wrangler.service import DataWranglerService
+
+    try:
+        wrangler = DataWranglerService(storage=storage)
+        result = wrangler.apply_action(
+            job_id=job_id,
+            action_type=payload.action,
+            column=payload.column,
+            params=payload.params,
+        )
+
+        # Synchronize CSV export
+        clean_pq = storage.clean_parquet_path(job_id)
+        clean_csv = storage.clean_csv_path(job_id)
+        if clean_pq.exists():
+            c_conn = duckdb.connect(":memory:")
+            c_conn.execute(
+                f"COPY (SELECT * FROM read_parquet('{str(clean_pq).replace('\\', '/')}')) "
+                f"TO '{str(clean_csv).replace('\\', '/')}' (HEADER, DELIMITER ',');"
+            )
+            c_conn.close()
+
+        return result.to_dict()
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.exception("Wrangle execution failed for job %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed wrangling dataset: {e}")
+
+
+@app.post("/api/jobs/{job_id}/wrangle/undo")
+def undo_wrangle_action(job_id: str):
+    """Roll back the last wrangle mutation."""
+    from core.wrangler.service import DataWranglerService
+
+    try:
+        wrangler = DataWranglerService(storage=storage)
+        result = wrangler.undo(job_id=job_id)
+
+        clean_pq = storage.clean_parquet_path(job_id)
+        clean_csv = storage.clean_csv_path(job_id)
+        if clean_pq.exists():
+            c_conn = duckdb.connect(":memory:")
+            c_conn.execute(
+                f"COPY (SELECT * FROM read_parquet('{str(clean_pq).replace('\\', '/')}')) "
+                f"TO '{str(clean_csv).replace('\\', '/')}' (HEADER, DELIMITER ',');"
+            )
+            c_conn.close()
+
+        return result.to_dict()
+    except Exception as e:
+        logger.exception("Wrangle undo failed for job %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to undo wrangle action: {e}")
+
+
+@app.post("/api/jobs/{job_id}/wrangle/reset")
+def reset_wrangle_actions(job_id: str):
+    """Revert dataset to step 0 baseline."""
+    from core.wrangler.service import DataWranglerService
+
+    try:
+        wrangler = DataWranglerService(storage=storage)
+        result = wrangler.reset(job_id=job_id)
+
+        clean_pq = storage.clean_parquet_path(job_id)
+        clean_csv = storage.clean_csv_path(job_id)
+        if clean_pq.exists():
+            c_conn = duckdb.connect(":memory:")
+            c_conn.execute(
+                f"COPY (SELECT * FROM read_parquet('{str(clean_pq).replace('\\', '/')}')) "
+                f"TO '{str(clean_csv).replace('\\', '/')}' (HEADER, DELIMITER ',');"
+            )
+            c_conn.close()
+
+        return result.to_dict()
+    except Exception as e:
+        logger.exception("Wrangle reset failed for job %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to reset wrangle actions: {e}")
+
+
+@app.get("/api/jobs/{job_id}/wrangle/history")
+def get_wrangle_history(job_id: str):
+    """Get list of applied wrangle actions for a job."""
+    from core.wrangler.service import DataWranglerService
+
+    try:
+        wrangler = DataWranglerService(storage=storage)
+        history = wrangler.get_history(job_id=job_id)
+        return {
+            "job_id": job_id,
+            "history": history,
+            "can_undo": len(history) > 0,
+        }
+    except Exception as e:
+        logger.exception("Failed to get wrangle history for %s: %s", job_id, e)
+        raise HTTPException(status_code=500, detail=f"Failed to get wrangle history: {e}")
+
+
 # Mount built frontend assets if present
 frontend_dist = Path(__file__).resolve().parent.parent / "frontend" / "dist"
 if frontend_dist.exists():
