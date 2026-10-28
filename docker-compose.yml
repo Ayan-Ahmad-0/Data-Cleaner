@@ -5,11 +5,12 @@ services:
       dockerfile: Dockerfile
     container_name: data-cleaner-app
     ports:
+      - "80:8000"
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - DUCKDB_MEMORY_LIMIT=4GB
-      - DUCKDB_THREADS=4
+      - DUCKDB_MEMORY_LIMIT=${DUCKDB_MEMORY_LIMIT:-16GB}
+      - DUCKDB_THREADS=${DUCKDB_THREADS:-4}
     volumes:
       - ./data:/app/data
     restart: unless-stopped

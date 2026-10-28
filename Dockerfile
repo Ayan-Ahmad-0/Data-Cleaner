@@ -35,6 +35,10 @@ COPY core/ ./core/
 COPY explore/ ./explore/
 COPY formats/ ./formats/
 COPY evaluation/ ./evaluation/
+COPY analyst/ ./analyst/
+COPY charts/ ./charts/
+COPY charts_ai/ ./charts_ai/
+COPY connectors/ ./connectors/
 COPY demo.py .
 
 # Copy built frontend from Stage 1
