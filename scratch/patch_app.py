@@ -1,6 +1,4 @@
-import os
-
-path = r'frontend/src/App.tsx'
+path = 'frontend/src/App.tsx'
 with open(path, 'r', encoding='utf-8') as f:
     text = f.read()
 
@@ -114,14 +112,8 @@ export function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);"""
 
-# Normalize CRLF
-target_crlf = target.replace('\r\n', '\n').replace('\n', '\r\n')
-replacement_crlf = replacement.replace('\r\n', '\n').replace('\n', '\r\n')
-
-if target_crlf in text:
-    text = text.replace(target_crlf, replacement_crlf, 1)
-    with open(path, 'w', encoding='utf-8') as f:
-        f.write(text)
-    print("SUCCESS")
-else:
-    print("TARGET NOT FOUND")
+assert target in text, "Target still not found!"
+text = text.replace(target, replacement, 1)
+with open(path, 'w', encoding='utf-8', newline='\r\n') as f:
+    f.write(text)
+print("SUCCESSFULLY PATCHED")
