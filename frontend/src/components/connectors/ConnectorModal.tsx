@@ -597,12 +597,36 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
               ) : (
                 <AlertTriangle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
               )}
-              <div className="space-y-0.5">
+              <div className="space-y-1.5 flex-1">
                 <span className="font-semibold block">
                   {testResult.success ? 'Connection Validated' : 'Connection Test Failed'}
                   {testResult.latency_ms && ` (${testResult.latency_ms} ms)`}
                 </span>
-                <span className="opacity-90">{testResult.message}</span>
+                <span className="opacity-90 block">{testResult.message}</span>
+
+                {testResult.success && testResult.details?.tables && Array.isArray(testResult.details.tables) && testResult.details.tables.length > 0 && (
+                  <div className="mt-2.5 pt-2 border-t border-emerald-500/20">
+                    <span className="font-semibold text-emerald-300 block mb-1.5">
+                      Discovered Tables (Click to select for import):
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {testResult.details.tables.map((tbl: string) => (
+                        <button
+                          key={tbl}
+                          type="button"
+                          onClick={() => setPgConfig((prev) => ({ ...prev, table_name: tbl, query: '' }))}
+                          className={`px-2.5 py-1 rounded text-xs font-mono transition border ${
+                            pgConfig.table_name === tbl
+                              ? 'bg-emerald-500 text-black font-semibold border-emerald-400'
+                              : 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40 hover:bg-emerald-500/30'
+                          }`}
+                        >
+                          {tbl}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
