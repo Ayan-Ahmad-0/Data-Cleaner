@@ -137,8 +137,32 @@ export const ReportPage: React.FC<ReportPageProps> = ({ jobData, onProceedToAppr
     );
   }
 
+  // Job failed state
+  if (jobData?.job?.status === 'FAILED') {
+    return (
+      <div className="container-shell py-16 sm:py-24 max-w-2xl mx-auto text-center space-y-6">
+        <div className="w-16 h-16 rounded-full bg-[var(--status-danger)]/10 text-[var(--status-danger)] flex items-center justify-center mx-auto border border-[var(--status-danger)]/30">
+          <AlertCircle className="w-8 h-8" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl sm:text-3xl font-semibold text-[var(--text-primary)] tracking-tight">
+            Profiling Failed
+          </h2>
+          <p className="text-base text-[var(--status-danger)] leading-relaxed max-w-lg mx-auto font-mono text-sm bg-[var(--bg-subtle)] p-3 rounded-lg border border-[var(--border-hairline)]">
+            {jobData.job.error || jobData.job.current_stage || 'An unexpected error occurred during profiling.'}
+          </p>
+        </div>
+        {onGoToUpload && (
+          <Button size="lg" variant="primary" onClick={onGoToUpload}>
+            Return to Upload (Step 1)
+          </Button>
+        )}
+      </div>
+    );
+  }
+
   // Active Profiling & AI Drafting state while DuckDB scans the dataset
-  if (!profile && jobData?.job?.status !== 'FAILED') {
+  if (!profile) {
     return (
       <div className="container-shell py-16 sm:py-24 max-w-2xl mx-auto text-center space-y-6">
         <div className="w-16 h-16 rounded-full bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto">
