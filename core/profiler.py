@@ -136,16 +136,22 @@ class Profiler:
 
     def __init__(
         self,
-        memory_limit: str = "4GB",
+        memory_limit: Optional[str] = None,
         threads: int = 4,
         privacy_mode: bool = False,
+        temp_directory: Optional[str] = None,
     ) -> None:
-        self.memory_limit = memory_limit
+        self.memory_limit = memory_limit or os.getenv("DUCKDB_MEMORY_LIMIT", "600MB")
         self.threads = threads
         self.privacy_mode = privacy_mode
+        self.temp_directory = temp_directory or os.getenv("DUCKDB_TEMP_DIR", "/tmp/duckdb_temp")
 
     def _get_connection(self) -> duckdb.DuckDBPyConnection:
         conn = duckdb.connect(":memory:")
+        conn.execute("SET preserve_insertion_order = false;")
+        if self.temp_directory:
+            os.makedirs(self.temp_directory, exist_ok=True)
+            conn.execute(f"SET temp_directory = '{self.temp_directory}';")
         conn.execute(f"SET memory_limit = '{self.memory_limit}';")
         conn.execute(f"SET threads = {self.threads};")
         return conn
@@ -176,12 +182,12 @@ class Profiler:
 
             total_rows = conn.execute(f"SELECT COUNT(*) FROM {view_name}").fetchone()[0]
 
-            # 2. Duplicate detection
+            # 2. Duplicate detection (high-efficiency 64-bit row hash to prevent memory exhaustion)
             if total_rows > 0:
-                distinct_rows = conn.execute(
-                    f"SELECT COUNT(*) FROM (SELECT DISTINCT * FROM {view_name})"
+                cols_quoted = ", ".join(f'"{col}"' for col in column_names)
+                exact_dup_rows = conn.execute(
+                    f"SELECT COUNT(*) - COUNT(DISTINCT hash({cols_quoted})) FROM {view_name}"
                 ).fetchone()[0]
-                exact_dup_rows = max(0, total_rows - distinct_rows)
                 exact_dup_pct = round((exact_dup_rows / total_rows) * 100, 2)
             else:
                 exact_dup_rows = 0
