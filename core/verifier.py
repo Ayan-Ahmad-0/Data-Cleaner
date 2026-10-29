@@ -58,10 +58,11 @@ class VerificationResult:
 class Verifier:
     """Re-profiles output and executes verification assertions against the recipe."""
 
-    def __init__(self, memory_limit: str = "4GB", threads: int = 4) -> None:
-        self.memory_limit = memory_limit
+    def __init__(self, memory_limit: Optional[str] = None, threads: int = 4, temp_directory: Optional[str] = None) -> None:
+        self.memory_limit = memory_limit or os.getenv("DUCKDB_MEMORY_LIMIT", "600MB")
         self.threads = threads
-        self.profiler = Profiler(memory_limit=memory_limit, threads=threads)
+        self.temp_directory = temp_directory or os.getenv("DUCKDB_TEMP_DIR", "/tmp/duckdb_temp")
+        self.profiler = Profiler(memory_limit=self.memory_limit, threads=threads, temp_directory=self.temp_directory)
 
     def verify(
         self,
