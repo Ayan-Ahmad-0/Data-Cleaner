@@ -46,7 +46,9 @@ export async function detectFormat(file: File): Promise<{
   tables?: string[];
 }> {
   const formData = new FormData();
-  formData.append('file', file);
+  // Slicing the initial 1 MB avoids transferring multi-gigabyte payloads purely for schema sniffing
+  const sample = file.slice(0, 1024 * 1024);
+  formData.append('file', sample, file.name);
 
   const res = await fetch(`${API_BASE}/api/formats/detect`, {
     method: 'POST',
