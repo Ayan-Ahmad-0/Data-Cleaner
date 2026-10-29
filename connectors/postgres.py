@@ -66,6 +66,23 @@ class PostgresConnector(BaseConnector):
             ],
         )
 
+    def _sanitize_error_message(self, message: str, password: Optional[str] = None) -> str:
+        """Strip raw passwords and sensitive credentials from exception messages before sending to client."""
+        msg = str(message)
+        if password and len(str(password).strip()) > 1:
+            msg = msg.replace(str(password), "••••••••")
+        # Mask password in libpq connection string: password='...' or password="..." or password=...
+        msg = re.sub(r"password=['\"][^'\"]*['\"]", "password='••••••••'", msg, flags=re.IGNORECASE)
+        msg = re.sub(r"password=[^\s,;'\"]+", "password=••••••••", msg, flags=re.IGNORECASE)
+        # Mask URI user:password@host
+        msg = re.sub(r"://([^:/]+):([^@]+)@", r"://\1:••••••••@", msg)
+
+        # Contextual troubleshooting hint for Supabase IPv6 unreachable
+        if "supabase.co" in msg and ("Network is unreachable" in msg or "2406:" in msg or "Network unreachable" in msg):
+            msg += "\n\n💡 Supabase Fix: Direct host 'db.[ref].supabase.co' is IPv6-only. Your network appears to be IPv4-only. In Supabase Dashboard -> Connect, select 'Session Pooler' to get your IPv4 hostname (e.g. aws-0-[region].pooler.supabase.com with port 5432 or 6543)."
+
+        return msg
+
     def _sanitize_identifier(self, identifier: str, field_name: str) -> str:
         """Ensure SQL identifier is alphanumeric with underscores to prevent injection."""
         clean = identifier.strip()
