@@ -141,17 +141,31 @@ class S3Connector(BaseConnector):
         if not bucket:
             raise ValueError("Bucket name cannot be empty.")
 
-        prefix = cfg.prefix.strip().strip("/")
-        fname = (cfg.filename or default_name).strip().lstrip("/")
-        
-        # Ensure appropriate extension matching format
+        # Determine user-provided path/key or filename
+        raw_target = (cfg.filename or cfg.key or "").strip()
         fmt = cfg.export_format.value
-        if not fname.lower().endswith(f".{fmt}"):
-            fname = f"{fname}.{fmt}"
 
-        if prefix:
-            return f"s3://{bucket}/{prefix}/{fname}"
-        return f"s3://{bucket}/{fname}"
+        if raw_target:
+            target = raw_target.removeprefix("s3://").lstrip("/")
+            if target.startswith(f"{bucket}/"):
+                target = target[len(bucket) + 1:].lstrip("/")
+        else:
+            target = default_name.strip().lstrip("/")
+
+        prefix = cfg.prefix.strip().strip("/")
+        if prefix and not target.startswith(f"{prefix}/") and target != prefix:
+            target = f"{prefix}/{target}"
+
+        # Adjust extension: match selected export format
+        target_path = Path(target)
+        known_exts = {".parquet", ".csv", ".tsv", ".json", ".ndjson", ".jsonl", ".txt", ".xlsx", ".xls"}
+        if target_path.suffix.lower() in known_exts:
+            if target_path.suffix.lower() != f".{fmt}":
+                target = target_path.with_suffix(f".{fmt}").as_posix()
+        else:
+            target = f"{target}.{fmt}"
+
+        return f"s3://{bucket}/{target.strip('/')}"
 
     def test_connection(self, config: Dict[str, Any]) -> ConnectionTestResult:
         """Validate S3 credentials and endpoint reachability."""
@@ -170,8 +184,10 @@ class S3Connector(BaseConnector):
                     message=f"Invalid S3 bucket name '{cfg.bucket}'. Must be 3-63 characters (letters, numbers, hyphens, dots).",
                 )
 
-            # If an object key or source URI is provided, attempt a lightweight metadata scan (LIMIT 0)
-            if cfg.key or cfg.source_uri:
+            is_export_mode = config.get("mode") == "export" or config.get("test_mode") == "export"
+
+            # If an object key or source URI is provided for import, attempt a lightweight metadata scan (LIMIT 0)
+            if not is_export_mode and (cfg.key or cfg.source_uri):
                 source_uri = self._resolve_source_uri(cfg)
                 fmt = Path(source_uri).suffix.lower().lstrip(".")
                 if fmt == "parquet":
@@ -184,6 +200,17 @@ class S3Connector(BaseConnector):
                     scan_expr = f"read_csv_auto('{source_uri}')"
 
                 con.execute(f"SELECT * FROM {scan_expr} LIMIT 0")
+            elif is_export_mode:
+                # In export mode, verify bucket connectivity without requiring target key to exist
+                try:
+                    con.execute(f"SELECT count(*) FROM glob('s3://{clean_bucket}/*') LIMIT 1")
+                except Exception as probe_err:
+                    err_str = str(probe_err).lower()
+                    if "403" in err_str or "accessdenied" in err_str or "forbidden" in err_str:
+                        raise
+                    if "invalid s3 endpoint" in err_str or "host not found" in err_str:
+                        raise
+                    logger.debug("Export connection probe response: %s", probe_err)
 
             elapsed = (time.perf_counter() - start_time) * 1000
             return ConnectionTestResult(
@@ -219,8 +246,18 @@ class S3Connector(BaseConnector):
 
         start_time = time.perf_counter()
         cfg = S3ConnectorConfig.model_validate(config)
-        default_stem = source_parquet_path.stem
-        destination_uri = self._build_destination_uri(cfg, default_name=f"{default_stem}_cleaned")
+        options = options or {}
+
+        # Determine default stem from options or original job filename without appending '_cleaned'
+        job_filename = options.get("job_filename")
+        if job_filename:
+            default_stem = Path(job_filename).stem
+        else:
+            default_stem = source_parquet_path.stem
+            if default_stem == "cleaned":
+                default_stem = "dataset"
+
+        destination_uri = self._build_destination_uri(cfg, default_name=default_stem)
 
         con = duckdb.connect(":memory:")
         self._configure_connection(con, cfg)
@@ -238,7 +275,11 @@ class S3Connector(BaseConnector):
                 con.execute(f"COPY (SELECT * FROM read_parquet('{src_path_str}')) TO '{destination_uri}' (FORMAT PARQUET, COMPRESSION 'ZSTD');")
             elif fmt == ExportFormat.CSV:
                 con.execute(f"COPY (SELECT * FROM read_parquet('{src_path_str}')) TO '{destination_uri}' (FORMAT CSV, HEADER TRUE);")
+            elif fmt == ExportFormat.TSV:
+                con.execute(f"COPY (SELECT * FROM read_parquet('{src_path_str}')) TO '{destination_uri}' (FORMAT CSV, DELIMITER '\t', HEADER TRUE);")
             elif fmt == ExportFormat.JSON:
+                con.execute(f"COPY (SELECT * FROM read_parquet('{src_path_str}')) TO '{destination_uri}' (FORMAT JSON, ARRAY TRUE);")
+            elif fmt == ExportFormat.NDJSON:
                 con.execute(f"COPY (SELECT * FROM read_parquet('{src_path_str}')) TO '{destination_uri}' (FORMAT JSON);")
             else:
                 raise ValueError(f"Unsupported export format: {fmt}")
