@@ -539,15 +539,20 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
 
               <div>
                 <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
-                  Target Table Name {mode === 'export' && <span className="text-[#FF4B3E]">*</span>}
+                  {mode === 'export' ? 'Target Table Name' : 'Table Name to Import'} <span className="text-[#FF4B3E]">*</span>
                 </label>
                 <input
                   type="text"
-                  placeholder="e.g. cleaned_orders or customer_events"
+                  placeholder={mode === 'export' ? 'e.g. cleaned_orders or customer_events' : 'e.g. users, products, or transactions'}
                   value={pgConfig.table_name}
                   onChange={(e) => setPgConfig({ ...pgConfig, table_name: e.target.value })}
                   className="w-full bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg px-3.5 py-2 text-sm text-[var(--text-primary)] outline-none font-mono"
                 />
+                <span className="text-[11px] text-[var(--text-muted)] mt-1 block">
+                  {mode === 'export'
+                    ? 'The PostgreSQL table where cleaned records will be written.'
+                    : 'The table name inside your Render database that you want to import.'}
+                </span>
               </div>
 
               {mode === 'import' && (
@@ -557,11 +562,14 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="SELECT id, name, email, created_at FROM users WHERE active = true"
+                    placeholder="SELECT id, name, email FROM users WHERE created_at >= '2024-01-01'"
                     value={pgConfig.query}
                     onChange={(e) => setPgConfig({ ...pgConfig, query: e.target.value })}
                     className="w-full bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg px-3.5 py-2 text-sm text-[var(--text-primary)] outline-none font-mono"
                   />
+                  <span className="text-[11px] text-[var(--text-muted)] mt-1 block">
+                    Optional: Run a custom query instead of importing the entire table.
+                  </span>
                 </div>
               )}
             </div>
