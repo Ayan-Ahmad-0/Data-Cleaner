@@ -49,6 +49,24 @@ def test_s3_build_destination_uri():
     uri3 = connector._build_destination_uri(cfg3, default_name="fallback")
     assert uri3 == "s3://my-bucket/exports/data.json"
 
+    # User-specified full key without prefix, no cleaned appended
+    cfg4 = S3ConnectorConfig(
+        bucket="datamorph-test",
+        key="corrupted_transactions.csv",
+        export_format=ExportFormat.CSV,
+    )
+    uri4 = connector._build_destination_uri(cfg4, default_name="corrupted_transactions")
+    assert uri4 == "s3://datamorph-test/corrupted_transactions.csv"
+
+    # Extension updated to match chosen export format (e.g. CSV file exported as Parquet)
+    cfg5 = S3ConnectorConfig(
+        bucket="datamorph-test",
+        key="archive/corrupted_transactions.csv",
+        export_format=ExportFormat.PARQUET,
+    )
+    uri5 = connector._build_destination_uri(cfg5, default_name="corrupted_transactions")
+    assert uri5 == "s3://datamorph-test/archive/corrupted_transactions.parquet"
+
 
 def test_s3_test_connection_invalid_bucket():
     connector = S3Connector()
