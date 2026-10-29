@@ -32,7 +32,7 @@ export const Stepper: React.FC<StepperProps> = ({
           id="mobile-step-select"
           value={currentStep}
           onChange={(e) => onSelectStep(Number(e.target.value))}
-          className="max-w-[110px] sm:max-w-none truncate bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium rounded-[var(--radius-sm)] px-2 py-1 hairline-border cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--accent)] text-xs outline-none"
+          className="max-w-[96px] sm:max-w-none text-[11px] sm:text-xs truncate bg-[var(--bg-subtle)] text-[var(--text-primary)] font-medium rounded-[var(--radius-sm)] px-1.5 py-1 hairline-border cursor-pointer focus-visible:ring-2 focus-visible:ring-[var(--accent)] outline-none"
         >
           {steps.map((s) => (
             <option key={s.id} value={s.id} disabled={s.id > maxAllowedStep}>
