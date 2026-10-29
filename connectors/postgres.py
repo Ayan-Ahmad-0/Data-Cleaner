@@ -75,14 +75,38 @@ class PostgresConnector(BaseConnector):
 
     def _build_connection_string(self, cfg: PostgresConnectorConfig) -> str:
         """Construct a safe libpq connection string."""
+        host_val = cfg.host.strip()
+        port_val = cfg.port
+        user_val = cfg.username
+        pwd_val = cfg.password
+        db_val = cfg.database
+
+        # If user pasted a full postgresql:// URL into host
+        if host_val.startswith("postgres://") or host_val.startswith("postgresql://"):
+            try:
+                from urllib.parse import urlparse, unquote
+                parsed = urlparse(host_val)
+                if parsed.hostname:
+                    host_val = parsed.hostname
+                if parsed.port:
+                    port_val = parsed.port
+                if parsed.username:
+                    user_val = unquote(parsed.username)
+                if parsed.password:
+                    pwd_val = unquote(parsed.password)
+                if parsed.path and parsed.path.strip("/"):
+                    db_val = unquote(parsed.path.strip("/"))
+            except Exception:
+                pass
+
         # Escape single quotes and backslashes in password/user if necessary
-        pwd_escaped = cfg.password.replace("\\", "\\\\").replace("'", "\\'")
-        user_escaped = cfg.username.replace("\\", "\\\\").replace("'", "\\'")
-        db_escaped = cfg.database.replace("\\", "\\\\").replace("'", "\\'")
-        host_escaped = cfg.host.replace("\\", "\\\\").replace("'", "\\'")
+        pwd_escaped = pwd_val.replace("\\", "\\\\").replace("'", "\\'")
+        user_escaped = user_val.replace("\\", "\\\\").replace("'", "\\'")
+        db_escaped = db_val.replace("\\", "\\\\").replace("'", "\\'")
+        host_escaped = host_val.replace("\\", "\\\\").replace("'", "\\'")
 
         return (
-            f"host='{host_escaped}' port={cfg.port} dbname='{db_escaped}' "
+            f"host='{host_escaped}' port={port_val} dbname='{db_escaped}' "
             f"user='{user_escaped}' password='{pwd_escaped}' sslmode='{cfg.sslmode}'"
         )
 
