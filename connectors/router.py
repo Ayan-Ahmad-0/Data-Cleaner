@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 import logging
+import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import uuid
@@ -17,6 +18,19 @@ from explore.service import resolve_job_parquet_paths
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/connectors", tags=["Connectors"])
+
+
+def _redact_secrets(message: str, config: Optional[Dict[str, Any]] = None) -> str:
+    msg = str(message)
+    if config:
+        for secret_key in ("password", "secret_access_key", "secret"):
+            val = config.get(secret_key)
+            if val and len(str(val).strip()) > 1:
+                msg = msg.replace(str(val), "••••••••")
+    msg = re.sub(r"password=['\"][^'\"]*['\"]", "password='••••••••'", msg, flags=re.IGNORECASE)
+    msg = re.sub(r"password=[^\s,;'\"]+", "password=••••••••", msg, flags=re.IGNORECASE)
+    msg = re.sub(r"://([^:/]+):([^@]+)@", r"://\1:••••••••@", msg)
+    return msg
 
 
 class TestConnectorRequest(BaseModel):
