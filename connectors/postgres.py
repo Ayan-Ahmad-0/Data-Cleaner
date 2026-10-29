@@ -270,7 +270,7 @@ class PostgresConnector(BaseConnector):
                 pass
 
             if import_query:
-                clean_query = import_query.strip().rstrip(";").strip()
+                clean_query = re.sub(r"[;\s]+$", "", import_query.strip())
                 source_expr = f"({clean_query})"
             else:
                 source_expr = f"{alias}.{schema}.{table}"
