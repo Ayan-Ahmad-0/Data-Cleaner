@@ -56,18 +56,24 @@ class S3Connector(BaseConnector):
             display_name=self.display_name,
             description=self.description,
             category=self.category,
-            supported_formats=[ExportFormat.PARQUET.value, ExportFormat.CSV.value, ExportFormat.JSON.value],
+            supported_formats=[
+                ExportFormat.PARQUET.value,
+                ExportFormat.CSV.value,
+                ExportFormat.TSV.value,
+                ExportFormat.JSON.value,
+                ExportFormat.NDJSON.value,
+            ],
             supports_import=True,
             supports_export=True,
             config_fields=[
                 {"name": "bucket", "label": "Bucket Name", "type": "string", "required": True, "placeholder": "my-analytics-bucket"},
                 {"name": "prefix", "label": "Folder / Prefix", "type": "string", "required": False, "placeholder": "cleaned_data/2026"},
-                {"name": "filename", "label": "Destination Filename", "type": "string", "required": False, "placeholder": "cleaned.parquet"},
+                {"name": "filename", "label": "Destination Filename", "type": "string", "required": False, "placeholder": "transactions.csv"},
                 {"name": "region", "label": "Region", "type": "string", "required": False, "default": "us-east-1", "placeholder": "us-east-1 or auto"},
                 {"name": "endpoint_url", "label": "Custom Endpoint URL", "type": "string", "required": False, "placeholder": "https://<account>.r2.cloudflarestorage.com or http://localhost:9000"},
                 {"name": "access_key_id", "label": "Access Key ID", "type": "string", "required": False, "secret": False},
                 {"name": "secret_access_key", "label": "Secret Access Key", "type": "password", "required": False, "secret": True},
-                {"name": "export_format", "label": "Export Format", "type": "select", "options": ["parquet", "csv", "json"], "default": "parquet"},
+                {"name": "export_format", "label": "Export Format", "type": "select", "options": ["parquet", "csv", "tsv", "json", "ndjson"], "default": "csv"},
             ],
         )
 
