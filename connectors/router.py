@@ -103,9 +103,28 @@ def export_dataset_to_destination(
     temp_masked_pq: Optional[Path] = None
     export_source = source_path
 
+    # Retrieve job metadata to provide default original filename and detected format
+    options = dict(payload.options or {})
+    try:
+        orchestrator = get_orchestrator(storage=storage)
+        job_meta = orchestrator.jobs.get(job_id)
+        if job_meta and job_meta.filename and "job_filename" not in options:
+            options["job_filename"] = job_meta.filename
+        if job_meta and job_meta.detected_format and "detected_format" not in options:
+            options["detected_format"] = job_meta.detected_format
+    except Exception as e:
+        logger.debug("Could not read orchestrator metadata for job %s: %s", job_id, e)
+
+    if "job_filename" not in options:
+        raw_dir = storage.job_dir(job_id) / "raw"
+        if raw_dir.exists():
+            raw_files = [f for f in raw_dir.iterdir() if f.is_file()]
+            if raw_files:
+                options["job_filename"] = raw_files[0].name
+
     try:
         # Enforce GDPR/HIPAA PII masking on outbound destination export if requested
-        if payload.options and (payload.options.get("mask_pii") or payload.options.get("enforce_privacy")):
+        if options.get("mask_pii") or options.get("enforce_privacy"):
             from core.privacy.detector import PiiDetector
             from core.recipe_schema import Recipe, ColumnRule, MaskPiiConfig
             from core.compiler import RecipeCompiler
@@ -125,7 +144,7 @@ def export_dataset_to_destination(
         result = connector.export_dataset(
             source_parquet_path=export_source,
             config=payload.config,
-            options=payload.options,
+            options=options,
         )
         return result
     except ValueError as e:
