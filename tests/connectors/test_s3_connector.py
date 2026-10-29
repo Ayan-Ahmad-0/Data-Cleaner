@@ -123,6 +123,30 @@ def test_s3_export_success_mock(tmp_path: Path):
         mock_con.close.assert_called_once()
 
 
+def test_s3_export_default_name_no_cleaned_appended(tmp_path: Path):
+    connector = S3Connector()
+    source_pq = tmp_path / "cleaned.parquet"
+    source_pq.write_bytes(b"dummy content")
+
+    mock_con = MagicMock()
+    mock_con.execute.return_value.fetchone.return_value = [500]
+
+    with patch("duckdb.connect", return_value=mock_con):
+        res = connector.export_dataset(
+            source_parquet_path=source_pq,
+            config={
+                "bucket": "datamorph-test",
+                "export_format": "csv",
+            },
+            options={"job_filename": "corrupted_transactions.csv"},
+        )
+
+        assert res.success is True
+        assert res.destination_uri == "s3://datamorph-test/corrupted_transactions.csv"
+        assert "cleaned_cleaned" not in res.destination_uri
+        assert "_cleaned" not in res.destination_uri
+
+
 def test_s3_resolve_source_uri():
     connector = S3Connector()
 
