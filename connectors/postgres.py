@@ -91,8 +91,10 @@ class PostgresConnector(BaseConnector):
         start_time = time.perf_counter()
         try:
             cfg = PostgresConnectorConfig.model_validate(config)
-            self._sanitize_identifier(cfg.schema_name, "schema_name")
-            self._sanitize_identifier(cfg.table_name, "table_name")
+            if cfg.schema_name:
+                self._sanitize_identifier(cfg.schema_name, "schema_name")
+            if cfg.table_name:
+                self._sanitize_identifier(cfg.table_name, "table_name")
 
             con = duckdb.connect(":memory:")
             con.execute("INSTALL postgres; LOAD postgres;")
