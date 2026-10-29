@@ -157,7 +157,7 @@ class PostgresConnector(BaseConnector):
             alias = f"pg_test_{int(time.time())}"
             con.execute(f"ATTACH '{conn_str_sql}' AS {alias} (TYPE POSTGRES);")
             
-            # Discover existing tables in the schema
+            # Discover existing tables in the schema, falling back to all user schemas
             tables: List[str] = []
             try:
                 schema_clean = cfg.schema_name or "public"
@@ -165,7 +165,17 @@ class PostgresConnector(BaseConnector):
                     f"SELECT table_name FROM {alias}.information_schema.tables "
                     f"WHERE table_schema = '{schema_clean}' AND table_type = 'BASE TABLE' LIMIT 25;"
                 ).fetchall()
-                tables = [str(r[0]) for r in tables_res] if tables_res else []
+                if tables_res:
+                    tables = [str(r[0]) for r in tables_res]
+                else:
+                    # If specified schema has no tables, discover tables across all non-system schemas
+                    fallback_res = con.execute(
+                        f"SELECT table_schema, table_name FROM {alias}.information_schema.tables "
+                        f"WHERE table_schema NOT IN ('pg_catalog', 'information_schema', 'pg_toast', 'extensions', 'graphql', 'graphql_public', 'pgbouncer') "
+                        f"AND table_type = 'BASE TABLE' LIMIT 30;"
+                    ).fetchall()
+                    if fallback_res:
+                        tables = [f"{r[0]}.{r[1]}" for r in fallback_res]
             except Exception:
                 con.execute(f"SELECT 1 FROM {alias}.information_schema.tables LIMIT 1;")
 

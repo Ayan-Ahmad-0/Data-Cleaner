@@ -618,20 +618,30 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                       Discovered Tables (Click to select for import):
                     </span>
                     <div className="flex flex-wrap gap-1.5">
-                      {testResult.details.tables.map((tbl: string) => (
-                        <button
-                          key={tbl}
-                          type="button"
-                          onClick={() => setPgConfig((prev) => ({ ...prev, table_name: tbl, query: '' }))}
-                          className={`px-2.5 py-1 rounded text-xs font-mono transition border ${
-                            pgConfig.table_name === tbl
-                              ? 'bg-emerald-500 text-black font-semibold border-emerald-400'
-                              : 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40 hover:bg-emerald-500/30'
-                          }`}
-                        >
-                          {tbl}
-                        </button>
-                      ))}
+                      {testResult.details.tables.map((tbl: string) => {
+                        const isSelected = pgConfig.table_name === tbl || `${pgConfig.schema_name}.${pgConfig.table_name}` === tbl;
+                        return (
+                          <button
+                            key={tbl}
+                            type="button"
+                            onClick={() => {
+                              if (tbl.includes('.')) {
+                                const [s, t] = tbl.split('.');
+                                setPgConfig((prev) => ({ ...prev, schema_name: s, table_name: t, query: '' }));
+                              } else {
+                                setPgConfig((prev) => ({ ...prev, table_name: tbl, query: '' }));
+                              }
+                            }}
+                            className={`px-2.5 py-1 rounded text-xs font-mono transition border ${
+                              isSelected
+                                ? 'bg-emerald-500 text-black font-semibold border-emerald-400'
+                                : 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40 hover:bg-emerald-500/30'
+                            }`}
+                          >
+                            {tbl}
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 )}
