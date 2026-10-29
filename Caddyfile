@@ -1,4 +1,12 @@
 datamorph.duckdns.org {
-    reverse_proxy data-cleaner:8000
+    request_body {
+        max_size 12GB
+    }
+    reverse_proxy data-cleaner:8000 {
+        transport http {
+            read_timeout 3600s
+            write_timeout 3600s
+        }
+    }
 }
 

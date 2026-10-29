@@ -35,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({
 }) => {
   return (
     <header className="w-full bg-[var(--bg-surface)] hairline-b sticky top-0 z-20">
-      <div className="header-shell flex items-center justify-between gap-4">
+      <div className="header-shell flex items-center justify-between gap-2 sm:gap-4">
         {/* Left cluster: Brand & Mode Switcher */}
         <div className="flex items-center gap-3 sm:gap-4 min-w-0 shrink">
           <button

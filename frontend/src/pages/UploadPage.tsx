@@ -18,6 +18,10 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
   const [uploading, setUploading] = useState(false);
   const [showConnectorModal, setShowConnectorModal] = useState(false);
   const [uploadProgressPct, setUploadProgressPct] = useState<number>(0);
+  const [uploadedBytes, setUploadedBytes] = useState<number>(0);
+  const [totalBytes, setTotalBytes] = useState<number>(0);
+  const [uploadSpeed, setUploadSpeed] = useState<number>(0);
+  const [isServerProcessing, setIsServerProcessing] = useState<boolean>(false);
   const [error, setError] = useState<{ message: string; recovery: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -54,19 +58,39 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
 
     setError(null);
     setUploading(true);
-    setUploadProgressPct(15);
+    setUploadProgressPct(0);
+    setUploadedBytes(0);
+    setTotalBytes(file.size);
+    setUploadSpeed(0);
+    setIsServerProcessing(false);
+
+    let lastLoaded = 0;
+    let lastTime = Date.now();
 
     try {
-      // Simulate stepped progression for upload feedback
-      const progressTimer = setInterval(() => {
-        setUploadProgressPct((p) => (p < 85 ? p + 15 : p));
-      }, 200);
+      const job = await uploadDataset(file, privacyMode, undefined, undefined, (loaded, total) => {
+        const now = Date.now();
+        const elapsed = (now - lastTime) / 1000;
+        if (elapsed >= 0.4) {
+          const bytesDiff = loaded - lastLoaded;
+          setUploadSpeed(bytesDiff / elapsed);
+          lastLoaded = loaded;
+          lastTime = now;
+        }
 
-      const job = await uploadDataset(file, privacyMode);
-      clearInterval(progressTimer);
+        const pct = Math.min(100, Math.round((loaded / total) * 100));
+        setUploadProgressPct(pct);
+        setUploadedBytes(loaded);
+        setTotalBytes(total);
+
+        if (loaded >= total) {
+          setIsServerProcessing(true);
+        }
+      });
+
       setUploadProgressPct(100);
+      setIsServerProcessing(true);
 
-      // Smooth transition: give brief visual feedback at 100% before automatically navigating to Step 2
       setTimeout(() => {
         onUploadComplete({
           id: job.id,
@@ -74,13 +98,14 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
           size: formatBytes(file.size),
           rowCount: 'Profiling in progress...',
         });
-      }, 400);
+      }, 500);
     } catch (err: any) {
       setError({
         message: err.message || 'Failed to upload dataset.',
-        recovery: 'Check that the backend server is running and accessible at http://localhost:8000.',
+        recovery: 'Check your network connection and ensure the server is accessible.',
       });
       setUploading(false);
+      setIsServerProcessing(false);
     }
   };
 
@@ -142,7 +167,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         onDragLeave={handleDrag}
         onDragOver={handleDrag}
         onDrop={handleDrop}
-        className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-10 sm:p-14 text-center transition-all duration-200 border border-dashed ${
+        className={`dropzone-glow bg-[var(--bg-surface)] rounded-[var(--radius-lg)] p-5 sm:p-14 text-center transition-all duration-200 border border-dashed ${
           dragActive
             ? 'drag-active border-[var(--accent)] bg-[var(--accent-subtle)]'
             : 'border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
@@ -163,25 +188,49 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         />
 
         {uploading ? (
-          <div className="space-y-5 py-4">
+          <div className="space-y-5 py-4 max-w-md mx-auto">
             <div className="w-14 h-14 rounded-[var(--radius-lg)] bg-[var(--accent-subtle)] text-[var(--accent)] flex items-center justify-center mx-auto border border-[var(--accent-border)]">
               <UploadCloud className="w-7 h-7 animate-pulse" />
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 text-center">
               <span className="text-base sm:text-lg font-semibold text-[var(--text-primary)] block">
-                Uploading, detecting format, and staging dataset...
+                {isServerProcessing
+                  ? 'Staging & profiling dataset on server...'
+                  : 'Uploading dataset...'}
               </span>
-              <span className="text-sm text-[var(--text-muted)] font-mono block">
-                {uploadProgressPct}% uploaded
-              </span>
+              <p className="text-xs sm:text-sm text-[var(--text-muted)]">
+                {isServerProcessing ? (
+                  <span>
+                    Upload 100% complete. DuckDB is inspecting schema & profiling rows...
+                  </span>
+                ) : (
+                  <span>
+                    {formatBytes(uploadedBytes)} of {formatBytes(totalBytes || 0)}
+                    {uploadSpeed > 0 && ` • ${formatBytes(uploadSpeed)}/s`}
+                  </span>
+                )}
+              </p>
             </div>
 
-            <div className="w-64 mx-auto bg-[var(--bg-subtle)] h-1.5 rounded-full overflow-hidden border border-[var(--border-hairline)]">
+            <div className="w-full bg-[var(--bg-subtle)] h-2 rounded-full overflow-hidden border border-[var(--border-hairline)]">
               <div
-                className="bg-[var(--accent)] h-full transition-all duration-200 rounded-full"
-                style={{ width: `${uploadProgressPct}%` }}
+                className={`bg-[var(--accent)] h-full transition-all duration-150 rounded-full ${
+                  isServerProcessing ? 'animate-pulse' : ''
+                }`}
+                style={{ width: `${Math.max(3, uploadProgressPct)}%` }}
               />
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono px-1">
+              <span>{uploadProgressPct}%</span>
+              <span>
+                {isServerProcessing
+                  ? 'Analyzing...'
+                  : uploadSpeed > 0 && totalBytes > uploadedBytes
+                  ? `~${Math.ceil((totalBytes - uploadedBytes) / uploadSpeed)}s remaining`
+                  : 'Transferring...'}
+              </span>
             </div>
           </div>
         ) : (

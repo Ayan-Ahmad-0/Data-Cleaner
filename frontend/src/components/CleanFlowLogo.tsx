@@ -20,9 +20,9 @@ export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
   }[size];
 
   const textSizes = {
-    sm: 'text-xl sm:text-2xl',
-    md: 'text-2xl sm:text-[26px]',
-    lg: 'text-3xl sm:text-4xl',
+    sm: 'text-lg sm:text-2xl',
+    md: 'text-xl sm:text-[26px]',
+    lg: 'text-2xl sm:text-4xl',
   }[size];
 
   return (

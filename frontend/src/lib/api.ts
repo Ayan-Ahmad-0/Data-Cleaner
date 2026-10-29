@@ -61,29 +61,58 @@ export async function detectFormat(file: File): Promise<{
   return res.json();
 }
 
-export async function uploadDataset(
+export function uploadDataset(
   file: File,
   privacyMode: boolean,
   format?: string,
   options?: Record<string, any>,
+  onProgress?: (loaded: number, total: number) => void,
 ): Promise<JobMetadata> {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('privacy_mode', String(privacyMode));
-  if (format) formData.append('format', format);
-  if (options) formData.append('options', JSON.stringify(options));
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('privacy_mode', String(privacyMode));
+    if (format) formData.append('format', format);
+    if (options) formData.append('options', JSON.stringify(options));
 
-  const res = await fetch(`${API_BASE}/api/jobs/upload`, {
-    method: 'POST',
-    body: formData,
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/api/jobs/upload`);
+
+    if (onProgress && xhr.upload) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(e.loaded, e.total);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new Error('Invalid response received from server.'));
+        }
+      } else {
+        try {
+          const errData = JSON.parse(xhr.responseText);
+          reject(new Error(errData.detail || 'Failed to upload dataset.'));
+        } catch {
+          reject(new Error(`Upload failed with HTTP status ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Network connection failed or dropped during upload. Please check your network.'));
+    };
+
+    xhr.ontimeout = () => {
+      reject(new Error('Upload connection timed out.'));
+    };
+
+    xhr.send(formData);
   });
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'Failed to upload dataset.');
-  }
-
-  return res.json();
 }
 
 export async function getJobDetail(jobId: string): Promise<JobDetailResponse> {

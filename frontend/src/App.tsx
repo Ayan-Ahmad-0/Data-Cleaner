@@ -248,11 +248,11 @@ export function App() {
         rowCountFormatted={fileMeta.rowCountFormatted}
       />
 
-      <main className="flex-1 w-full flex flex-col">
-        {/* Centered Mode Switcher (Clean Data vs Convert Only vs Query Data vs Visualize Data) - visible when selecting mode or uploading */}
+      <main className="flex-1 w-full max-w-full overflow-x-hidden flex flex-col">
+        {/* Centered Mode Switcher (Clean Data vs Convert Only vs Query Data vs Visualize Data) - responsive with smooth horizontal touch scroll */}
         {currentStep === 1 && (
-          <div className="pt-4 sm:pt-5 pb-4 sm:pb-5 flex justify-center items-center shrink-0">
-            <div className="inline-flex items-center bg-[var(--bg-subtle)] p-1 rounded-[var(--radius-lg)] border border-[var(--border-hairline)] shadow-[var(--shadow-card)]">
+          <div className="pt-3 sm:pt-5 pb-2 sm:pb-5 w-full max-w-full px-2 sm:px-4 flex justify-start sm:justify-center items-center overflow-x-auto scrollbar-none touch-pan-x">
+            <div className="inline-flex items-center bg-[var(--bg-subtle)] p-1 rounded-[var(--radius-lg)] border border-[var(--border-hairline)] shadow-[var(--shadow-card)] shrink-0 mx-auto">
               {([
                 { key: 'clean' as const, label: 'Clean Data' },
                 { key: 'convert' as const, label: 'Convert Only' },
@@ -264,7 +264,7 @@ export function App() {
                   key={tab.key}
                   type="button"
                   onClick={() => setAppMode(tab.key)}
-                  className={`relative px-4 sm:px-5 py-2 text-sm font-medium rounded-[var(--radius-md)] transition-all duration-200 cursor-pointer select-none whitespace-nowrap ${
+                  className={`relative px-3 sm:px-5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium rounded-[var(--radius-md)] transition-all duration-200 cursor-pointer select-none whitespace-nowrap ${
                     appMode === tab.key
                       ? 'bg-[var(--bg-surface)] text-[var(--text-primary)] shadow-sm border-t-2 border-t-[var(--accent)] border-x border-b border-x-[var(--border-hairline)] border-b-[var(--border-hairline)]'
                       : 'text-[var(--text-muted)] hover:text-[var(--text-secondary)] hover:bg-[var(--bg-hover)] border-t-2 border-transparent'
