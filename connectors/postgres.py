@@ -128,17 +128,33 @@ class PostgresConnector(BaseConnector):
             alias = f"pg_test_{int(time.time())}"
             con.execute(f"ATTACH '{conn_str_sql}' AS {alias} (TYPE POSTGRES);")
             
-            # Run test query
-            con.execute(f"SELECT 1 FROM {alias}.information_schema.tables LIMIT 1;")
+            # Discover existing tables in the schema
+            tables: List[str] = []
+            try:
+                schema_clean = cfg.schema_name or "public"
+                tables_res = con.execute(
+                    f"SELECT table_name FROM {alias}.information_schema.tables "
+                    f"WHERE table_schema = '{schema_clean}' AND table_type = 'BASE TABLE' LIMIT 25;"
+                ).fetchall()
+                tables = [str(r[0]) for r in tables_res] if tables_res else []
+            except Exception:
+                con.execute(f"SELECT 1 FROM {alias}.information_schema.tables LIMIT 1;")
+
             con.execute(f"DETACH {alias};")
             con.close()
 
             elapsed = (time.perf_counter() - start_time) * 1000
+            msg = f"Successfully connected to PostgreSQL at {cfg.host}:{cfg.port}/{cfg.database}"
+            if tables:
+                msg += f" | Available tables ({len(tables)}): {', '.join(tables)}"
+            else:
+                msg += " | Note: No user tables found yet in schema."
+
             return ConnectionTestResult(
                 success=True,
-                message=f"Successfully connected to PostgreSQL at {cfg.host}:{cfg.port}/{cfg.database}",
+                message=msg,
                 latency_ms=round(elapsed, 2),
-                details={"host": cfg.host, "database": cfg.database, "schema": cfg.schema_name},
+                details={"host": cfg.host, "database": cfg.database, "schema": cfg.schema_name, "tables": tables},
             )
         except Exception as e:
             elapsed = (time.perf_counter() - start_time) * 1000
@@ -248,9 +264,14 @@ class PostgresConnector(BaseConnector):
 
         try:
             con.execute(f"ATTACH '{conn_str_sql}' AS {alias} (TYPE POSTGRES);")
+            try:
+                con.execute(f"USE {alias};")
+            except Exception:
+                pass
 
             if import_query:
-                source_expr = f"({import_query})"
+                clean_query = import_query.strip().rstrip(";").strip()
+                source_expr = f"({clean_query})"
             else:
                 source_expr = f"{alias}.{schema}.{table}"
 
