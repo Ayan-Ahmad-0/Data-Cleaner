@@ -481,8 +481,8 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                     Paste your Render or Supabase &quot;Connection URI&quot; to auto-fill all fields
                   </span>
                   {pgConfig.host.includes('.supabase.co') && !pgConfig.host.includes('.pooler.supabase.com') && (
-                    <div className="mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs leading-relaxed">
-                      ⚠️ <strong>Supabase IPv4 Notice:</strong> Direct host <code className="text-amber-200 font-mono">db.[ref].supabase.co</code> is IPv6-only. If your connection reports &quot;Network unreachable&quot;, copy the <strong>Session Pooler URI</strong> (<code className="text-amber-200 font-mono">aws-0-[region].pooler.supabase.com</code>) from Supabase Connect.
+                    <div className="mt-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-950 dark:text-amber-100 text-xs leading-relaxed shadow-xs">
+                      ⚠️ <strong className="text-amber-900 dark:text-amber-200">Supabase IPv4 Notice:</strong> Direct host <code className="bg-amber-100 dark:bg-amber-900/80 text-amber-950 dark:text-amber-100 px-1.5 py-0.5 rounded font-mono font-medium">db.[ref].supabase.co</code> is IPv6-only. If your connection reports &quot;Network unreachable&quot;, copy the <strong>Session Pooler URI</strong> (<code className="bg-amber-100 dark:bg-amber-900/80 text-amber-950 dark:text-amber-100 px-1.5 py-0.5 rounded font-mono font-medium">aws-0-[region].pooler.supabase.com</code>) from Supabase Connect.
                     </div>
                   )}
                 </div>
