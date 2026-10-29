@@ -31,21 +31,22 @@ class Converter:
 
     def __init__(
         self,
-        memory_limit: str = "4GB",
+        memory_limit: Optional[str] = None,
         threads: int = 4,
         temp_directory: Optional[str] = None,
     ) -> None:
-        self.memory_limit = memory_limit
+        self.memory_limit = memory_limit or os.getenv("DUCKDB_MEMORY_LIMIT", "600MB")
         self.threads = threads
-        self.temp_directory = temp_directory
+        self.temp_directory = temp_directory or os.getenv("DUCKDB_TEMP_DIR", "/tmp/duckdb_temp")
 
     def _get_connection(self) -> duckdb.DuckDBPyConnection:
         conn = duckdb.connect(":memory:")
-        conn.execute(f"SET memory_limit = '{self.memory_limit}';")
-        conn.execute(f"SET threads = {self.threads};")
+        conn.execute("SET preserve_insertion_order = false;")
         if self.temp_directory:
             os.makedirs(self.temp_directory, exist_ok=True)
             conn.execute(f"SET temp_directory = '{self.temp_directory}';")
+        conn.execute(f"SET memory_limit = '{self.memory_limit}';")
+        conn.execute(f"SET threads = {self.threads};")
         return conn
 
     def convert(
