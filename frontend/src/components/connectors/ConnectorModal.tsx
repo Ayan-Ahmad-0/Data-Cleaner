@@ -311,32 +311,55 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                   </span>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
-                      Destination Folder / Prefix
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. cleaned/2026"
-                      value={s3Config.key}
-                      onChange={(e) => setS3Config({ ...s3Config, key: e.target.value })}
-                      className="w-full bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg px-3.5 py-2 text-sm text-[var(--text-primary)] outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
-                      Export Format
-                    </label>
-                    <select
-                      value={s3Config.export_format}
-                      onChange={(e) => setS3Config({ ...s3Config, export_format: e.target.value })}
-                      className="w-full bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg px-3.5 py-2 text-sm text-[var(--text-primary)] outline-none"
-                    >
-                      <option value="parquet">Parquet (ZSTD Compressed)</option>
-                      <option value="csv">CSV (Comma-Separated)</option>
-                      <option value="json">JSON Array</option>
-                    </select>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
+                        Destination File Name / Path
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. data.csv or exports/data.csv"
+                        value={s3Config.key}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setS3Config({ ...s3Config, key: val, filename: val });
+                        }}
+                        className="w-full bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg px-3.5 py-2 text-sm text-[var(--text-primary)] outline-none font-mono"
+                      />
+                      <span className="text-[11px] text-[var(--text-muted)] mt-1 block">
+                        Specify custom filename or path (e.g. <span className="font-mono text-[var(--text-secondary)]">archive/data.csv</span>).
+                      </span>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
+                        Export Format
+                      </label>
+                      <select
+                        value={s3Config.export_format}
+                        onChange={(e) => handleFormatChange(e.target.value)}
+                        className="w-full bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg px-3.5 py-2 text-sm text-[var(--text-primary)] outline-none cursor-pointer"
+                      >
+                        <option value="csv">
+                          CSV (Comma-Separated){normalizedDefaultFormat === 'csv' ? ' — Uploaded format' : ''}
+                        </option>
+                        <option value="parquet">
+                          Parquet (ZSTD Compressed){normalizedDefaultFormat === 'parquet' ? ' — Uploaded format' : ''}
+                        </option>
+                        <option value="tsv">
+                          TSV (Tab-Separated){normalizedDefaultFormat === 'tsv' ? ' — Uploaded format' : ''}
+                        </option>
+                        <option value="json">
+                          JSON Array (.json){normalizedDefaultFormat === 'json' ? ' — Uploaded format' : ''}
+                        </option>
+                        <option value="ndjson">
+                          NDJSON (Newline JSON){normalizedDefaultFormat === 'ndjson' ? ' — Uploaded format' : ''}
+                        </option>
+                      </select>
+                      <span className="text-[11px] text-[var(--text-muted)] mt-1 block">
+                        Defaults to original uploaded format ({normalizedDefaultFormat.toUpperCase()}).
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
