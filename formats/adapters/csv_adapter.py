@@ -125,7 +125,14 @@ class CsvAdapter(FormatAdapter):
 
         sql_in = str(path.resolve()).replace("\\", "/")
         sql_out = str(out_path).replace("\\", "/")
+        import os
         conn = duckdb.connect(":memory:")
+        conn.execute("SET preserve_insertion_order = false;")
+        temp_dir = os.getenv("DUCKDB_TEMP_DIR", "/tmp/duckdb_temp")
+        os.makedirs(temp_dir, exist_ok=True)
+        conn.execute(f"SET temp_directory = '{temp_dir}';")
+        mem_limit = os.getenv("DUCKDB_MEMORY_LIMIT", "600MB")
+        conn.execute(f"SET memory_limit = '{mem_limit}';")
 
         try:
             read_sql = self._build_read_sql(sql_in, options, all_varchar=True)
