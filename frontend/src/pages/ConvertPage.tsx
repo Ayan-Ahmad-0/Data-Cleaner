@@ -89,11 +89,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
     setError(null);
     setConvertResult(null);
     setUploading(true);
-    setUploadProgressPct(20);
-
-    const uploadTimer = setInterval(() => {
-      setUploadProgressPct((p) => (p < 85 ? p + 20 : p));
-    }, 200);
+    setUploadProgressPct(35);
 
     try {
       const det = await detectFormat(file);
@@ -109,21 +105,19 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
         setSelectedTable(det.tables[0]);
       }
 
+      setUploadProgressPct(70);
       // Load preview
       await fetchPreview(file, det.format, {
         sheet: det.sheets?.[0],
         table: det.tables?.[0],
       });
-      clearInterval(uploadTimer);
       setUploadProgressPct(100);
     } catch (err: any) {
-      clearInterval(uploadTimer);
       setError({
         message: err.message || 'Format detection failed',
         recovery: 'You can choose the format manually below.',
       });
     } finally {
-      clearInterval(uploadTimer);
       setUploading(false);
     }
   };
@@ -141,21 +135,15 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
   const handleExecuteConvert = async () => {
     if (!selectedFile) return;
     setConverting(true);
-    setConvertProgressPct(15);
+    setConvertProgressPct(0);
+    setUploadedBytes(0);
+    setTotalBytes(selectedFile.size);
+    setIsProcessing(false);
     setError(null);
 
     const srcOpts: Record<string, any> = {};
     if (selectedSheet) srcOpts.sheet = selectedSheet;
     if (selectedTable) srcOpts.table = selectedTable;
-
-    const progressTimer = setInterval(() => {
-      setConvertProgressPct((prev) => {
-        if (prev < 40) return prev + 15;
-        if (prev < 75) return prev + 8;
-        if (prev < 92) return prev + 3;
-        return prev;
-      });
-    }, 250);
 
     try {
       const res = await executeConvertOnly(
@@ -163,22 +151,32 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
         targetFormat,
         overrideFormat || detectedFormat,
         Object.keys(srcOpts).length > 0 ? srcOpts : undefined,
+        undefined,
+        (loaded, total) => {
+          const actualTotal = total || selectedFile.size;
+          setUploadedBytes(loaded);
+          setTotalBytes(actualTotal);
+          const pct = Math.min(100, Math.round((loaded / actualTotal) * 100));
+          setConvertProgressPct(pct);
+          if (loaded >= actualTotal) {
+            setIsProcessing(true);
+          }
+        },
       );
-      clearInterval(progressTimer);
       setConvertProgressPct(100);
+      setIsProcessing(false);
       setConvertResult(res);
     } catch (err: any) {
-      clearInterval(progressTimer);
       const isNetworkErr = err?.message?.toLowerCase().includes('failed to fetch') || err?.name === 'TypeError';
       setError({
         message: isNetworkErr ? 'Server connection error (Failed to fetch)' : (err.message || 'Conversion failed'),
         recovery: isNetworkErr
-          ? 'Check that the backend server is running and reachable on http://127.0.0.1:8000.'
+          ? 'Check your network connection and ensure the server is accessible.'
           : 'Verify input dataset validity or pick another target format like Parquet or CSV.',
       });
     } finally {
-      clearInterval(progressTimer);
       setConverting(false);
+      setIsProcessing(false);
     }
   };
 
