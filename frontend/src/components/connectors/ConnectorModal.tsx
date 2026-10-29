@@ -144,6 +144,28 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
     });
   };
 
+  // Auto-parse full postgresql:// URL if pasted into host input
+  const handlePgHostChange = (val: string) => {
+    const trimmed = val.trim();
+    if (trimmed.startsWith('postgres://') || trimmed.startsWith('postgresql://')) {
+      try {
+        const url = new URL(trimmed.replace(/^postgres(ql)?:\/\//, 'http://'));
+        setPgConfig((prev) => ({
+          ...prev,
+          host: url.hostname || prev.host,
+          port: url.port ? Number(url.port) : 5432,
+          database: url.pathname ? decodeURIComponent(url.pathname.replace(/^\//, '')) : prev.database,
+          username: url.username ? decodeURIComponent(url.username) : prev.username,
+          password: url.password ? decodeURIComponent(url.password) : prev.password,
+        }));
+        return;
+      } catch {
+        // Fallback to setting host directly
+      }
+    }
+    setPgConfig((prev) => ({ ...prev, host: val }));
+  };
+
   if (!isOpen) return null;
 
   const currentConfig = activeConnector === 's3' ? s3Config : pgConfig;
