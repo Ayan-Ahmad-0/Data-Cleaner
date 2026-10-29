@@ -216,7 +216,14 @@ class JobOrchestrator:
             clean_csv = self.storage.clean_csv_path(job_id)
             clean_pq_sql = str(clean_pq).replace("\\", "/")
             clean_csv_sql = str(clean_csv).replace("\\", "/")
+            import os
             conn = duckdb.connect(":memory:")
+            conn.execute("SET preserve_insertion_order = false;")
+            temp_dir = os.getenv("DUCKDB_TEMP_DIR", "/tmp/duckdb_temp")
+            os.makedirs(temp_dir, exist_ok=True)
+            conn.execute(f"SET temp_directory = '{temp_dir}';")
+            mem_limit = os.getenv("DUCKDB_MEMORY_LIMIT", "600MB")
+            conn.execute(f"SET memory_limit = '{mem_limit}';")
             conn.execute(f"COPY (SELECT * FROM read_parquet('{clean_pq_sql}')) TO '{clean_csv_sql}' (HEADER, DELIMITER ',');")
             conn.close()
 
