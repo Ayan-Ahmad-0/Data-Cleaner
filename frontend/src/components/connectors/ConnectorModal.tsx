@@ -475,8 +475,13 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                     className="w-full bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg px-3.5 py-2 text-sm text-[var(--text-primary)] outline-none font-mono"
                   />
                   <span className="text-[11px] text-[var(--text-muted)] mt-1 block">
-                    Paste your Render &quot;External Database URL&quot; to auto-fill all fields
+                    Paste your Render or Supabase &quot;Connection URI&quot; to auto-fill all fields
                   </span>
+                  {pgConfig.host.includes('.supabase.co') && !pgConfig.host.includes('.pooler.supabase.com') && (
+                    <div className="mt-2 p-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs leading-relaxed">
+                      ⚠️ <strong>Supabase IPv4 Notice:</strong> Direct host <code className="text-amber-200 font-mono">db.[ref].supabase.co</code> is IPv6-only. If your connection reports &quot;Network unreachable&quot;, copy the <strong>Session Pooler URI</strong> (<code className="text-amber-200 font-mono">aws-0-[region].pooler.supabase.com</code>) from Supabase Connect.
+                    </div>
+                  )}
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
