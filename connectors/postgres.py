@@ -8,7 +8,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 import duckdb
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from connectors.base import (
     BaseConnector,
@@ -34,6 +34,18 @@ class PostgresConnectorConfig(BaseModel):
     query: Optional[str] = Field(None, description="Optional custom SQL SELECT query for import")
     sslmode: str = Field("prefer", description="SSL connection mode (disable, allow, prefer, require)")
     mode: ExportMode = Field(ExportMode.OVERWRITE, description="Export mode: overwrite or append")
+
+    @field_validator("mode", mode="before")
+    @classmethod
+    def validate_mode(cls, v: Any) -> ExportMode:
+        if isinstance(v, ExportMode):
+            return v
+        if isinstance(v, str):
+            v_clean = v.strip().lower()
+            if v_clean == "append":
+                return ExportMode.APPEND
+            return ExportMode.OVERWRITE
+        return ExportMode.OVERWRITE
 
 
 class PostgresConnector(BaseConnector):

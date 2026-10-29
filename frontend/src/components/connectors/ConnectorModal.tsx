@@ -177,7 +177,10 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
     setExecutionError(null);
 
     try {
-      const res = await testConnector(activeConnector, { ...currentConfig, mode });
+      const configToSend = activeConnector === 'postgres'
+        ? { ...pgConfig, mode: 'overwrite' }
+        : currentConfig;
+      const res = await testConnector(activeConnector, configToSend);
       setTestResult(res);
     } catch (err: any) {
       setTestResult({
