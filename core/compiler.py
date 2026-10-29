@@ -39,13 +39,13 @@ class RecipeCompiler:
 
     def __init__(
         self,
-        memory_limit: str = "4GB",
+        memory_limit: Optional[str] = None,
         threads: int = 4,
         temp_directory: Optional[str] = None,
     ) -> None:
-        self.memory_limit = memory_limit
+        self.memory_limit = memory_limit or os.getenv("DUCKDB_MEMORY_LIMIT", "600MB")
         self.threads = threads
-        self.temp_directory = temp_directory
+        self.temp_directory = temp_directory or os.getenv("DUCKDB_TEMP_DIR", "/tmp/duckdb_temp")
 
     def compile_to_sql(
         self,
@@ -194,6 +194,7 @@ class RecipeCompiler:
         out_sql_path = str(out_path).replace("\\", "/")
 
         conn = duckdb.connect(":memory:")
+        conn.execute("SET preserve_insertion_order = false;")
         conn.execute(f"SET memory_limit = '{self.memory_limit}';")
         conn.execute(f"SET threads = {self.threads};")
         if self.temp_directory:
