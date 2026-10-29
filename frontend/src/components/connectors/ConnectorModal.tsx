@@ -484,8 +484,23 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                     Paste your Render or Supabase &quot;Connection URI&quot; to auto-fill all fields
                   </span>
                   {pgConfig.host.includes('.supabase.co') && !pgConfig.host.includes('.pooler.supabase.com') && (
-                    <div className="mt-2.5 p-3 rounded-xl bg-amber-50 dark:bg-amber-950/60 border border-amber-300 dark:border-amber-700 text-amber-950 dark:text-amber-100 text-xs leading-relaxed shadow-xs">
-                      ⚠️ <strong className="text-amber-900 dark:text-amber-200">Supabase IPv4 Notice:</strong> Direct host <code className="bg-amber-100 dark:bg-amber-900/80 text-amber-950 dark:text-amber-100 px-1.5 py-0.5 rounded font-mono font-medium">db.[ref].supabase.co</code> is IPv6-only. If your connection reports &quot;Network unreachable&quot;, copy the <strong>Session Pooler URI</strong> (<code className="bg-amber-100 dark:bg-amber-900/80 text-amber-950 dark:text-amber-100 px-1.5 py-0.5 rounded font-mono font-medium">aws-0-[region].pooler.supabase.com</code>) from Supabase Connect.
+                    <div className="mt-2.5 rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-subtle)] p-3 text-left">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <Info className="w-3.5 h-3.5 text-[var(--accent)] shrink-0" />
+                        <span className="text-xs font-semibold text-[var(--text-primary)]">
+                          Supabase Connection Advisory
+                        </span>
+                        <span className="text-[10px] uppercase font-mono px-1.5 py-0.5 rounded bg-[var(--bg-app)] border border-[var(--border-hairline)] text-[var(--text-muted)] ml-auto">
+                          IPv6 Host
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed mb-2">
+                        Direct host <span className="font-mono text-[var(--text-primary)] font-medium">db.[ref].supabase.co</span> requires IPv6. If connection fails, switch to the IPv4 Session Pooler from Supabase Connect:
+                      </p>
+                      <div className="flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg bg-[var(--bg-app)] border border-[var(--border-hairline)] font-mono text-[11px] text-[var(--text-primary)]">
+                        <span className="truncate">aws-0-[region].pooler.supabase.com</span>
+                        <span className="text-[10px] text-[var(--text-muted)] shrink-0 font-sans font-medium">Port 5432 / 6543</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -594,35 +609,48 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
             </div>
           )}
 
-          {/* Test Connection Result Alert */}
+          {/* Test Connection Result Card */}
           {testResult && (
-            <div
-              className={`p-4 rounded-xl border flex items-start gap-3 text-xs leading-relaxed text-left shadow-xs ${
-                testResult.success
-                  ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100'
-                  : 'bg-red-50 dark:bg-red-950/70 border-red-300 dark:border-red-700 text-red-950 dark:text-red-100'
-              }`}
-            >
-              {testResult.success ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
-              ) : (
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
-              )}
-              <div className="space-y-1.5 flex-1">
-                <span className="font-bold block text-sm text-emerald-950 dark:text-emerald-100">
-                  {testResult.success ? 'Connection Validated' : 'Connection Test Failed'}
-                  {testResult.latency_ms && ` (${testResult.latency_ms} ms)`}
-                </span>
-                <span className="block text-emerald-900 dark:text-emerald-200 font-medium">
-                  {testResult.message}
-                </span>
+            <div className="rounded-xl border border-[var(--border-hairline)] bg-[var(--bg-surface)] overflow-hidden text-left shadow-xs">
+              {/* Header Status Bar */}
+              <div className="px-4 py-2.5 bg-[var(--bg-subtle)] border-b border-[var(--border-hairline)] flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="relative flex h-2 w-2">
+                    {testResult.success ? (
+                      <>
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+                      </>
+                    ) : (
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-[#FF4B3E]" />
+                    )}
+                  </span>
+                  <span className="text-xs font-semibold text-[var(--text-primary)]">
+                    {testResult.success ? 'PostgreSQL Connection Validated' : 'Connection Test Failed'}
+                  </span>
+                </div>
+                {testResult.latency_ms && (
+                  <span className="font-mono text-[11px] px-2 py-0.5 rounded bg-[var(--bg-app)] border border-[var(--border-hairline)] text-[var(--text-muted)]">
+                    {testResult.latency_ms} ms
+                  </span>
+                )}
+              </div>
+
+              {/* Status Details */}
+              <div className="p-3.5 space-y-3">
+                <div className="text-xs font-mono text-[var(--text-secondary)] leading-relaxed break-all bg-[var(--bg-app)] px-3 py-2 rounded-lg border border-[var(--border-hairline)]">
+                  {testResult.message.split(' | ')[0]}
+                </div>
 
                 {testResult.success && testResult.details?.tables && Array.isArray(testResult.details.tables) && testResult.details.tables.length > 0 && (
-                  <div className="mt-3 pt-2.5 border-t border-emerald-200 dark:border-emerald-700/60">
-                    <span className="font-bold text-emerald-950 dark:text-emerald-100 block mb-2 text-xs">
-                      Discovered Tables (Click to select for import):
-                    </span>
-                    <div className="flex flex-wrap gap-2">
+                  <div className="space-y-2 pt-1 border-t border-[var(--border-hairline)]">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold uppercase tracking-wider text-[11px] text-[var(--text-muted)]">
+                        Available Tables ({testResult.details.tables.length})
+                      </span>
+                      <span className="text-[11px] text-[var(--text-muted)]">Click table to stage for import</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
                       {testResult.details.tables.map((tbl: string) => {
                         const isSelected = pgConfig.table_name === tbl || `${pgConfig.schema_name}.${pgConfig.table_name}` === tbl;
                         return (
@@ -637,13 +665,15 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                                 setPgConfig((prev) => ({ ...prev, table_name: tbl, query: '' }));
                               }
                             }}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-mono transition border font-semibold ${
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-mono transition border ${
                               isSelected
-                                ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
-                                : 'bg-white dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 border-emerald-300 dark:border-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800/80 shadow-xs'
+                                ? 'bg-[var(--text-primary)] text-[var(--bg-surface)] border-[var(--text-primary)] font-semibold shadow-xs'
+                                : 'bg-[var(--bg-subtle)] hover:bg-[var(--bg-hover)] text-[var(--text-primary)] border-[var(--border-hairline)] hover:border-[var(--border-strong)]'
                             }`}
                           >
-                            {tbl}
+                            <Table className={`w-3.5 h-3.5 ${isSelected ? 'text-[var(--accent)]' : 'text-[var(--text-muted)]'}`} />
+                            <span>{tbl}</span>
+                            {isSelected && <Check className="w-3 h-3 text-emerald-400 ml-0.5" />}
                           </button>
                         );
                       })}
