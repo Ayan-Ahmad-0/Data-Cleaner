@@ -88,6 +88,62 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
   const [executionError, setExecutionError] = useState<string | null>(null);
   const [exportResult, setExportResult] = useState<ConnectorSyncResult | null>(null);
 
+  // Synchronize destination filename and default format when export modal opens
+  React.useEffect(() => {
+    if (isOpen && mode === 'export') {
+      const initialFormat = normalizedDefaultFormat;
+      let initialName = defaultFilename ? defaultFilename.trim() : `dataset.${initialFormat}`;
+
+      // Update extension to match initialFormat if it has a known data extension
+      const lastDot = initialName.lastIndexOf('.');
+      const lastSlash = Math.max(initialName.lastIndexOf('/'), initialName.lastIndexOf('\\'));
+      if (lastDot > lastSlash && lastDot !== -1) {
+        const ext = initialName.substring(lastDot + 1).toLowerCase();
+        const known = ['parquet', 'csv', 'tsv', 'json', 'ndjson', 'jsonl', 'txt', 'xlsx', 'xls'];
+        if (known.includes(ext) && ext !== initialFormat) {
+          initialName = `${initialName.substring(0, lastDot)}.${initialFormat}`;
+        }
+      } else {
+        initialName = `${initialName}.${initialFormat}`;
+      }
+
+      setS3Config((prev) => ({
+        ...prev,
+        export_format: initialFormat,
+        key: initialName,
+        filename: initialName,
+      }));
+      setTestResult(null);
+      setExecutionError(null);
+      setExportResult(null);
+    }
+  }, [isOpen, mode, defaultFilename, normalizedDefaultFormat]);
+
+  // Handle format change and update file extension dynamically
+  const handleFormatChange = (newFormat: string) => {
+    setS3Config((prev) => {
+      let updatedKey = prev.key;
+      if (updatedKey) {
+        const lastDot = updatedKey.lastIndexOf('.');
+        const lastSlash = Math.max(updatedKey.lastIndexOf('/'), updatedKey.lastIndexOf('\\'));
+        if (lastDot > lastSlash && lastDot !== -1) {
+          updatedKey = `${updatedKey.substring(0, lastDot)}.${newFormat}`;
+        } else {
+          updatedKey = `${updatedKey}.${newFormat}`;
+        }
+      } else {
+        const base = defaultFilename ? defaultFilename.replace(/\.[^/.]+$/, '') : 'dataset';
+        updatedKey = `${base}.${newFormat}`;
+      }
+      return {
+        ...prev,
+        export_format: newFormat,
+        key: updatedKey,
+        filename: updatedKey,
+      };
+    });
+  };
+
   if (!isOpen) return null;
 
   const currentConfig = activeConnector === 's3' ? s3Config : pgConfig;
@@ -99,7 +155,7 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
     setExecutionError(null);
 
     try {
-      const res = await testConnector(activeConnector, currentConfig);
+      const res = await testConnector(activeConnector, { ...currentConfig, mode });
       setTestResult(res);
     } catch (err: any) {
       setTestResult({
