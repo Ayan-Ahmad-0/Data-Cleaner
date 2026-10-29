@@ -286,11 +286,14 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="e.g. https://<id>.r2.cloudflarestorage.com"
+                    placeholder="Leave blank for AWS S3"
                     value={s3Config.endpoint_url}
                     onChange={(e) => setS3Config({ ...s3Config, endpoint_url: e.target.value })}
                     className="w-full bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg px-3.5 py-2 text-sm text-[var(--text-primary)] outline-none"
                   />
+                  <span className="text-[11px] text-[var(--text-muted)] mt-1 block">
+                    Leave blank for AWS S3. Only for MinIO/R2.
+                  </span>
                 </div>
               </div>
 
