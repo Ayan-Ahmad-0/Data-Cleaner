@@ -26,7 +26,9 @@ class ExportFormat(str, Enum):
     """File format for cloud storage exports."""
     PARQUET = "parquet"
     CSV = "csv"
+    TSV = "tsv"
     JSON = "json"
+    NDJSON = "ndjson"
 
 
 class ConnectorMetadata(BaseModel):
