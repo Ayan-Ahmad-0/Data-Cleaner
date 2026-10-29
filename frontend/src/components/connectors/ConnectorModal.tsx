@@ -24,6 +24,8 @@ export interface ConnectorModalProps {
   mode: 'import' | 'export';
   jobId?: string; // required if mode === 'export'
   privacyMode?: boolean; // passed for import
+  defaultFilename?: string; // original uploaded file name, e.g. "corrupted_transactions.csv"
+  defaultFormat?: string;   // original detected format, e.g. "csv"
   onImportSuccess?: (jobData: { id: string; name: string; size: string; rowCount: string }) => void;
 }
 
@@ -33,20 +35,36 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
   mode,
   jobId,
   privacyMode = false,
+  defaultFilename,
+  defaultFormat,
   onImportSuccess,
 }) => {
   const [activeConnector, setActiveConnector] = useState<'s3' | 'postgres'>('s3');
+
+  // Normalize default format (matches uploaded dataset format)
+  const normalizedDefaultFormat = React.useMemo(() => {
+    if (!defaultFormat) return 'csv';
+    const fmt = defaultFormat.toLowerCase().trim();
+    if (fmt === 'parquet') return 'parquet';
+    if (fmt === 'csv') return 'csv';
+    if (fmt === 'tsv' || fmt === 'tab') return 'tsv';
+    if (fmt === 'json') return 'json';
+    if (fmt === 'ndjson' || fmt === 'jsonl') return 'ndjson';
+    return 'csv';
+  }, [defaultFormat]);
 
   // S3 form state
   const [s3Config, setS3Config] = useState({
     bucket: '',
     key: '',
+    filename: '',
+    prefix: '',
     source_uri: '',
     region: 'us-east-1',
     endpoint_url: '',
     access_key_id: '',
     secret_access_key: '',
-    export_format: 'parquet',
+    export_format: 'csv',
   });
 
   // Postgres form state
