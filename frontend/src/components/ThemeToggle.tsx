@@ -7,8 +7,8 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === 'undefined') return 'light';
     const saved = localStorage.getItem('datamorph-theme') || localStorage.getItem('cleanflow-theme');
-    if (saved === 'light' || saved === 'dark') return saved;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    if (saved === 'dark') return 'dark';
+    return 'light'; // Always default to light theme
   });
 
   useEffect(() => {
@@ -21,19 +21,6 @@ export const ThemeToggle: React.FC<{ className?: string }> = ({ className = '' }
     }
     localStorage.setItem('datamorph-theme', theme);
   }, [theme]);
-
-  // Listen to system theme changes if user has not explicitly chosen
-  useEffect(() => {
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleChange = (e: MediaQueryListEvent) => {
-      const saved = localStorage.getItem('datamorph-theme') || localStorage.getItem('cleanflow-theme');
-      if (!saved) {
-        setTheme(e.matches ? 'dark' : 'light');
-      }
-    };
-    mediaQuery.addEventListener('change', handleChange);
-    return () => mediaQuery.removeEventListener('change', handleChange);
-  }, []);
 
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'));
