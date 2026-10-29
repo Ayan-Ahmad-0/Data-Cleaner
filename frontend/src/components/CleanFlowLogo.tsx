@@ -35,13 +35,13 @@ export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
       />
 
       {!iconOnly && (
-        <div className="flex items-center gap-2.5 sm:gap-3.5 leading-none">
+        <div className="flex flex-col sm:flex-row sm:items-baseline sm:gap-3.5 leading-tight sm:leading-none min-w-0">
           <div className={`font-bold tracking-tight font-sans flex items-baseline ${textSizes}`}>
             <span className="text-[var(--text-primary)]">Data</span>
             <span className="text-[var(--accent)]">morph</span>
           </div>
           {showTagline && (
-            <span className="hidden md:inline-flex items-center text-xs lg:text-sm font-normal text-[var(--text-muted)] tracking-normal pl-2.5 sm:pl-3.5 hairline-l whitespace-nowrap">
+            <span className="inline-flex items-center text-[10px] sm:text-xs lg:text-sm font-normal text-[var(--text-muted)] tracking-tight sm:tracking-normal sm:pl-3.5 sm:hairline-l whitespace-nowrap mt-0.5 sm:mt-0">
               Transform &bull; Clean &bull; Prepare &bull; Visualize
             </span>
           )}
