@@ -84,10 +84,11 @@ def test_connector_connection(payload: TestConnectorRequest) -> ConnectionTestRe
     try:
         return connector.test_connection(payload.config)
     except Exception as e:
-        logger.exception("Connector test failed: %s", e)
+        safe_msg = _redact_secrets(str(e), payload.config)
+        logger.exception("Connector test failed: %s", safe_msg)
         return ConnectionTestResult(
             success=False,
-            message=f"Connection test failed: {str(e)}",
+            message=f"Connection test failed: {safe_msg}",
         )
 
 
@@ -164,8 +165,9 @@ def export_dataset_to_destination(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.exception("Export to %s failed for job %s: %s", payload.connector_type, job_id, e)
-        raise HTTPException(status_code=500, detail=f"Failed to export dataset: {str(e)}")
+        safe_msg = _redact_secrets(str(e), payload.config)
+        logger.exception("Export to %s failed for job %s: %s", payload.connector_type, job_id, safe_msg)
+        raise HTTPException(status_code=500, detail=f"Failed to export dataset: {safe_msg}")
     finally:
         if temp_masked_pq and temp_masked_pq.exists():
             try:
