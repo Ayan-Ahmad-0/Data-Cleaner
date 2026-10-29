@@ -455,11 +455,14 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                   </label>
                   <input
                     type="text"
-                    placeholder="localhost or db.xyz.supabase.co"
+                    placeholder="e.g. paste postgresql://... or enter hostname"
                     value={pgConfig.host}
-                    onChange={(e) => setPgConfig({ ...pgConfig, host: e.target.value })}
+                    onChange={(e) => handlePgHostChange(e.target.value)}
                     className="w-full bg-[var(--bg-app)] border border-[var(--border-hairline)] focus:border-[#FF4B3E] rounded-lg px-3.5 py-2 text-sm text-[var(--text-primary)] outline-none font-mono"
                   />
+                  <span className="text-[11px] text-[var(--text-muted)] mt-1 block">
+                    Paste your Render &quot;External Database URL&quot; to auto-fill all fields
+                  </span>
                 </div>
                 <div>
                   <label className="block text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-1.5">
