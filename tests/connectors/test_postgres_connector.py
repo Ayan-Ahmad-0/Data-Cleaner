@@ -171,6 +171,33 @@ def test_postgres_import_custom_query_mock(tmp_path: Path):
         mock_con.close.assert_called_once()
 
 
+def test_postgres_import_custom_query_trailing_semicolon(tmp_path: Path):
+    connector = PostgresConnector()
+    target_pq = tmp_path / "imported_query_semi.parquet"
+
+    mock_con = MagicMock()
+    mock_con.execute.return_value.fetchone.return_value = [50]
+
+    with patch("duckdb.connect", return_value=mock_con):
+        res = connector.import_dataset(
+            config={
+                "host": "localhost",
+                "database": "sales_db",
+                "username": "postgres",
+                "password": "secret",
+                "query": "SELECT * FROM orders WHERE active = true; ;  ",
+            },
+            target_parquet_path=target_pq,
+        )
+
+        assert res.success is True
+        # Check that the execute call with COPY stripped the semicolon
+        executed_sqls = [call[0][0] for call in mock_con.execute.call_args_list if call[0]]
+        copy_call = next(sql for sql in executed_sqls if "COPY" in sql)
+        assert ";)" not in copy_call
+        assert "(SELECT * FROM orders WHERE active = true)" in copy_call
+
+
 def test_postgres_import_missing_table_and_query_raises(tmp_path: Path):
     connector = PostgresConnector()
     target_pq = tmp_path / "imported.parquet"
