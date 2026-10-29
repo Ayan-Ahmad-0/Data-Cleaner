@@ -275,8 +275,8 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
             </div>
           ) : (
             <div className="space-y-5">
-              <div className="w-14 h-14 rounded-full bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto">
-                <FileUp className="w-7 h-7" />
+              <div className="w-16 h-16 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] shadow-sm flex items-center justify-center mx-auto">
+                <FileUp className="w-8 h-8 text-[var(--accent)]" />
               </div>
 
               <div className="space-y-1.5">

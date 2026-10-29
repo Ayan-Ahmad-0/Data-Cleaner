@@ -236,8 +236,8 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
         ) : (
           <div className="space-y-6">
             {/* Upload icon with subtle background */}
-            <div className="w-16 h-16 rounded-[var(--radius-xl)] bg-[var(--bg-subtle)] text-[var(--text-secondary)] flex items-center justify-center mx-auto border border-[var(--border-hairline)] shadow-[var(--shadow-card)]">
-              <FileUp className="w-7 h-7" />
+            <div className="w-16 h-16 rounded-2xl bg-[var(--bg-subtle)] border border-[var(--border-hairline)] shadow-sm flex items-center justify-center mx-auto">
+              <FileUp className="w-8 h-8 text-[var(--accent)]" />
             </div>
 
             <div className="space-y-1.5">
