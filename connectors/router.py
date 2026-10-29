@@ -241,6 +241,7 @@ def import_dataset_from_connector(
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         orch.storage.cleanup_job(job.id)
-        logger.exception("Connector import failed for %s: %s", payload.connector_type, e)
-        raise HTTPException(status_code=500, detail=f"Failed to import dataset: {str(e)}")
+        safe_msg = _redact_secrets(str(e), payload.config)
+        logger.exception("Connector import failed for %s: %s", payload.connector_type, safe_msg)
+        raise HTTPException(status_code=500, detail=f"Failed to import dataset: {safe_msg}")
 
