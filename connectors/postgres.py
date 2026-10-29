@@ -175,10 +175,11 @@ class PostgresConnector(BaseConnector):
             )
         except Exception as e:
             elapsed = (time.perf_counter() - start_time) * 1000
-            logger.warning("Postgres connection test failed: %s", e)
+            safe_err = self._sanitize_error_message(str(e), password=config.get("password"))
+            logger.warning("Postgres connection test failed: %s", safe_err)
             return ConnectionTestResult(
                 success=False,
-                message=f"PostgreSQL connection failed: {str(e)}",
+                message=f"PostgreSQL connection failed: {safe_err}",
                 latency_ms=round(elapsed, 2),
             )
 
@@ -240,8 +241,9 @@ class PostgresConnector(BaseConnector):
                 },
             )
         except Exception as e:
-            logger.exception("Postgres export failed to %s.%s", schema, table)
-            raise RuntimeError(f"Failed to export to PostgreSQL table '{schema}.{table}': {str(e)}") from e
+            safe_err = self._sanitize_error_message(str(e), password=cfg.password)
+            logger.exception("Postgres export failed to %s.%s: %s", schema, table, safe_err)
+            raise RuntimeError(f"Failed to export to PostgreSQL table '{schema}.{table}': {safe_err}") from None
         finally:
             try:
                 con.execute(f"DETACH {alias};")
@@ -314,8 +316,9 @@ class PostgresConnector(BaseConnector):
                 },
             )
         except Exception as e:
-            logger.exception("Postgres import failed: %s", e)
-            raise RuntimeError(f"Failed to import from PostgreSQL: {str(e)}") from e
+            safe_err = self._sanitize_error_message(str(e), password=cfg.password)
+            logger.exception("Postgres import failed: %s", safe_err)
+            raise RuntimeError(f"Failed to import from PostgreSQL: {safe_err}") from None
         finally:
             try:
                 con.execute(f"DETACH {alias};")
