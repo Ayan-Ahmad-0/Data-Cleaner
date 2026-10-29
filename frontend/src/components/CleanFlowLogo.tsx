@@ -14,19 +14,19 @@ export const CleanFlowLogo: React.FC<CleanFlowLogoProps> = ({
   iconOnly = false,
 }) => {
   const iconDimensions = {
-    sm: 'w-7 h-7 sm:w-8 sm:h-8',
-    md: 'w-8.5 h-8.5 sm:w-9.5 sm:h-9.5',
-    lg: 'w-11 h-11 sm:w-12 sm:h-12',
+    sm: 'w-6 h-6 sm:w-8 sm:h-8',
+    md: 'w-7 h-7 sm:w-9 sm:h-9',
+    lg: 'w-10 h-10 sm:w-12 sm:h-12',
   }[size];
 
   const textSizes = {
-    sm: 'text-lg sm:text-2xl',
-    md: 'text-xl sm:text-[26px]',
-    lg: 'text-2xl sm:text-4xl',
+    sm: 'text-base sm:text-2xl',
+    md: 'text-lg sm:text-[24px]',
+    lg: 'text-xl sm:text-4xl',
   }[size];
 
   return (
-    <div className={`flex items-center gap-2.5 sm:gap-3 select-none ${className}`}>
+    <div className={`flex items-center gap-2 sm:gap-3 select-none ${className}`}>
       {/* Datamorph 4-petal geometric icon */}
       <img
         src="/datamorph-icon.png"
