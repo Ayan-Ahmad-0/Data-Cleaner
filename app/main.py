@@ -68,7 +68,9 @@ async def detect_uploaded_format(file: UploadFile = File(...)):
     import tempfile
     suffix = Path(file.filename).suffix
     with tempfile.NamedTemporaryFile(suffix=suffix, delete=False) as tmp:
-        shutil.copyfileobj(file.file, tmp)
+        # Sniffing only needs the initial sample (magic bytes, headers, delimiters)
+        chunk = await file.read(2 * 1024 * 1024)
+        tmp.write(chunk)
         tmp_path = Path(tmp.name)
 
     try:
