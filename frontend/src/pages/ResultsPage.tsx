@@ -543,6 +543,8 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
         jobId={jobId}
         isOpen={showExportModal}
         onClose={() => setShowExportModal(false)}
+        defaultFilename={jobData?.job?.filename}
+        defaultFormat={jobData?.job?.detected_format || defaultFormat}
       />
     </div>
   );
