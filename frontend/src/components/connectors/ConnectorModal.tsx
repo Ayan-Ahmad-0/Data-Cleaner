@@ -16,6 +16,9 @@ import {
   X,
   ArrowRight,
   Server,
+  Table,
+  Info,
+  Check,
 } from 'lucide-react';
 
 export interface ConnectorModalProps {
