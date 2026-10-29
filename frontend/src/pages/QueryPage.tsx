@@ -199,7 +199,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({
             </h1>
           </div>
           <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl">
-            Upload any dataset to ask questions in natural English with our AI Analyst or write sandboxed DuckDB SQL queries directly against your data without cleaning or converting.
+            Upload any dataset to ask questions in natural English with our AI Analyst or write sandboxed SQL queries directly against your data without cleaning or converting.
           </p>
         </div>
 
@@ -320,7 +320,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({
                     {uploadStage === 'inspecting'
                       ? 'Inspecting dataset schema...'
                       : uploadStage === 'uploading'
-                      ? 'Streaming dataset to DuckDB sandbox...'
+                      ? 'Streaming dataset to sandbox...'
                       : 'Indexing & preparing sandbox...'}
                   </span>
                   <span className="text-xs text-[var(--text-muted)] font-mono block">

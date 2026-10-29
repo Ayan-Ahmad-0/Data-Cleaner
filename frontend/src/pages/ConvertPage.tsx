@@ -199,7 +199,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
           </h1>
         </div>
         <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed">
-          High-performance, in-process format conversion powered by DuckDB.
+          High-performance, in-process format conversion.
           Converts large datasets between CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), and SQLite without running profiling or altering values.
         </p>
       </div>
@@ -484,7 +484,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
                   <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono pt-0.5">
                     <span>
                       {isProcessing
-                        ? 'Converting via DuckDB streaming engine · Zero-copy'
+                        ? 'Converting via streaming engine · Zero-copy'
                         : `${formatBytes(uploadedBytes)} of ${formatBytes(totalBytes || selectedFile.size)}`}
                     </span>
                     <span>
@@ -497,7 +497,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
               {/* Action Button Footer */}
               <div className="p-4 hairline-t bg-[var(--bg-subtle)] flex items-center justify-between">
                 <span className="text-xs text-[var(--text-muted)] font-mono">
-                  Engine: In-process streaming DuckDB
+                  Engine: In-process streaming
                 </span>
                 <Button
                   variant="primary"
@@ -525,7 +525,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
                       Conversion Completed
                     </h2>
                     <p className="text-xs sm:text-sm text-[var(--text-muted)] font-mono">
-                      Dataset staged and converted via DuckDB columnar streaming
+                      Dataset staged and converted via columnar streaming
                     </p>
                   </div>
                 </div>
