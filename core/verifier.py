@@ -114,6 +114,10 @@ class Verifier:
         test_results: List[TestResult] = []
         pq_sql = str(pq_path).replace("\\", "/")
         conn = duckdb.connect(":memory:")
+        conn.execute("SET preserve_insertion_order = false;")
+        if self.temp_directory:
+            os.makedirs(self.temp_directory, exist_ok=True)
+            conn.execute(f"SET temp_directory = '{self.temp_directory}';")
         conn.execute(f"SET memory_limit = '{self.memory_limit}';")
         conn.execute(f"SET threads = {self.threads};")
 
