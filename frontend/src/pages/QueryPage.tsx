@@ -198,7 +198,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({
               Query Your Data
             </h1>
           </div>
-          <p className="text-sm text-[var(--text-secondary)] max-w-2xl leading-relaxed">
+          <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl">
             Upload any dataset to ask questions in natural English with our AI Analyst or write sandboxed DuckDB SQL queries directly against your data without cleaning or converting.
           </p>
         </div>
