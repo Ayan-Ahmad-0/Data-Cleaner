@@ -594,30 +594,32 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
           {/* Test Connection Result Alert */}
           {testResult && (
             <div
-              className={`p-3.5 rounded-xl border flex items-start gap-3 text-xs leading-relaxed text-left ${
+              className={`p-4 rounded-xl border flex items-start gap-3 text-xs leading-relaxed text-left shadow-xs ${
                 testResult.success
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400'
-                  : 'bg-red-500/10 border-red-500/20 text-red-400'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/70 border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100'
+                  : 'bg-red-50 dark:bg-red-950/70 border-red-300 dark:border-red-700 text-red-950 dark:text-red-100'
               }`}
             >
               {testResult.success ? (
-                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
               ) : (
-                <AlertTriangle className="w-4 h-4 shrink-0 text-red-400 mt-0.5" />
+                <AlertTriangle className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
               )}
               <div className="space-y-1.5 flex-1">
-                <span className="font-semibold block">
+                <span className="font-bold block text-sm text-emerald-950 dark:text-emerald-100">
                   {testResult.success ? 'Connection Validated' : 'Connection Test Failed'}
                   {testResult.latency_ms && ` (${testResult.latency_ms} ms)`}
                 </span>
-                <span className="opacity-90 block">{testResult.message}</span>
+                <span className="block text-emerald-900 dark:text-emerald-200 font-medium">
+                  {testResult.message}
+                </span>
 
                 {testResult.success && testResult.details?.tables && Array.isArray(testResult.details.tables) && testResult.details.tables.length > 0 && (
-                  <div className="mt-2.5 pt-2 border-t border-emerald-500/20">
-                    <span className="font-semibold text-emerald-300 block mb-1.5">
+                  <div className="mt-3 pt-2.5 border-t border-emerald-200 dark:border-emerald-700/60">
+                    <span className="font-bold text-emerald-950 dark:text-emerald-100 block mb-2 text-xs">
                       Discovered Tables (Click to select for import):
                     </span>
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-2">
                       {testResult.details.tables.map((tbl: string) => {
                         const isSelected = pgConfig.table_name === tbl || `${pgConfig.schema_name}.${pgConfig.table_name}` === tbl;
                         return (
@@ -632,10 +634,10 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
                                 setPgConfig((prev) => ({ ...prev, table_name: tbl, query: '' }));
                               }
                             }}
-                            className={`px-2.5 py-1 rounded text-xs font-mono transition border ${
+                            className={`px-3 py-1.5 rounded-lg text-xs font-mono transition border font-semibold ${
                               isSelected
-                                ? 'bg-emerald-500 text-black font-semibold border-emerald-400'
-                                : 'bg-emerald-500/20 text-emerald-200 border-emerald-500/40 hover:bg-emerald-500/30'
+                                ? 'bg-emerald-600 text-white border-emerald-700 shadow-sm'
+                                : 'bg-white dark:bg-emerald-900/60 text-emerald-900 dark:text-emerald-100 border-emerald-300 dark:border-emerald-600 hover:bg-emerald-100 dark:hover:bg-emerald-800/80 shadow-xs'
                             }`}
                           >
                             {tbl}
@@ -651,23 +653,23 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
 
           {/* Execution Error Banner */}
           {executionError && (
-            <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-start gap-3 text-left">
-              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+            <div className="p-3.5 rounded-xl bg-red-50 dark:bg-red-950/70 border border-red-300 dark:border-red-700 text-red-950 dark:text-red-100 text-xs flex items-start gap-3 text-left shadow-xs">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
               <div>
-                <span className="font-semibold block">Execution Failed</span>
-                <span>{executionError}</span>
+                <span className="font-bold block text-red-950 dark:text-red-100">Execution Failed</span>
+                <span className="text-red-900 dark:text-red-200 font-medium">{executionError}</span>
               </div>
             </div>
           )}
 
           {/* Export Success Banner */}
           {exportResult && (
-            <div className="p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm flex items-start gap-3 text-left">
-              <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
-              <div className="space-y-1">
-                <span className="font-semibold block text-base">Export Succeeded!</span>
-                <p className="text-xs opacity-90">{exportResult.message}</p>
-                <span className="text-xs font-mono bg-black/30 px-2 py-1 rounded inline-block mt-1">
+            <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-300 dark:border-emerald-700 text-emerald-950 dark:text-emerald-100 text-sm flex items-start gap-3 text-left shadow-xs">
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-600 dark:text-emerald-400 mt-0.5" />
+              <div className="space-y-1.5">
+                <span className="font-bold block text-base text-emerald-950 dark:text-emerald-100">Export Succeeded!</span>
+                <p className="text-xs text-emerald-900 dark:text-emerald-200 font-medium">{exportResult.message}</p>
+                <span className="text-xs font-mono bg-white dark:bg-black/50 border border-emerald-300 dark:border-emerald-700 text-emerald-900 dark:text-emerald-200 px-2 py-1 rounded inline-block mt-1 font-semibold">
                   Destination: {exportResult.destination_uri}
                 </span>
               </div>
