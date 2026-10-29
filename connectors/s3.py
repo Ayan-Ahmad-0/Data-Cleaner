@@ -76,10 +76,13 @@ class S3Connector(BaseConnector):
         con.execute("INSTALL httpfs; LOAD httpfs;")
 
         # Fallback to environment variables if not explicitly provided
-        key_id = cfg.access_key_id or os.getenv("AWS_ACCESS_KEY_ID")
-        secret_key = cfg.secret_access_key or os.getenv("AWS_SECRET_ACCESS_KEY")
-        token = cfg.session_token or os.getenv("AWS_SESSION_TOKEN")
-        region = cfg.region or os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
+        key_id = (cfg.access_key_id or os.getenv("AWS_ACCESS_KEY_ID") or "").strip()
+        secret_key = (cfg.secret_access_key or os.getenv("AWS_SECRET_ACCESS_KEY") or "").strip()
+        token = (cfg.session_token or os.getenv("AWS_SESSION_TOKEN") or "").strip()
+        
+        # Clean region: strip any parentheses or human labels (e.g. "us-east-1 (N. Virginia)" -> "us-east-1")
+        raw_region = cfg.region or os.getenv("AWS_DEFAULT_REGION") or "us-east-1"
+        region = raw_region.split("(")[0].strip() if raw_region else "us-east-1"
 
         if key_id:
             con.execute(f"SET s3_access_key_id = '{key_id}';")
@@ -91,23 +94,40 @@ class S3Connector(BaseConnector):
             con.execute(f"SET s3_region = '{region}';")
 
         # Parse endpoint and SSL flags
-        endpoint = cfg.endpoint_url or os.getenv("AWS_ENDPOINT_URL_S3") or os.getenv("AWS_ENDPOINT_URL")
+        raw_endpoint = (cfg.endpoint_url or os.getenv("AWS_ENDPOINT_URL_S3") or os.getenv("AWS_ENDPOINT_URL") or "").strip()
+        is_custom_non_aws = False
         use_ssl = cfg.use_ssl
-        if endpoint:
-            endpoint_str = endpoint.strip()
-            if endpoint_str.startswith("http://"):
+
+        # Discard placeholder values containing angle brackets (e.g. "<id>", "<account>") or spaces
+        if raw_endpoint and not ("<" in raw_endpoint or ">" in raw_endpoint or " " in raw_endpoint):
+            endpoint = raw_endpoint
+            if endpoint.startswith("http://"):
                 use_ssl = False
-                endpoint_str = endpoint_str[len("http://"):]
-            elif endpoint_str.startswith("https://"):
+                endpoint = endpoint[len("http://"):]
+            elif endpoint.startswith("https://"):
                 use_ssl = True
-                endpoint_str = endpoint_str[len("https://"):]
-            con.execute(f"SET s3_endpoint = '{endpoint_str}';")
+                endpoint = endpoint[len("https://"):]
+            elif endpoint.startswith("s3://"):
+                endpoint = endpoint[len("s3://"):]
 
-        con.execute(f"SET s3_use_ssl = {'true' if use_ssl else 'false'};")
+            # Strip any trailing slashes or subpaths
+            endpoint = endpoint.split("/")[0].strip()
 
-        url_style = cfg.url_style or "path"
-        if url_style in ("path", "vhost"):
-            con.execute(f"SET s3_url_style = '{url_style}';")
+            # Only configure custom endpoint for non-AWS S3 (MinIO, Cloudflare R2, LocalStack).
+            # If the user typed standard AWS endpoints (e.g. s3.amazonaws.com), let DuckDB use native regional resolution.
+            if endpoint and not endpoint.endswith("amazonaws.com"):
+                con.execute(f"SET s3_endpoint = '{endpoint}';")
+                con.execute(f"SET s3_use_ssl = {'true' if use_ssl else 'false'};")
+                is_custom_non_aws = True
+
+        # URL Style: AWS S3 requires 'vhost' (virtual-hosted style) since 2020.
+        # Custom non-AWS storage (MinIO / R2) or explicitly requested path style uses 'path'.
+        if cfg.url_style in ("path", "vhost"):
+            url_style = cfg.url_style
+        else:
+            url_style = "path" if is_custom_non_aws else "vhost"
+
+        con.execute(f"SET s3_url_style = '{url_style}';")
 
     def _build_destination_uri(self, cfg: S3ConnectorConfig, default_name: str) -> str:
         """Construct a normalized, safe s3:// URI."""
@@ -130,6 +150,7 @@ class S3Connector(BaseConnector):
     def test_connection(self, config: Dict[str, Any]) -> ConnectionTestResult:
         """Validate S3 credentials and endpoint reachability."""
         start_time = time.perf_counter()
+        con = None
         try:
             cfg = S3ConnectorConfig.model_validate(config)
             con = duckdb.connect(":memory:")
@@ -143,8 +164,21 @@ class S3Connector(BaseConnector):
                     message=f"Invalid S3 bucket name '{cfg.bucket}'. Must be 3-63 characters (letters, numbers, hyphens, dots).",
                 )
 
-            # DuckDB httpfs ping: verify extension and configuration
-            # In live environments with valid S3 credentials, DuckDB can verify the bucket
+            # If an object key or source URI is provided, attempt a lightweight metadata scan (LIMIT 0)
+            if cfg.key or cfg.source_uri:
+                source_uri = self._resolve_source_uri(cfg)
+                fmt = Path(source_uri).suffix.lower().lstrip(".")
+                if fmt == "parquet":
+                    scan_expr = f"read_parquet('{source_uri}')"
+                elif fmt in ("csv", "tsv"):
+                    scan_expr = f"read_csv_auto('{source_uri}')"
+                elif fmt in ("json", "ndjson", "jsonl"):
+                    scan_expr = f"read_json_auto('{source_uri}')"
+                else:
+                    scan_expr = f"read_csv_auto('{source_uri}')"
+
+                con.execute(f"SELECT * FROM {scan_expr} LIMIT 0")
+
             elapsed = (time.perf_counter() - start_time) * 1000
             return ConnectionTestResult(
                 success=True,
@@ -160,6 +194,12 @@ class S3Connector(BaseConnector):
                 message=f"S3 Connection failed: {str(e)}",
                 latency_ms=round(elapsed, 2),
             )
+        finally:
+            if con:
+                try:
+                    con.close()
+                except Exception:
+                    pass
 
     def export_dataset(
         self,
