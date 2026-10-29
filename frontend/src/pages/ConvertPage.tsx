@@ -462,7 +462,9 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
                     <div className="flex items-center gap-2.5">
                       <Loader2 className="w-4 h-4 text-[var(--accent)] animate-spin shrink-0" />
                       <span className="font-semibold text-[var(--text-primary)]">
-                        Converting {selectedFile.name} to {targetFormat.toUpperCase()}...
+                        {isProcessing
+                          ? `Streaming & converting ${selectedFile.name} to ${targetFormat.toUpperCase()}...`
+                          : `Uploading ${selectedFile.name}...`}
                       </span>
                     </div>
                     <span className="font-mono text-xs font-semibold text-[var(--accent)]">
@@ -472,14 +474,22 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
 
                   <div className="w-full bg-[var(--bg-surface)] h-2.5 rounded-full overflow-hidden hairline-border">
                     <div
-                      className="bg-[var(--accent)] h-full transition-all duration-200 ease-out"
-                      style={{ width: `${Math.max(convertProgressPct, 8)}%` }}
+                      className={`bg-[var(--accent)] h-full transition-all duration-200 ease-out ${
+                        isProcessing ? 'animate-pulse' : ''
+                      }`}
+                      style={{ width: `${Math.max(convertProgressPct, 6)}%` }}
                     />
                   </div>
 
                   <div className="flex items-center justify-between text-xs text-[var(--text-muted)] font-mono pt-0.5">
-                    <span>Streaming Parquet memory buffers · DuckDB</span>
-                    <span>Zero-copy columnar export</span>
+                    <span>
+                      {isProcessing
+                        ? 'Converting via DuckDB streaming engine · Zero-copy'
+                        : `${formatBytes(uploadedBytes)} of ${formatBytes(totalBytes || selectedFile.size)}`}
+                    </span>
+                    <span>
+                      {isProcessing ? 'Writing output...' : 'Transferring payload'}
+                    </span>
                   </div>
                 </div>
               )}
