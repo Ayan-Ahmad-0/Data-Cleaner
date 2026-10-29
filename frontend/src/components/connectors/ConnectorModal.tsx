@@ -197,6 +197,12 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
 
     try {
       if (mode === 'import') {
+        if (activeConnector === 'postgres' && !pgConfig.table_name.trim() && !pgConfig.query.trim()) {
+          setExecutionError('Please specify the Table Name to import from your PostgreSQL database (e.g. users, transactions), or enter a Custom SQL Select Query.');
+          setExecuting(false);
+          return;
+        }
+
         const res = await importFromConnector(
           activeConnector,
           currentConfig,
