@@ -196,6 +196,14 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
     setExportResult(null);
 
     try {
+      const sanitizedConfig = activeConnector === 'postgres'
+        ? {
+            ...pgConfig,
+            table_name: pgConfig.table_name.trim(),
+            query: pgConfig.query.trim().replace(/;+\s*$/, ''),
+          }
+        : currentConfig;
+
       if (mode === 'import') {
         if (activeConnector === 'postgres' && !pgConfig.table_name.trim() && !pgConfig.query.trim()) {
           setExecutionError('Please specify the Table Name to import from your PostgreSQL database (e.g. users, transactions), or enter a Custom SQL Select Query.');
@@ -205,7 +213,7 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
 
         const res = await importFromConnector(
           activeConnector,
-          currentConfig,
+          sanitizedConfig,
           undefined,
           privacyMode,
         );
@@ -221,7 +229,7 @@ export const ConnectorModal: React.FC<ConnectorModalProps> = ({
         onClose();
       } else {
         if (!jobId) throw new Error('Job ID is missing for export.');
-        const res = await exportToConnector(jobId, activeConnector, currentConfig);
+        const res = await exportToConnector(jobId, activeConnector, sanitizedConfig);
         setExportResult(res);
       }
     } catch (err: any) {
