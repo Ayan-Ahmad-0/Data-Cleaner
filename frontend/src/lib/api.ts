@@ -162,7 +162,9 @@ export async function previewConvert(
   options?: Record<string, any>,
 ): Promise<{ preview: any[]; report: any }> {
   const formData = new FormData();
-  formData.append('file', file);
+  // For files larger than 5 MB, send a 2 MB sample so preview returns instantaneously
+  const previewSlice = file.size > 5 * 1024 * 1024 ? file.slice(0, 2 * 1024 * 1024) : file;
+  formData.append('file', previewSlice, file.name);
   if (format) formData.append('format', format);
   if (options) formData.append('options', JSON.stringify(options));
 
@@ -179,31 +181,56 @@ export async function previewConvert(
   return res.json();
 }
 
-export async function executeConvertOnly(
+export function executeConvertOnly(
   file: File,
   targetFormat: string,
   sourceFormat?: string,
   sourceOptions?: Record<string, any>,
   targetOptions?: Record<string, any>,
+  onProgress?: (loaded: number, total: number) => void,
 ): Promise<ConvertResultResponse> {
-  const formData = new FormData();
-  formData.append('file', file);
-  formData.append('target_format', targetFormat);
-  if (sourceFormat) formData.append('source_format', sourceFormat);
-  if (sourceOptions) formData.append('source_options', JSON.stringify(sourceOptions));
-  if (targetOptions) formData.append('target_options', JSON.stringify(targetOptions));
+  return new Promise((resolve, reject) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('target_format', targetFormat);
+    if (sourceFormat) formData.append('source_format', sourceFormat);
+    if (sourceOptions) formData.append('source_options', JSON.stringify(sourceOptions));
+    if (targetOptions) formData.append('target_options', JSON.stringify(targetOptions));
 
-  const res = await fetch(`${API_BASE}/api/convert/execute`, {
-    method: 'POST',
-    body: formData,
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `${API_BASE}/api/convert/execute`);
+
+    if (onProgress && xhr.upload) {
+      xhr.upload.onprogress = (e) => {
+        if (e.lengthComputable) {
+          onProgress(e.loaded, e.total);
+        }
+      };
+    }
+
+    xhr.onload = () => {
+      if (xhr.status >= 200 && xhr.status < 300) {
+        try {
+          resolve(JSON.parse(xhr.responseText));
+        } catch {
+          reject(new Error('Invalid response received from server.'));
+        }
+      } else {
+        try {
+          const errData = JSON.parse(xhr.responseText);
+          reject(new Error(errData.detail || 'Conversion failed.'));
+        } catch {
+          reject(new Error(`Conversion failed with HTTP status ${xhr.status}`));
+        }
+      }
+    };
+
+    xhr.onerror = () => {
+      reject(new Error('Network connection dropped or failed during conversion transfer.'));
+    };
+
+    xhr.send(formData);
   });
-
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || 'Conversion failed.');
-  }
-
-  return res.json();
 }
 
 export function getConvertDownloadUrl(convertId: string): string {
