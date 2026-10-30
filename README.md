@@ -1,5 +1,5 @@
-# One-Click AI Data Cleaner Vectorized Data Profiling, Cleaning, Modeling, and Exploration Engine
-Vectorized multi-format profiling, cleaning, relational modeling, exploration, and visualization pipeline powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 10 GB datasets, extracts single-pass statistical profiles without full table scans, models multi-table relational ERDs with DuckDB joins, compiles sandboxed analytical charts, and verifies output with automated reconciliation tests.
+# One-Click AI Data Cleaner Vectorized Data Profiling, Cleaning, Modeling, Exploration, and Retention Engine
+Vectorized multi-format profiling, cleaning, relational modeling, exploration, visualization, and automated 24-hour TTL retention pipeline powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 10 GB datasets, extracts single-pass statistical profiles without full table scans, models multi-table relational ERDs with DuckDB joins, compiles sandboxed analytical charts, purges stale ephemeral storage with background scavenging, and verifies output with automated reconciliation tests.
 
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.1+-FFF000?style=flat&logo=duckdb&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=flat&logo=python&logoColor=white)
@@ -33,14 +33,15 @@ Vectorized multi-format profiling, cleaning, relational modeling, exploration, a
 9. **Query Interactively** via the integrated AI Analyst (translates natural English questions into sandboxed DuckDB SQL with auto-correction) or the direct SQL Query Studio guarded by sqlglot AST parsing and resource ceilings.
 10. **Visualize Instantly** via vectorized DuckDB chart SQL compilation across 11 chart types (bar, hbar, line, area, histogram with `#8F0926` default, scatter, pie, donut, box, heatmap, big number), AI Auto-Visualize dashboard generation, natural language chart drafting, interactive tweak controls, and 20 curated modern analytics palettes.
 11. **Handoff Seamlessly** between pipelines: multi-table ERD sessions, post-clean results, and stream conversion outputs provide 1-click downstream handoffs into AI Analyst queries, direct SQL exploration, or the visual analytics dashboard targeting verified cleaned datasets (`cleaned.parquet` or `merged.parquet`).
+12. **Enforce Ephemeral Retention** automatically with an asynchronous background scavenger daemon sweeping dynamic job workspaces (`jobs/`, `convert_jobs/`, `query_jobs/`, `modeling/`) every 30 minutes, purging artifacts older than 24 hours while strictly preserving static benchmark fixtures, reclaiming over 50 GB of disk space.
 
-Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 100% PII masking and 100% injection defense across 331 passing automated tests (292 Pytest + 39 Vitest). Deployed locally via Docker Compose and FastAPI.
+Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 50.35 GB of stale temporary files reclaimed on initial retention sweep; 100% PII masking and 100% injection defense across 338 passing automated tests (299 Pytest + 39 Vitest). Deployed locally via Docker Compose and FastAPI.
 
 ---
 
 ## Architecture
 
-Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL) → Format Stager → Canonical Parquet → Profiler / Mode Router → AI Analyst / CTE Compiler / Chart Compiler / Relational Joiner → Verifier → Sandboxed SQL, Visualization & ERD Studio
+Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL) → Format Stager → Canonical Parquet → Profiler / Mode Router → AI Analyst / CTE Compiler / Chart Compiler / Relational Joiner → Verifier → Sandboxed SQL, Visualization & ERD Studio → Storage Retention Daemon (24h TTL)
 
 | Stage | Purpose | Format | Storage |
 |---|---|---|---|
@@ -61,6 +62,7 @@ Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL
 | AI Chart Planner | AI Auto-Visualize and prompt-to-chart plan synthesis | JSON Visualization Plan | DuckDB memory session |
 | SQL Studio & Dashboard | Sandboxed interactive exploration and chart tweaking | DuckDB Views / React Dashboards | In-Browser / Memory Session |
 | Multi-Format Export | Delivering cleaned or joined dataset in downstream formats | Parquet, CSV, JSON, NDJSON, XLSX | Local disk / API download |
+| Storage Retention Daemon | Background scavenger sweeping stale job directories (24h TTL) | Filesystem cleanup / Reclaimed metrics | Disk scavenger (`core/retention.py`) |
 
 ### Architecture Diagram
 
@@ -71,11 +73,12 @@ Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL
 
 - **Execution Engine** — DuckDB 1.1+ (in-process vectorized columnar SQL, multi-threaded aggregation, >1,300,000 rows/s cleaning throughput, zero network overhead)
 - **SQL Security & AST** — sqlglot 30.0+ (strict read-only SELECT validation, 100% forbidden AST node denial rate, 5.0s query timeout ceiling)
-- **Backend Framework** — FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13 (292 passing automated unit & integration tests)
+- **Backend Framework** — FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13 (299 passing automated unit & integration tests)
 - **Schema & Validation** — Pydantic v2 (strict allowlist models with `extra="forbid"`, 100% PII redaction for names, emails, phones, SSNs)
 - **AI Reasoning** — Google GenAI SDK (`gemini-3.5-flash` / `gemini-3-flash-preview`), 30-question NL-to-SQL benchmark set with offline heuristic fallback
 - **Visualization Engine** — Plotly.js, React 19, Lucide Icons, 20-color analytics palette with default histogram `#8F0926`, dedicated 10-query concurrency controller
 - **Frontend Architecture** — React 19, TypeScript 5.0+, Vite, Tailwind CSS (fluid 1600px high-density layout, sub-1s cold build, 39 passing Vitest tests)
+- **Storage Retention & Scavenger** — Asynchronous background lifecycle daemon (`core/retention.py`), sweeping ephemeral job workspaces every 30 minutes, enforcing 24-hour TTL file evictions, protecting static benchmark fixtures, with on-demand `/api/maintenance/storage` diagnostics
 - **End-to-End Testing** — Playwright (comprehensive ERD canvas drag-and-drop, zoom/pan, modal link, join preview, and handoff assertions)
 
 ---
@@ -117,10 +120,6 @@ Input Sources (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, PostgreSQL, S3)
 │                                                            ▼
 │                                             [charts/compile.py] ◄─── [charts_ai/service.py]
 │                                             (TRY_CAST Aggregations & AI Auto-Visualize)
-│                                                            │
-│                                                            ▼
-│                                             [frontend/src/pages/VisualizePage.tsx]
-│                                             (High-Density Dashboard, Tweak Panels, 20 Colors)
 │
 ├───► [Mode 5: Model Data (ERD)] ► [core/modeling/service.py] ► (data/modeling/{session_id}/tables/*.parquet)
 │                                                            │
@@ -135,6 +134,14 @@ Input Sources (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, PostgreSQL, S3)
 │                                                            │
 │                                                            ├───► [Ask AI Analyst Workspace]
 │                                                            └───► [Sandboxed SQL Query Box]
+│
+├───► [Storage Retention Daemon] ► [core/retention.py] ──────► Background Scavenger (30m sweep, 24h TTL)
+│                                                            │
+│                                                            ├───► (data/jobs/{id}/) ───────────► Auto-evict
+│                                                            ├───► (data/convert_jobs/{id}/) ───► Auto-evict
+│                                                            ├───► (data/query_jobs/{id}/) ─────► Auto-evict
+│                                                            └───► (data/modeling/{id}/) ───────► Auto-evict
+│                                                            (benchmarks/, demo/ fixtures protected)
 │
 └───► [Mode 2: Clean Data]
       │
@@ -208,6 +215,7 @@ Evaluated across a comprehensive 30-question test suite spanning 10 analytical d
 | **Interactive Query Latency** | Direct SQL aggregation against 100K+ rows | In-process vectorized DuckDB columnar engine | **2.0 ms** execution latency |
 | **Chart Compilation Latency** | Declarative spec compiled to DuckDB aggregate query | Vectorized SQL generator with TRY_CAST coercion | **< 15.0 ms** compilation & execution |
 | **Relational Join Execution** | Multi-table relational DuckDB join across foreign keys | In-process columnar JOIN compilation to Parquet | **< 20.0 ms** join & match ratio calculation |
+| **Automated Storage Retention** | 24-hour TTL expiration across dynamic job storage directories | Background scavenger daemon with protected static paths | **50.35 GB Reclaimed** (0 static benchmark files touched) |
 | **Resource Safety Ceilings** | Unbounded user queries or runaway Cartesian joins | sqlglot AST validation + 5.0s timeout + 10,000 row cap | **100.0% Enforced** (Zero runaway thread lockups) |
 
 ### Streaming Format Conversion Benchmarks
@@ -240,11 +248,13 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 | `cleaned.parquet` | Final analytical dataset with concrete DuckDB types (TIMESTAMP, DOUBLE, BIGINT, VARCHAR) and duplicate rows pruned |
 | `cleaned.csv` | Exported standard CSV representation for downstream spreadsheet or BI tool ingestion |
 | `verification.json` | Audit record containing before/after row delta counts, duplicate reconciliation, and assertion status |
-| `convert_jobs/{id}/*` | Isolated directory containing direct format conversion outputs and intermediate Parquet buffers |
-| `query_jobs/{id}/*` | Isolated directory containing indexed Parquet datasets for instant Query Data and Visualize Data exploration |
-| `modeling/{session_id}/tables/*.parquet` | Physical staging directory for multi-table relational entities staged in Model Data (ERD) Studio |
-| `modeling/{session_id}/state.json` | Persisted session graph containing entity coordinates, extracted primary keys, and relationship links |
-| `modeling/{session_id}/merged.parquet` | Materialized DuckDB multi-table joined dataset serving SQL Studio and AI Analyst handoff queries |
+| `convert_jobs/{id}/*` | Isolated directory containing direct format conversion outputs and intermediate Parquet buffers (24h TTL auto-purge) |
+| `query_jobs/{id}/*` | Isolated directory containing indexed Parquet datasets for instant Query Data and Visualize Data exploration (24h TTL auto-purge) |
+| `modeling/{session_id}/tables/*.parquet` | Physical staging directory for multi-table relational entities staged in Model Data (ERD) Studio (24h TTL auto-purge) |
+| `modeling/{session_id}/state.json` | Persisted session graph containing entity coordinates, extracted primary keys, and relationship links (24h TTL auto-purge) |
+| `modeling/{session_id}/merged.parquet` | Materialized DuckDB multi-table joined dataset serving SQL Studio and AI Analyst handoff queries (24h TTL auto-purge) |
+| `jobs/{id}/*` | Ephemeral cleaning workspace containing staged, recipe, profile, and cleaned artifacts (24h TTL auto-purge) |
+| `benchmarks/*`, `demo/*`, `evaluation/*` | Strictly protected evaluation fixtures and baseline datasets exempted from automated TTL eviction policies |
 
 ---
 
@@ -263,6 +273,8 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 - **SQL Injection Prevention** — All column identifiers and parameters passed into SQL generation are sanitized using `quote_ident()` with double-quote escaping.
 - **Privacy Mode Masking** — When privacy mode is enabled, sample data values and categorical token lists are stripped from LLM prompts; only statistical distributions and column names are transmitted.
 - **Deterministic Offline Fallback** — If Gemini API rate limits, network interruptions, or quota exhaustion occurs, the pipeline falls back to an offline rule-based recipe generator without pipeline stoppage.
+- **Automated 24-Hour Storage Retention & Scavenger** — To prevent unbounded server disk accumulation, an asynchronous background daemon runs on FastAPI lifespan startup, sweeping ephemeral job directories (`data/jobs`, `data/convert_jobs`, `data/query_jobs`, `data/modeling`) every 30 minutes. Directories older than 24 hours are cleanly deleted and in-memory caches evicted, while critical directories (`benchmarks`, `demo`, `evaluation`) are strictly protected. Initial test run verified reclamation of 50.35 GB without affecting active jobs or static fixtures.
+- **Enterprise Database & Schema Discovery** — External PostgreSQL and Supabase sources support direct connection testing, multi-schema table enumeration (`public`, `storage`, `auth`), and session pooler IPv4 auto-detection, eliminating manual table typing and IPv6 connection dropouts.
 - **Reconciliation Audit Gate** — Output files are verified before delivery; if unexpected row loss exceeds defined thresholds, warnings are flagged in the verification report.
 - **Fluid High-Density Layout** — The user interface uses a wide 1600px breakpoint and responsive padding across all views, eliminating artificial container constraints and bottom clutter for deep analytical data inspection.
 
@@ -335,6 +347,7 @@ data-cleaner/
 │   ├── converter.py            # Raw CSV to all-varchar ZSTD Parquet converter
 │   ├── profiler.py             # Single-pass statistical and defect profiler
 │   ├── recipe_schema.py        # Pydantic v2 strict schema models for recipes
+│   ├── retention.py            # Automated 24-hour storage retention manager, TTL scavenger, and disk metrics
 │   ├── validator.py            # Schema validation and plain-English translation
 │   └── verifier.py             # Automated post-clean assertions and reconciliation
 ├── explore/                    # Sandboxed in-browser DuckDB exploration engine
@@ -375,7 +388,8 @@ data-cleaner/
 │   │   └── lib/                # API client layer, formatters, and chartColors definitions
 │   ├── package.json            # Node dependency declarations
 │   └── vite.config.ts          # Vite build configuration with proxy support
-├── tests/                      # Pytest test suite (292 unit and integration tests)
+├── tests/                      # Pytest test suite (299 unit and integration tests)
+│   └── test_retention.py       # Automated 24-hour TTL retention and scavenger lifecycle tests
 ├── .github/workflows/ci.yml    # GitHub Actions multi-version CI workflow (Python 3.11/3.12, Node 20)
 ├── demo.py                     # Autonomous end-to-end CLI demonstration runner
 ├── docker-compose.yml          # Containerized multi-stage service deployment
@@ -400,10 +414,17 @@ GEMINI_MODEL=gemini-3.5-flash
 # DuckDB Engine Settings
 DUCKDB_MEMORY_LIMIT=4GB
 DUCKDB_THREADS=4
+
+# Storage Retention and TTL Lifecycle
+RETENTION_TTL_HOURS=24
+RETENTION_SWEEP_INTERVAL_MINUTES=30
+RETENTION_ENABLED=true
+STORAGE_DIR=data
 ```
 
 - **Connection Secrets** — External connectors (PostgreSQL, S3) accept credentials through request bodies or environment variables; no default connection string is stored in code.
 - **Deployment Keys** — If `GEMINI_API_KEY` is not provided, the pipeline operates in offline deterministic heuristic mode without failure.
+- **Storage Retention Lifecycle** — Setting `RETENTION_ENABLED=false` disables automated cleanup; `RETENTION_TTL_HOURS` configures eviction age (default: 24h); the background scavenger sweeps every `RETENTION_SWEEP_INTERVAL_MINUTES` (default: 30m).
 - **Memory Quirks** — On memory-constrained systems (e.g. 8 GB RAM total), adjust `DUCKDB_MEMORY_LIMIT=2GB` to prevent OS swapping during multi-GB dataset conversions.
 
 ---
@@ -430,7 +451,7 @@ python demo.py 25000
 
 ### 4. Run full test suite
 ```bash
-# Run backend test suite (292 tests)
+# Run backend test suite (299 tests)
 pytest -v tests/
 
 # Run frontend unit test suite (39 tests)
@@ -467,6 +488,7 @@ docker compose up --build
 | Unified API & UI | http://localhost:8000 | FastAPI backend serving API and static production frontend |
 | API Documentation | http://localhost:8000/docs | Interactive OpenAPI Swagger UI |
 | Health Endpoint | http://localhost:8000/api/health | Service readiness and engine status |
+| Storage Maintenance API | http://localhost:8000/api/maintenance/storage | Live disk usage telemetry and manual TTL sweep trigger |
 
 ---
 
@@ -475,6 +497,10 @@ docker compose up --build
 - **Multi-Table SQL Studio Handoff Empty State** — Symptom: In Model Data (ERD) Studio, clicking "Query in SQL Studio" navigated to a blank upload dropzone instead of loading the staged multi-table session. Diagnosis: `onHandoffToQuery` in `App.tsx` switched mode to `'query'` without passing the session identifier or SQL statement, and `QueryPage.tsx` did not accept initial dataset props, defaulting to `queryResult = null`. Fix: Expanded `QueryHandoffResult` in `api.ts`, stored the handoff payload in `queryTarget`, `queryInitialSql`, and `queryInitialMode` state in `App.tsx`, initialized `queryResult` from `initialDataset` in `QueryPage.tsx`, and forwarded `initialSql` and `initialMode` to `SqlQueryBox.tsx`.
 - **ERD Canvas Native Pinch/Scroll Page-Zoom Collision** — Symptom: Using the mouse wheel or trackpad pinch on the ERD modeling canvas zoomed the entire browser viewport rather than zooming only the canvas viewport. Diagnosis: React attaches synthetic `onWheel` event handlers as passive by default (`{ passive: true }`), causing `e.preventDefault()` calls within React event listeners to be silently ignored by modern browser engines. Fix: Bound a native wheel listener with `{ passive: false }` directly on the canvas element ref in a `useEffect` hook, calculating cursor-directed focal zoom and clamping scale between 0.25x and 2.5x.
 - **ERD Bezier Line Cardinality Badge Visual Clashing** — Symptom: The cardinality pill badge (`1:N · 100%`) overlapped directly on top of the relational link line, visually severing the text. Diagnosis: The badge SVG coordinate `y={midY - 12}` centered the badge directly on the Bezier spline curve. Fix: Elevated the badge pill container above the Bezier curve (`y={midY - 26}`), added an opaque surface background with border hairline, and rendered a subtle vertical stem connecting the badge to the underlying curve midpoint.
+- **Temporary Storage File Accumulation & Server Disk Depletion** — Symptom: High-volume dataset profiling, format conversions, and relational joins continuously accumulated multi-gigabyte Parquet and CSV files in `data/`, eventually exhausting server disk capacity. Diagnosis: Job directories in `data/jobs`, `data/convert_jobs`, `data/query_jobs`, and `data/modeling` lacked an automated lifecycle policy or expiration metadata, requiring manual disk administration. Fix: Built `core/retention.py` with `StorageRetentionManager` and an asynchronous background daemon loop in FastAPI `lifespan`, automatically sweeping directories older than 24 hours every 30 minutes, exposing `/api/maintenance/storage` and `/api/maintenance/cleanup` endpoints, and reclaiming 50.35 GB on initial sweep while strictly safeguarding static benchmark directories.
+- **PostgreSQL Import Semicolon Execution Rejection** — Symptom: Ingesting tables from PostgreSQL failed with a DuckDB catalog syntax error when executing the generated table stream query. Diagnosis: Table extraction queries ending with a trailing semicolon (e.g. `SELECT * FROM table;`) caused syntax errors when wrapped inside DuckDB's subquery table expression `FROM (...) AS src`. Fix: Added `.rstrip().rstrip(";")` sanitization in PostgreSQL connector query generation prior to subquery wrapping.
+- **Connector Modal State Mode Shadowing** — Symptom: Testing a PostgreSQL connection returned `1 validation error for PostgresConnectorConfig: mode: Input should be 'overwrite' or 'append' [type=enum, input_value='import']`. Diagnosis: The frontend `ConnectorModal.tsx` maintained a single `mode` state variable used for both modal workflow selection (`'import' | 'export'`) and export target write mode (`'overwrite' | 'append'`), passing `"import"` directly into the export configuration payload. Fix: Separated state into `connectorAction` (`'import' | 'export'`) and `writeMode` (`'overwrite' | 'append'`), ensuring Pydantic payloads strictly receive valid enum values.
+- **Supabase IPv6 Direct Host Reachability** — Symptom: Connecting to Supabase instances via direct host `db.[ref].supabase.co` failed with `Network unreachable` or connection timeouts on standard IPv4 networks. Diagnosis: Supabase direct database hostnames resolve solely to IPv6 addresses, whereas pooler hostnames (`aws-0-[region].pooler.supabase.com`) support dual IPv4/IPv6 stacks. Fix: Enhanced connector validation to parse Supabase connection strings, automatically extract connection parameters, and render a prominent warning banner in the UI instructing users to use the Session Pooler connection string.
 - **Type Inference Sampling Bias** — Symptom: Ingesting dirty CSVs directly into standard typed SQL engines failed on row 50,000 due to unexpected string tokens in numeric columns. Diagnosis: DuckDB's automatic CSV sniffer uses sample rows that miss corruptions occurring deeper in large files. Fix: Implemented two-stage ingestion where CSVs are initially converted to Parquet with `all_varchar=true`, deferring type casting to compiled CTE stages after complete statistical profiling.
 - **Binder Error on Untyped String Aggregations in Charts** — Symptom: Chart query execution failed with `Binder Error: No function matches the given name and argument types 'avg(VARCHAR)'`. Diagnosis: Staging parquet files preserves raw columns as `VARCHAR` to avoid speculative ingestion loss, causing DuckDB aggregation functions like `avg()` and `sum()` to reject untyped string inputs. Fix: Added automated type detection and safe `TRY_CAST(col AS DOUBLE)` wrapping inside `charts/compile.py` for numeric Y-axis aggregates, histograms, and scatter plots.
 - **Group-By Column Shadowing in Category Charts** — Symptom: Chart generation crashed with `Binder Error: column must appear in the GROUP BY clause or must be part of an aggregate function`. Diagnosis: Group-by CTE queries aliased transformed category expressions using identical names as raw columns, creating identifier collisions during DuckDB query planning. Fix: Ensured discrete internal column aliasing and explicit GROUP BY clause projection alignment in `charts/compile.py`.
@@ -494,6 +520,7 @@ docker compose up --build
 
 ## Future Improvements
 
+- **Configurable Per-Tier Retention Policies** — Extend the 24-hour TTL scavenger to support user-tier retention quotas (e.g., 2 hours for anonymous uploads, 7 days for registered workspaces, indefinite for pinned projects).
 - **Fuzzy Deduplication via MinHash LSH** — Extend exact primary key deduplication to support approximate string matching for customer names and addresses using DuckDB extension bindings.
 - **Schema Drift Alerting** — Implement automated schema evolution detection comparing successive CSV uploads against historical baseline profiles.
 - **Partitioned Parquet Output** — Add optional hive-partitioned exports (`/year=2026/month=10/`) for enterprise data warehouse ingestion into Snowflake or BigQuery.
