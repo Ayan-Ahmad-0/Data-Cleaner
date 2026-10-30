@@ -198,6 +198,7 @@ async def execute_convert_only(
     source_format: Optional[str] = Form(None),
     source_options: Optional[str] = Form(None),
     target_options: Optional[str] = Form(None),
+    user_id: str = Depends(get_current_tenant_id),
 ):
     """Execute Convert-Only mode: direct conversion between formats without profiling or cleaning."""
     import uuid
@@ -205,7 +206,7 @@ async def execute_convert_only(
     from formats import convert_file
 
     convert_id = f"conv_{uuid.uuid4().hex[:8]}"
-    work_dir = Path("data/convert_jobs").resolve() / convert_id
+    work_dir = Path("data/convert_jobs").resolve() / user_id / convert_id
     work_dir.mkdir(parents=True, exist_ok=True)
 
     input_file_path = work_dir / file.filename
@@ -228,6 +229,7 @@ async def execute_convert_only(
 
         convert_jobs[convert_id] = {
             "id": convert_id,
+            "user_id": user_id,
             "result": result,
             "filename": file.filename,
             "work_dir": work_dir,
@@ -245,10 +247,10 @@ async def execute_convert_only(
 
 
 @app.get("/api/convert/download/{convert_id}")
-def download_converted_file(convert_id: str):
+def download_converted_file(convert_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Download converted output file(s). Zips if multiple parts were generated."""
     job = convert_jobs.get(convert_id)
-    if not job:
+    if not job or job.get("user_id", "default") != user_id:
         raise HTTPException(status_code=404, detail="Convert job not found or expired.")
 
     result: ConvertResult = job["result"]
@@ -274,25 +276,30 @@ def download_converted_file(convert_id: str):
 
 
 @app.post("/api/convert/{convert_id}/handoff-to-clean")
-def handoff_to_cleaning(convert_id: str, background_tasks: BackgroundTasks):
+def handoff_to_cleaning(
+    convert_id: str,
+    background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Handoff converted intermediate Parquet directly to the cleaning pipeline without re-converting."""
     job = convert_jobs.get(convert_id)
-    if not job:
+    if not job or job.get("user_id", "default") != user_id:
         raise HTTPException(status_code=404, detail="Convert job not found or expired.")
 
     intermediate_pq = job.get("intermediate_parquet")
     if not intermediate_pq or not Path(intermediate_pq).exists():
         raise HTTPException(status_code=400, detail="Intermediate Parquet not available for handoff.")
 
-    # Create cleaning job
+    # Create cleaning job tied to tenant
     clean_job = orchestrator.create_job(
         filename=job["filename"],
         file_size=Path(intermediate_pq).stat().st_size,
         format_id="parquet",
+        user_id=user_id,
     )
 
-    # Copy intermediate Parquet into orchestrator staged_parquet_path
-    target_staged_pq = storage.staged_parquet_path(clean_job.id)
+    # Copy intermediate Parquet into orchestrator staged_parquet_path under tenant
+    target_staged_pq = storage.staged_parquet_path(clean_job.id, user_id=user_id)
     shutil.copy2(intermediate_pq, target_staged_pq)
 
     # Launch background profiling & AI drafting on staged parquet
@@ -305,13 +312,14 @@ def handoff_to_cleaning(convert_id: str, background_tasks: BackgroundTasks):
 async def upload_dataset_for_query_only(
     file: UploadFile = File(...),
     options: Optional[str] = Form(None),
+    user_id: str = Depends(get_current_tenant_id),
 ):
     """Stage an uploaded dataset directly into a sandboxed queryable Parquet store for instant AI and SQL exploration without cleaning or format conversion."""
     import uuid
     from formats import convert_to_parquet, detect_format, AdapterRegistry
 
     query_id = f"query_{uuid.uuid4().hex[:8]}"
-    work_dir = Path("data/query_jobs").resolve() / query_id
+    work_dir = Path("data/query_jobs").resolve() / user_id / query_id
     work_dir.mkdir(parents=True, exist_ok=True)
 
     input_file_path = work_dir / file.filename
@@ -345,6 +353,7 @@ async def upload_dataset_for_query_only(
         # Register in convert_jobs so handoff to clean works seamlessly if user later chooses to clean it
         convert_jobs[query_id] = {
             "id": query_id,
+            "user_id": user_id,
             "filename": file.filename,
             "work_dir": work_dir,
             "intermediate_parquet": target_parquet,
@@ -371,6 +380,7 @@ async def upload_dataset(
     privacy_mode: bool = Form(False),
     format: Optional[str] = Form(None),
     options: Optional[str] = Form(None),
+    user_id: str = Depends(get_current_tenant_id),
 ):
     """Upload a dataset (CSV, TSV, Parquet, JSON, NDJSON, Excel, SQLite) and schedule pipeline."""
     from formats import AdapterRegistry, detect_format
@@ -394,17 +404,18 @@ async def upload_dataset(
         except Exception:
             pass
 
-    # Create job
+    # Create job bound to user_id
     job = orchestrator.create_job(
         filename=file.filename,
         file_size=0,
         privacy_mode=privacy_mode,
         format_id=format,
         adapter_options=parsed_options,
+        user_id=user_id,
     )
 
-    # Save to storage
-    dest_path = storage.raw_file_path(job.id, file.filename)
+    # Save to tenant storage
+    dest_path = storage.raw_file_path(job.id, file.filename, user_id=user_id)
     with open(dest_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
@@ -417,9 +428,16 @@ async def upload_dataset(
 
 
 @app.get("/api/jobs/{job_id}", response_model=JobDetailResponse)
-def get_job_status(job_id: str):
+def get_job_status(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Fetch current progress, profile, AI report, or verification results."""
-    detail = orchestrator.get_job_detail(job_id)
+    detail = orchestrator.get_job_detail(job_id, user_id=user_id)
+    if not detail:
+        ttl_h = int(retention_manager.config.ttl_hours)
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found or has expired ({ttl_h}h retention policy). Please re-upload your dataset.",
+        )
+    return detail
     if not detail:
         ttl_h = int(retention_manager.config.ttl_hours)
         raise HTTPException(
