@@ -1,5 +1,5 @@
-# One-Click AI Data Cleaner Vectorized Data Profiling, Cleaning, Modeling, Exploration, and Retention Engine
-Vectorized multi-format profiling, cleaning, relational modeling, exploration, visualization, and automated 24-hour TTL retention pipeline powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 10 GB datasets, extracts single-pass statistical profiles without full table scans, models multi-table relational ERDs with DuckDB joins, compiles sandboxed analytical charts, purges stale ephemeral storage with background scavenging, and verifies output with automated reconciliation tests.
+# Datamorph In-Process Tabular Engineering & Intelligence Workspace
+High-performance tabular workspace unifying multi-format ingestion, single-pass profiling, automated cleaning, relational ERD modeling, sandboxed SQL exploration, instant visualization, and multi-tenant data privacy powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 10 GB datasets with zero-loss all-varchar staging, models relational ERDs with in-process DuckDB joins, compiles sandboxed analytical charts in <15ms, enforces automated 24-hour TTL storage scavenging, and isolates tenant data across 344 automated tests.
 
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.1+-FFF000?style=flat&logo=duckdb&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=flat&logo=python&logoColor=white)
@@ -34,14 +34,15 @@ Vectorized multi-format profiling, cleaning, relational modeling, exploration, v
 10. **Visualize Instantly** via vectorized DuckDB chart SQL compilation across 11 chart types (bar, hbar, line, area, histogram with `#8F0926` default, scatter, pie, donut, box, heatmap, big number), AI Auto-Visualize dashboard generation, natural language chart drafting, interactive tweak controls, and 20 curated modern analytics palettes.
 11. **Handoff Seamlessly** between pipelines: multi-table ERD sessions, post-clean results, and stream conversion outputs provide 1-click downstream handoffs into AI Analyst queries, direct SQL exploration, or the visual analytics dashboard targeting verified cleaned datasets (`cleaned.parquet` or `merged.parquet`).
 12. **Enforce Ephemeral Retention** automatically with an asynchronous background scavenger daemon sweeping dynamic job workspaces (`jobs/`, `convert_jobs/`, `query_jobs/`, `modeling/`) every 30 minutes, purging artifacts older than 24 hours while strictly preserving static benchmark fixtures, reclaiming over 50 GB of disk space.
+13. **Isolate Multi-Tenant Workspaces** automatically with zero-login anonymous UUID persistence in local storage, strict regex path traversal defense, physical storage directory partitioning (`data/jobs/{user_id}/`), and OWASP-compliant 404 Not Found IDOR masking.
 
-Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 50.35 GB of stale temporary files reclaimed on initial retention sweep; 100% PII masking and 100% injection defense across 338 passing automated tests (299 Pytest + 39 Vitest). Deployed locally via Docker Compose and FastAPI.
+Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 50.35 GB of stale temporary files reclaimed on initial retention sweep; 100% PII masking, 100% IDOR defense, and 100% injection defense across 344 passing automated tests (305 Pytest + 39 Vitest). Deployed locally via Docker Compose and FastAPI.
 
 ---
 
 ## Architecture
 
-Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL) → Format Stager → Canonical Parquet → Profiler / Mode Router → AI Analyst / CTE Compiler / Chart Compiler / Relational Joiner → Verifier → Sandboxed SQL, Visualization & ERD Studio → Storage Retention Daemon (24h TTL)
+Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL) → Format Stager → Canonical Parquet → Profiler / Mode Router → AI Analyst / CTE Compiler / Chart Compiler / Relational Joiner → Verifier → Sandboxed SQL, Visualization & ERD Studio → Multi-Tenancy & Storage Retention Daemon (24h TTL)
 
 | Stage | Purpose | Format | Storage |
 |---|---|---|---|
@@ -63,6 +64,7 @@ Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL
 | SQL Studio & Dashboard | Sandboxed interactive exploration and chart tweaking | DuckDB Views / React Dashboards | In-Browser / Memory Session |
 | Multi-Format Export | Delivering cleaned or joined dataset in downstream formats | Parquet, CSV, JSON, NDJSON, XLSX | Local disk / API download |
 | Storage Retention Daemon | Background scavenger sweeping stale job directories (24h TTL) | Filesystem cleanup / Reclaimed metrics | Disk scavenger (`core/retention.py`) |
+| Multi-Tenancy Isolation | Zero-login tenant partitioning, path traversal defense & OWASP IDOR masking | Regex-validated identity & 404 masking | Partitioned storage (`data/jobs/{user_id}/`) |
 
 ### Architecture Diagram
 
@@ -73,8 +75,9 @@ Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL
 
 - **Execution Engine** — DuckDB 1.1+ (in-process vectorized columnar SQL, multi-threaded aggregation, >1,300,000 rows/s cleaning throughput, zero network overhead)
 - **SQL Security & AST** — sqlglot 30.0+ (strict read-only SELECT validation, 100% forbidden AST node denial rate, 5.0s query timeout ceiling)
-- **Backend Framework** — FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13 (299 passing automated unit & integration tests)
+- **Backend Framework** — FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13 (305 passing automated unit & integration tests)
 - **Schema & Validation** — Pydantic v2 (strict allowlist models with `extra="forbid"`, 100% PII redaction for names, emails, phones, SSNs)
+- **Multi-Tenancy & Privacy** — Zero-login client UUIDs in localStorage, OWASP IDOR defense returning 404 Not Found on cross-tenant access, regex directory traversal block, physical filesystem partitioning (`data/jobs/{user_id}/{job_id}/`)
 - **AI Reasoning** — Google GenAI SDK (`gemini-3.5-flash` / `gemini-3-flash-preview`), 30-question NL-to-SQL benchmark set with offline heuristic fallback
 - **Visualization Engine** — Plotly.js, React 19, Lucide Icons, 20-color analytics palette with default histogram `#8F0926`, dedicated 10-query concurrency controller
 - **Frontend Architecture** — React 19, TypeScript 5.0+, Vite, Tailwind CSS (fluid 1600px high-density layout, sub-1s cold build, 39 passing Vitest tests)
@@ -216,6 +219,7 @@ Evaluated across a comprehensive 30-question test suite spanning 10 analytical d
 | **Chart Compilation Latency** | Declarative spec compiled to DuckDB aggregate query | Vectorized SQL generator with TRY_CAST coercion | **< 15.0 ms** compilation & execution |
 | **Relational Join Execution** | Multi-table relational DuckDB join across foreign keys | In-process columnar JOIN compilation to Parquet | **< 20.0 ms** join & match ratio calculation |
 | **Automated Storage Retention** | 24-hour TTL expiration across dynamic job storage directories | Background scavenger daemon with protected static paths | **50.35 GB Reclaimed** (0 static benchmark files touched) |
+| **Multi-Tenancy & IDOR Defense** | Cross-tenant dataset reads, query injection, directory traversal (`../`) | Regex tenant validator + OWASP 404 Not Found masking | **100.0% Blocked** (0 cross-tenant data leaks across 6 integration tests) |
 | **Resource Safety Ceilings** | Unbounded user queries or runaway Cartesian joins | sqlglot AST validation + 5.0s timeout + 10,000 row cap | **100.0% Enforced** (Zero runaway thread lockups) |
 
 ### Streaming Format Conversion Benchmarks
@@ -274,6 +278,7 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 - **Privacy Mode Masking** — When privacy mode is enabled, sample data values and categorical token lists are stripped from LLM prompts; only statistical distributions and column names are transmitted.
 - **Deterministic Offline Fallback** — If Gemini API rate limits, network interruptions, or quota exhaustion occurs, the pipeline falls back to an offline rule-based recipe generator without pipeline stoppage.
 - **Automated 24-Hour Storage Retention & Scavenger** — To prevent unbounded server disk accumulation, an asynchronous background daemon runs on FastAPI lifespan startup, sweeping ephemeral job directories (`data/jobs`, `data/convert_jobs`, `data/query_jobs`, `data/modeling`) every 30 minutes. Directories older than 24 hours are cleanly deleted and in-memory caches evicted, while critical directories (`benchmarks`, `demo`, `evaluation`) are strictly protected. Initial test run verified reclamation of 50.35 GB without affecting active jobs or static fixtures.
+- **Multi-Tenancy & Data Isolation** — All jobs, convert tasks, modeling sessions, and query stores are physically segregated into `data/{category}/{user_id}/` partitions. Zero-login anonymous client UUIDs are persisted in browser `localStorage`, with OWASP-compliant `404 Not Found` responses masking unauthorized access attempts to prevent resource enumeration.
 - **Enterprise Database & Schema Discovery** — External PostgreSQL and Supabase sources support direct connection testing, multi-schema table enumeration (`public`, `storage`, `auth`), and session pooler IPv4 auto-detection, eliminating manual table typing and IPv6 connection dropouts.
 - **Reconciliation Audit Gate** — Output files are verified before delivery; if unexpected row loss exceeds defined thresholds, warnings are flagged in the verification report.
 - **Fluid High-Density Layout** — The user interface uses a wide 1600px breakpoint and responsive padding across all views, eliminating artificial container constraints and bottom clutter for deep analytical data inspection.
@@ -451,7 +456,7 @@ python demo.py 25000
 
 ### 4. Run full test suite
 ```bash
-# Run backend test suite (299 tests)
+# Run backend test suite (305 tests)
 pytest -v tests/
 
 # Run frontend unit test suite (39 tests)
@@ -493,6 +498,8 @@ docker compose up --build
 ---
 
 ## Challenges Solved
+
+- **Cross-Tenant IDOR & Ephemeral Job Collision** — Symptom: In multi-user environments, jobs uploaded to a shared `data/jobs/` directory could be accessed or queried by unauthorized users knowing or guessing the job ID, exposing private datasets. Diagnosis: Job IDs were stored in flat unpartitioned directories (`data/jobs/{job_id}`) without tenant ownership tracking, and endpoints lacked caller verification, returning data or emitting `403 Forbidden` which confirmed resource existence. Fix: Built `core/tenant.py` with `validate_tenant_id` (whitelisting `^[a-zA-Z0-9_\-]{1,64}$` against path traversal), bound creating `user_id` to `JobMetadata`, partitioned all storage directories into `data/{category}/{user_id}/{id}/`, masked unauthorized cross-tenant requests with OWASP-compliant `404 Not Found` responses accompanied by server audit logs, and generated zero-login anonymous UUIDs in the frontend client.
 
 - **Multi-Table SQL Studio Handoff Empty State** — Symptom: In Model Data (ERD) Studio, clicking "Query in SQL Studio" navigated to a blank upload dropzone instead of loading the staged multi-table session. Diagnosis: `onHandoffToQuery` in `App.tsx` switched mode to `'query'` without passing the session identifier or SQL statement, and `QueryPage.tsx` did not accept initial dataset props, defaulting to `queryResult = null`. Fix: Expanded `QueryHandoffResult` in `api.ts`, stored the handoff payload in `queryTarget`, `queryInitialSql`, and `queryInitialMode` state in `App.tsx`, initialized `queryResult` from `initialDataset` in `QueryPage.tsx`, and forwarded `initialSql` and `initialMode` to `SqlQueryBox.tsx`.
 - **ERD Canvas Native Pinch/Scroll Page-Zoom Collision** — Symptom: Using the mouse wheel or trackpad pinch on the ERD modeling canvas zoomed the entire browser viewport rather than zooming only the canvas viewport. Diagnosis: React attaches synthetic `onWheel` event handlers as passive by default (`{ passive: true }`), causing `e.preventDefault()` calls within React event listeners to be silently ignored by modern browser engines. Fix: Bound a native wheel listener with `{ passive: false }` directly on the canvas element ref in a `useEffect` hook, calculating cursor-directed focal zoom and clamping scale between 0.25x and 2.5x.
