@@ -1,4 +1,4 @@
-"""Local disk storage adapter for job data files and intermediate artifacts."""
+"""Local disk storage adapter for job data files and intermediate artifacts with multi-tenant partitioning."""
 
 from __future__ import annotations
 import shutil
@@ -7,51 +7,75 @@ from typing import Optional
 
 
 class JobStorage:
-    """Manages workspace storage directories for each job."""
+    """Manages workspace storage directories for each job with optional tenant partitioning."""
 
-    def __init__(self, base_dir: str = "data/jobs") -> None:
+    def __init__(self, base_dir: str = "data/jobs", user_id: str = "default") -> None:
         self.base_dir = Path(base_dir).resolve()
         self.base_dir.mkdir(parents=True, exist_ok=True)
+        self.user_id = user_id
 
-    def job_dir(self, job_id: str) -> Path:
-        d = self.base_dir / job_id
-        d.mkdir(parents=True, exist_ok=True)
-        return d
+    def for_user(self, user_id: str) -> JobStorage:
+        """Create a JobStorage adapter scoped to a specific tenant/user."""
+        return JobStorage(base_dir=str(self.base_dir), user_id=user_id)
 
-    def raw_file_path(self, job_id: str, filename: str) -> Path:
-        p = self.job_dir(job_id) / "raw"
+    def job_dir(self, job_id: str, user_id: Optional[str] = None) -> Path:
+        """Return the physical job directory, partitioning by user_id.
+        
+        Gracefully resolves legacy unpartitioned directories if uid is 'default'.
+        """
+        uid = user_id or self.user_id
+        # Tenant partitioned directory
+        tenant_dir = self.base_dir / uid / job_id
+        if not tenant_dir.exists() and (self.base_dir / job_id).exists() and uid == "default":
+            # Backward compatibility for flat unpartitioned jobs created prior to multi-tenancy
+            return self.base_dir / job_id
+
+        tenant_dir.mkdir(parents=True, exist_ok=True)
+        return tenant_dir
+
+    def raw_file_path(self, job_id: str, filename: str, user_id: Optional[str] = None) -> Path:
+        p = self.job_dir(job_id, user_id=user_id) / "raw"
         p.mkdir(parents=True, exist_ok=True)
         return p / filename
 
-    def raw_csv_path(self, job_id: str, filename: str = "input.csv") -> Path:
-        return self.raw_file_path(job_id, filename)
+    def raw_csv_path(self, job_id: str, filename: str = "input.csv", user_id: Optional[str] = None) -> Path:
+        return self.raw_file_path(job_id, filename, user_id=user_id)
 
-    def staged_parquet_path(self, job_id: str) -> Path:
-        p = self.job_dir(job_id) / "parquet"
+    def staged_parquet_path(self, job_id: str, user_id: Optional[str] = None) -> Path:
+        p = self.job_dir(job_id, user_id=user_id) / "parquet"
         p.mkdir(parents=True, exist_ok=True)
         return p / "staged.parquet"
 
-    def clean_parquet_path(self, job_id: str) -> Path:
-        p = self.job_dir(job_id) / "clean"
+    def clean_parquet_path(self, job_id: str, user_id: Optional[str] = None) -> Path:
+        p = self.job_dir(job_id, user_id=user_id) / "clean"
         p.mkdir(parents=True, exist_ok=True)
         return p / "cleaned.parquet"
 
-    def clean_csv_path(self, job_id: str) -> Path:
-        p = self.job_dir(job_id) / "clean"
+    def clean_csv_path(self, job_id: str, user_id: Optional[str] = None) -> Path:
+        p = self.job_dir(job_id, user_id=user_id) / "clean"
         p.mkdir(parents=True, exist_ok=True)
         return p / "cleaned.csv"
 
-    def clean_export_path(self, job_id: str, filename: str) -> Path:
-        p = self.job_dir(job_id) / "exports"
+    def clean_export_path(self, job_id: str, filename: str, user_id: Optional[str] = None) -> Path:
+        p = self.job_dir(job_id, user_id=user_id) / "exports"
         p.mkdir(parents=True, exist_ok=True)
         return p / filename
 
-    def verification_json_path(self, job_id: str) -> Path:
-        p = self.job_dir(job_id) / "reports"
+    def verification_json_path(self, job_id: str, user_id: Optional[str] = None) -> Path:
+        p = self.job_dir(job_id, user_id=user_id) / "reports"
         p.mkdir(parents=True, exist_ok=True)
         return p / "verification.json"
 
-    def cleanup_job(self, job_id: str) -> None:
-        d = self.base_dir / job_id
-        if d.exists():
-            shutil.rmtree(d, ignore_errors=True)
+    def cleanup_job(self, job_id: str, user_id: Optional[str] = None) -> None:
+        """Remove a job workspace directory."""
+        uid = user_id or self.user_id
+        target = self.base_dir / uid / job_id
+        if target.exists():
+            shutil.rmtree(target, ignore_errors=True)
+        elif (self.base_dir / job_id).exists() and uid == "default":
+            shutil.rmtree(self.base_dir / job_id, ignore_errors=True)
+
+        # Clean empty tenant parent directory if no other jobs remain
+        user_parent = self.base_dir / uid
+        if user_parent.exists() and user_parent != self.base_dir and not any(user_parent.iterdir()):
+            shutil.rmtree(user_parent, ignore_errors=True)
