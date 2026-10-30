@@ -47,11 +47,11 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
       return;
     }
 
-    // 3. Check max file size (10 GB)
+    // 3. Check max file size (5 GB)
     if (file.size > MAX_FILE_SIZE_BYTES) {
       setError({
         message: `File exceeds maximum size limit (${formatBytes(file.size)}).`,
-        recovery: 'The cleaner supports files up to 10 GB on a single machine. Consider partitioning your file into smaller batches.',
+        recovery: 'The cleaner supports files up to 5 GB on a single machine. Consider partitioning your file into smaller batches.',
       });
       return;
     }
