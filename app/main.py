@@ -420,7 +420,11 @@ def get_job_status(job_id: str):
     """Fetch current progress, profile, AI report, or verification results."""
     detail = orchestrator.get_job_detail(job_id)
     if not detail:
-        raise HTTPException(status_code=404, detail="Job not found")
+        ttl_h = int(retention_manager.config.ttl_hours)
+        raise HTTPException(
+            status_code=404,
+            detail=f"Job '{job_id}' not found or has expired ({ttl_h}h retention policy). Please re-upload your dataset.",
+        )
     return detail
 
 
