@@ -144,29 +144,29 @@ class Profiler:
     def __init__(
         self,
         memory_limit: Optional[str] = None,
-        threads: int = 4,
+        threads: Optional[int] = None,
         privacy_mode: bool = False,
         temp_directory: Optional[str] = None,
     ) -> None:
-        self.memory_limit = memory_limit or os.getenv("DUCKDB_MEMORY_LIMIT", "600MB")
-        self.threads = threads
+        self.memory_limit = memory_limit or get_duckdb_memory_limit()
+        self.threads = threads or get_duckdb_threads()
         self.privacy_mode = privacy_mode
-        self.temp_directory = temp_directory or os.getenv("DUCKDB_TEMP_DIR", "/tmp/duckdb_temp")
+        self.temp_directory = temp_directory or get_duckdb_temp_directory()
 
     def _get_connection(self) -> duckdb.DuckDBPyConnection:
         conn = duckdb.connect(":memory:")
-        conn.execute("SET preserve_insertion_order = false;")
-        if self.temp_directory:
-            os.makedirs(self.temp_directory, exist_ok=True)
-            conn.execute(f"SET temp_directory = '{self.temp_directory}';")
-        conn.execute(f"SET memory_limit = '{self.memory_limit}';")
-        conn.execute(f"SET threads = {self.threads};")
-        return conn
+        return configure_duckdb_connection(
+            conn,
+            memory_limit=self.memory_limit,
+            threads=self.threads,
+            temp_directory=self.temp_directory,
+        )
 
     def profile_parquet(
         self,
         parquet_path: str | Path,
         source_csv_path: Optional[str | Path] = None,
+        progress_callback: Optional[Callable[[float, str], None]] = None,
     ) -> DatasetProfile:
         """Profile a text-only Parquet file produced by Converter."""
         start_time = time.perf_counter()
@@ -178,6 +178,9 @@ class Profiler:
         conn = self._get_connection()
 
         try:
+            if progress_callback:
+                progress_callback(50.0, "Scanning table schema and duplicate records...")
+
             # Register parquet view
             view_name = "raw_data"
             conn.execute(f"CREATE OR REPLACE VIEW {view_name} AS SELECT * FROM read_parquet('{pq_sql}');")
@@ -200,11 +203,20 @@ class Profiler:
                 exact_dup_rows = 0
                 exact_dup_pct = 0.0
 
+            if progress_callback:
+                progress_callback(52.0, "Duplicate scan complete. Profiling columns...")
+
             # 3. Profile each column
             columns_profile: Dict[str, ColumnProfile] = {}
-            for col in column_names:
+            for idx, col in enumerate(column_names):
+                if progress_callback and col_count > 0:
+                    pct = 52.0 + (idx / col_count) * 43.0
+                    progress_callback(pct, f"Profiling column '{col}' ({idx + 1}/{col_count})...")
                 col_profile = self._profile_column(conn, view_name, col, total_rows)
                 columns_profile[col] = col_profile
+
+            if progress_callback:
+                progress_callback(96.0, "Statistical profile ready. Compiling cleaning recipe...")
 
             elapsed = round(time.perf_counter() - start_time, 3)
 
@@ -289,24 +301,29 @@ class Profiler:
             distinct_count == total_rows and total_nulls == 0 and total_rows > 1
         )
 
-        # 2. Type inference and deeper profiling on non-null clean values
-        # Test candidate types: integer, double, timestamp, boolean, string
+        # 2. Type inference on clean non-null values
+        # For large tables (> 50,000 rows), test candidate types on a statistically representative sample
+        # of up to 100,000 rows to ensure sub-second response on multi-gigabyte datasets without losing precision.
+        SAMPLE_SIZE = 100000
+        if total_rows > SAMPLE_SIZE:
+            sample_subquery = f"(SELECT {quoted} FROM {view_name} WHERE {quoted} IS NOT NULL LIMIT {SAMPLE_SIZE})"
+        else:
+            sample_subquery = f"(SELECT {quoted} FROM {view_name} WHERE {quoted} IS NOT NULL)"
+
         type_test_query = f"""
             SELECT
                 COUNT(try_cast({quoted} AS BIGINT)) AS int_count,
                 COUNT(try_cast({quoted} AS DOUBLE)) AS dbl_count,
-                COUNT(try_cast({quoted} AS BOOLEAN)) AS bool_count
-            FROM {view_name}
-            WHERE {quoted} IS NOT NULL AND lower(trim({str_val})) NOT IN ({','.join(f"'{t}'" for t in NULL_TOKENS)});
+                COUNT(try_cast({quoted} AS BOOLEAN)) AS bool_count,
+                COUNT(*) AS sample_valid
+            FROM {sample_subquery}
+            WHERE lower(trim({str_val})) NOT IN ({','.join(f"'{t}'" for t in NULL_TOKENS)});
         """
         type_res = conn.execute(type_test_query).fetchone()
         int_valid = type_res[0] or 0
         dbl_valid = type_res[1] or 0
         bool_valid = type_res[2] or 0
-        valid_candidates = non_null_count - sum(
-            c for k, c in token_counts.items() if k != "<empty>"
-        )
-        valid_candidates = max(0, valid_candidates)
+        sample_valid = type_res[3] or 0
 
         inferred_type = "string"
         numeric_stats = None
@@ -314,7 +331,7 @@ class Profiler:
         timezone_evidence = None
         day_month_ambiguous = False
 
-        if valid_candidates > 0 and (int_valid / valid_candidates) >= 0.85:
+        if sample_valid > 0 and (int_valid / sample_valid) >= 0.85:
             inferred_type = "integer"
             # Compute numeric stats
             num_q = f"""
@@ -328,6 +345,8 @@ class Profiler:
             """
             num_res = conn.execute(num_q).fetchone()
             neg_count = num_res[3] or 0
+            valid_candidates = non_null_count - sum(c for k, c in token_counts.items() if k != "<empty>")
+            valid_candidates = max(1, valid_candidates)
             numeric_stats = NumericStats(
                 min=float(num_res[0]) if num_res[0] is not None else None,
                 max=float(num_res[1]) if num_res[1] is not None else None,
@@ -335,7 +354,7 @@ class Profiler:
                 negatives=neg_count,
                 negative_pct=round((neg_count / valid_candidates) * 100, 2),
             )
-        elif valid_candidates > 0 and (dbl_valid / valid_candidates) >= 0.85:
+        elif sample_valid > 0 and (dbl_valid / sample_valid) >= 0.85:
             inferred_type = "double"
             num_q = f"""
                 SELECT
@@ -348,6 +367,8 @@ class Profiler:
             """
             num_res = conn.execute(num_q).fetchone()
             neg_count = num_res[3] or 0
+            valid_candidates = non_null_count - sum(c for k, c in token_counts.items() if k != "<empty>")
+            valid_candidates = max(1, valid_candidates)
             numeric_stats = NumericStats(
                 min=round(float(num_res[0]), 4) if num_res[0] is not None else None,
                 max=round(float(num_res[1]), 4) if num_res[1] is not None else None,
@@ -355,21 +376,18 @@ class Profiler:
                 negatives=neg_count,
                 negative_pct=round((neg_count / valid_candidates) * 100, 2),
             )
-        elif valid_candidates > 0 and (bool_valid / valid_candidates) >= 0.95:
+        elif sample_valid > 0 and (bool_valid / sample_valid) >= 0.95:
             inferred_type = "boolean"
         else:
-            # Check for timestamp / date candidates with whitespace tolerance
+            # Check for timestamp / date candidates with whitespace tolerance on sample
             fmt_cases = ", ".join(
                 [f"COUNT(try_strptime(trim({quoted}), '{fmt}')) AS fmt_{i}"
                  for i, fmt in enumerate(COMMON_DATE_FORMATS)]
             )
-            date_q = f"""
-                SELECT {fmt_cases}
-                FROM (SELECT {quoted} FROM {view_name} WHERE {quoted} IS NOT NULL LIMIT 100000);
-            """
+            date_q = f"SELECT {fmt_cases} FROM {sample_subquery};"
             try:
                 date_res = conn.execute(date_q).fetchone()
-                sample_tested = min(100000, valid_candidates)
+                sample_tested = sample_valid
                 if sample_tested > 0:
                     for i, fmt in enumerate(COMMON_DATE_FORMATS):
                         matched = date_res[i] or 0
@@ -382,13 +400,12 @@ class Profiler:
                         # Sort by highest match percentage
                         formats.sort(key=lambda x: x.match_pct, reverse=True)
 
-                        # Test timezone evidence
+                        # Test timezone evidence on sample
                         tz_q = f"""
                             SELECT
                                 SUM(CASE WHEN {quoted} LIKE '%Z' THEN 1 ELSE 0 END) AS z_count,
                                 SUM(CASE WHEN {quoted} ~ '[+-][0-9]{{2}}:[0-9]{{2}}$' THEN 1 ELSE 0 END) AS offset_count
-                            FROM {view_name}
-                            WHERE {quoted} IS NOT NULL;
+                            FROM {sample_subquery};
                         """
                         tz_res = conn.execute(tz_q).fetchone()
                         z_cnt = tz_res[0] or 0
@@ -402,14 +419,13 @@ class Profiler:
                         else:
                             timezone_evidence = "naive"
 
-                        # Check day/month ambiguity
-                        # If values parse under both %d/%m/%Y and %m/%d/%Y
+                        # Check day/month ambiguity on sample
                         amb_q = f"""
                             SELECT
                                 COUNT(try_strptime({quoted}, '%d/%m/%Y')) AS dm_cnt,
                                 COUNT(try_strptime({quoted}, '%m/%d/%Y')) AS md_cnt
-                            FROM {view_name}
-                            WHERE {quoted} IS NOT NULL AND {quoted} LIKE '%/%/%';
+                            FROM {sample_subquery}
+                            WHERE {quoted} LIKE '%/%/%';
                         """
                         amb_res = conn.execute(amb_q).fetchone()
                         dm_c = amb_res[0] or 0
@@ -419,14 +435,13 @@ class Profiler:
             except Exception as e:
                 logger.debug("Date format scan skipped: %s", e)
 
-        # 3. Sample values (if privacy_mode is False)
+        # 3. Sample values (if privacy_mode is False) - fast sampling from up to 2000 rows
         sample_values = []
         if not self.privacy_mode:
             sample_q = f"""
                 SELECT DISTINCT {quoted}
-                FROM {view_name}
-                WHERE {quoted} IS NOT NULL
-                  AND lower(trim({str_val})) NOT IN ({','.join(f"'{t}'" for t in NULL_TOKENS)})
+                FROM (SELECT {quoted} FROM {view_name} WHERE {quoted} IS NOT NULL LIMIT 2000)
+                WHERE lower(trim({str_val})) NOT IN ({','.join(f"'{t}'" for t in NULL_TOKENS)})
                 LIMIT 5;
             """
             sample_rows = conn.execute(sample_q).fetchall()
@@ -448,4 +463,5 @@ class Profiler:
             timezone_evidence=timezone_evidence,
             day_month_ambiguous=day_month_ambiguous,
             sample_values=sample_values,
+        )
         )
