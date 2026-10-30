@@ -42,40 +42,58 @@ class ModelingService:
         self.base_dir = Path(base_dir or "data/modeling").resolve()
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
-    def _get_session_dir(self, session_id: str) -> Path:
-        s_dir = self.base_dir / session_id
+    def _get_session_dir(self, session_id: str, user_id: Optional[str] = None) -> Path:
+        uid = user_id or "default"
+        s_dir = self.base_dir / uid / session_id
+        if not s_dir.exists() and (self.base_dir / session_id).exists() and uid == "default":
+            # Backward-compatibility for flat unpartitioned sessions
+            return self.base_dir / session_id
         s_dir.mkdir(parents=True, exist_ok=True)
         (s_dir / "tables").mkdir(parents=True, exist_ok=True)
         return s_dir
 
-    def _get_state_file(self, session_id: str) -> Path:
-        return self._get_session_dir(session_id) / "state.json"
+    def _get_state_file(self, session_id: str, user_id: Optional[str] = None) -> Path:
+        return self._get_session_dir(session_id, user_id=user_id) / "state.json"
 
-    def _load_state(self, session_id: str) -> ModelingSessionState:
-        state_file = self._get_state_file(session_id)
+    def _load_state(self, session_id: str, user_id: Optional[str] = None) -> ModelingSessionState:
+        uid = user_id or "default"
+        state_file = self._get_state_file(session_id, user_id=uid)
+        if not state_file.exists() and uid != "default":
+            # If not in tenant dir, check legacy flat path if owner is actually default
+            legacy_file = self.base_dir / session_id / "state.json"
+            if legacy_file.exists():
+                state_file = legacy_file
+
         if state_file.exists():
             try:
                 with open(state_file, "r", encoding="utf-8") as f:
                     data = json.load(f)
-                return ModelingSessionState(**data)
+                state = ModelingSessionState(**data)
+                if user_id is not None and getattr(state, "user_id", "default") != user_id:
+                    raise PermissionError(f"User '{user_id}' does not have access to modeling session '{session_id}'")
+                return state
+            except PermissionError:
+                raise
             except Exception as e:
                 logger.warning(f"Failed to load state for session {session_id}: {e}")
 
         # Fallback fresh state
         return ModelingSessionState(
             session_id=session_id,
+            user_id=uid,
             created_at=datetime.now(timezone.utc).isoformat(),
         )
 
-    def _save_state(self, session_id: str, state: ModelingSessionState) -> None:
-        state_file = self._get_state_file(session_id)
+    def _save_state(self, session_id: str, state: ModelingSessionState, user_id: Optional[str] = None) -> None:
+        uid = user_id or getattr(state, "user_id", "default")
+        state_file = self._get_state_file(session_id, user_id=uid)
         with open(state_file, "w", encoding="utf-8") as f:
             json.dump(state.model_dump(), f, indent=2)
 
-    def _build_duckdb_connection(self, session_id: str) -> duckdb.DuckDBPyConnection:
+    def _build_duckdb_connection(self, session_id: str, user_id: Optional[str] = None) -> duckdb.DuckDBPyConnection:
         """Create an in-memory DuckDB connection with views for all session tables."""
         con = duckdb.connect(":memory:")
-        tables_dir = self._get_session_dir(session_id) / "tables"
+        tables_dir = self._get_session_dir(session_id, user_id=user_id) / "tables"
 
         for p_file in tables_dir.glob("*.parquet"):
             tbl_name = p_file.stem
@@ -83,20 +101,21 @@ class ModelingService:
 
         return con
 
-    def create_session(self) -> str:
-        """Initialize a new multi-table modeling session."""
+    def create_session(self, user_id: str = "default") -> str:
+        """Initialize a new multi-table modeling session bound to a tenant."""
         session_id = f"model_{uuid.uuid4().hex[:8]}"
-        self._get_session_dir(session_id)
+        self._get_session_dir(session_id, user_id=user_id)
         state = ModelingSessionState(
             session_id=session_id,
+            user_id=user_id,
             created_at=datetime.now(timezone.utc).isoformat(),
         )
-        self._save_state(session_id, state)
+        self._save_state(session_id, state, user_id=user_id)
         return session_id
 
-    def get_session_state(self, session_id: str) -> ModelingSessionState:
+    def get_session_state(self, session_id: str, user_id: Optional[str] = None) -> ModelingSessionState:
         """Retrieve current state of a modeling session."""
-        return self._load_state(session_id)
+        return self._load_state(session_id, user_id=user_id)
 
     def add_table(
         self,
