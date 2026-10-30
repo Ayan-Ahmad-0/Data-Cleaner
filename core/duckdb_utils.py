@@ -9,8 +9,11 @@ import duckdb
 
 
 def get_duckdb_memory_limit() -> str:
-    """Return configured memory limit or sensible high-performance default (8GB)."""
-    return os.getenv("DUCKDB_MEMORY_LIMIT", "8GB")
+    """Return configured memory limit or sensible high-performance default (4GB-8GB)."""
+    limit = os.getenv("DUCKDB_MEMORY_LIMIT")
+    if not limit or limit.strip().upper() in ("600MB", "500MB"):
+        return "4GB"
+    return limit
 
 
 def get_duckdb_threads() -> int:

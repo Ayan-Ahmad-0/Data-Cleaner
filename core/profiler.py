@@ -270,10 +270,14 @@ class Profiler:
              for i, tok in enumerate(NULL_TOKENS)]
         )
 
+        # For datasets > 100,000 rows, use HyperLogLog (APPROX_COUNT_DISTINCT).
+        # This uses fixed 16 KB of RAM, preventing disk thrashing and OOM on cloud containers.
+        distinct_expr = f"COUNT(DISTINCT {quoted})" if total_rows <= 100000 else f"APPROX_COUNT_DISTINCT({quoted})"
+
         query = f"""
             SELECT
                 COUNT({quoted}) AS non_null_count,
-                COUNT(DISTINCT {quoted}) AS distinct_count,
+                {distinct_expr} AS distinct_count,
                 SUM(CASE WHEN {quoted} IS NOT NULL AND length({str_val}) != length(trim({str_val})) THEN 1 ELSE 0 END) AS ws_issues,
                 {token_cases}
             FROM {view_name};
@@ -297,9 +301,24 @@ class Profiler:
         total_nulls = min(total_rows, sql_nulls + pseudo_nulls)
         null_pct = round((total_nulls / total_rows) * 100, 2)
 
-        is_candidate_key = (
-            distinct_count == total_rows and total_nulls == 0 and total_rows > 1
-        )
+        # Candidate key detection: 100% uniqueness with 0 nulls
+        if total_nulls == 0 and total_rows > 1:
+            if total_rows <= 100000:
+                is_candidate_key = (distinct_count == total_rows)
+            else:
+                # Fast candidate key verification for large datasets:
+                # If approx distinct is >= 95% of total, check for any duplicates with short-circuit LIMIT 1
+                if distinct_count >= int(total_rows * 0.95):
+                    has_dup = conn.execute(
+                        f"SELECT 1 FROM (SELECT {quoted} FROM {view_name} GROUP BY {quoted} HAVING COUNT(*) > 1 LIMIT 1)"
+                    ).fetchone()
+                    is_candidate_key = (has_dup is None)
+                    if is_candidate_key:
+                        distinct_count = total_rows
+                else:
+                    is_candidate_key = False
+        else:
+            is_candidate_key = False
 
         # 2. Type inference on clean non-null values
         # For large tables (> 50,000 rows), test candidate types on a statistically representative sample
