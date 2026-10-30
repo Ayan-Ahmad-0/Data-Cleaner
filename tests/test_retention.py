@@ -94,11 +94,11 @@ def test_retention_purges_expired_completed_jobs(temp_retention_env):
 
     # Old job should be evicted from orchestrator and disk
     assert old_job.id not in orchestrator.jobs
-    assert not storage.job_dir(old_job.id).exists()
+    assert not (storage.base_dir / old_job.id).exists()
 
     # Fresh job should remain intact
     assert fresh_job.id in orchestrator.jobs
-    assert storage.job_dir(fresh_job.id).exists()
+    assert (storage.base_dir / fresh_job.id).exists()
 
 
 def test_retention_protects_in_progress_jobs(temp_retention_env):
