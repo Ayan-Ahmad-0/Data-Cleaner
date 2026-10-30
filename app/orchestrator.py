@@ -146,7 +146,15 @@ class JobOrchestrator:
             job.current_stage = "Computing statistical profile and data anomalies"
             job.progress_pct = 50.0
 
-            profile = self.profiler.profile_parquet(staged_pq, source_csv_path=raw_file if raw_file.exists() else None)
+            def _on_profile_progress(pct: float, stage: str):
+                job.progress_pct = round(pct, 1)
+                job.current_stage = stage
+
+            profile = self.profiler.profile_parquet(
+                staged_pq,
+                source_csv_path=raw_file if raw_file.exists() else None,
+                progress_callback=_on_profile_progress,
+            )
             p_dict = profile.to_dict()
             self.job_profiles[job_id] = p_dict
 
@@ -245,14 +253,8 @@ class JobOrchestrator:
             clean_csv = self.storage.clean_csv_path(job_id, user_id=job.user_id)
             clean_pq_sql = str(clean_pq).replace("\\", "/")
             clean_csv_sql = str(clean_csv).replace("\\", "/")
-            import os
             conn = duckdb.connect(":memory:")
-            conn.execute("SET preserve_insertion_order = false;")
-            temp_dir = os.getenv("DUCKDB_TEMP_DIR", "/tmp/duckdb_temp")
-            os.makedirs(temp_dir, exist_ok=True)
-            conn.execute(f"SET temp_directory = '{temp_dir}';")
-            mem_limit = os.getenv("DUCKDB_MEMORY_LIMIT", "600MB")
-            conn.execute(f"SET memory_limit = '{mem_limit}';")
+            configure_duckdb_connection(conn)
             conn.execute(f"COPY (SELECT * FROM read_parquet('{clean_pq_sql}')) TO '{clean_csv_sql}' (HEADER, DELIMITER ',');")
             conn.close()
 
