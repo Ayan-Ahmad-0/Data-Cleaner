@@ -96,6 +96,30 @@ def health_check():
     return {"status": "ok", "engine": "DuckDB", "service": "data-cleaner-api"}
 
 
+@app.post("/api/maintenance/cleanup")
+def trigger_storage_cleanup(max_age_hours: Optional[float] = None):
+    """Trigger an on-demand retention sweep across memory and dynamic storage directories."""
+    result = retention_manager.purge_expired_data(
+        orchestrator=orchestrator,
+        convert_jobs=convert_jobs,
+        max_age_hours=max_age_hours,
+    )
+    return result.to_dict()
+
+
+@app.get("/api/maintenance/storage")
+def get_storage_inventory_and_status():
+    """Retrieve disk capacity, active category item counts, and retention policy settings."""
+    inventory = retention_manager.get_storage_inventory()
+    inventory["retention_policy"] = {
+        "ttl_hours": retention_manager.config.ttl_hours,
+        "cleanup_interval_minutes": retention_manager.config.cleanup_interval_minutes,
+        "enabled": retention_manager.config.enabled,
+        "max_disk_usage_percent": retention_manager.config.max_disk_usage_percent,
+    }
+    return inventory
+
+
 @app.post("/api/formats/detect")
 async def detect_uploaded_format(file: UploadFile = File(...)):
     """Sniff and detect the format of an uploaded file without saving permanently."""
