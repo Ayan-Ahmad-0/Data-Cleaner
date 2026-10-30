@@ -414,10 +414,17 @@ GEMINI_MODEL=gemini-3.5-flash
 # DuckDB Engine Settings
 DUCKDB_MEMORY_LIMIT=4GB
 DUCKDB_THREADS=4
+
+# Storage Retention and TTL Lifecycle
+RETENTION_TTL_HOURS=24
+RETENTION_SWEEP_INTERVAL_MINUTES=30
+RETENTION_ENABLED=true
+STORAGE_DIR=data
 ```
 
 - **Connection Secrets** — External connectors (PostgreSQL, S3) accept credentials through request bodies or environment variables; no default connection string is stored in code.
 - **Deployment Keys** — If `GEMINI_API_KEY` is not provided, the pipeline operates in offline deterministic heuristic mode without failure.
+- **Storage Retention Lifecycle** — Setting `RETENTION_ENABLED=false` disables automated cleanup; `RETENTION_TTL_HOURS` configures eviction age (default: 24h); the background scavenger sweeps every `RETENTION_SWEEP_INTERVAL_MINUTES` (default: 30m).
 - **Memory Quirks** — On memory-constrained systems (e.g. 8 GB RAM total), adjust `DUCKDB_MEMORY_LIMIT=2GB` to prevent OS swapping during multi-GB dataset conversions.
 
 ---
@@ -444,7 +451,7 @@ python demo.py 25000
 
 ### 4. Run full test suite
 ```bash
-# Run backend test suite (292 tests)
+# Run backend test suite (299 tests)
 pytest -v tests/
 
 # Run frontend unit test suite (39 tests)
@@ -481,6 +488,7 @@ docker compose up --build
 | Unified API & UI | http://localhost:8000 | FastAPI backend serving API and static production frontend |
 | API Documentation | http://localhost:8000/docs | Interactive OpenAPI Swagger UI |
 | Health Endpoint | http://localhost:8000/api/health | Service readiness and engine status |
+| Storage Maintenance API | http://localhost:8000/api/maintenance/storage | Live disk usage telemetry and manual TTL sweep trigger |
 
 ---
 
@@ -489,6 +497,10 @@ docker compose up --build
 - **Multi-Table SQL Studio Handoff Empty State** — Symptom: In Model Data (ERD) Studio, clicking "Query in SQL Studio" navigated to a blank upload dropzone instead of loading the staged multi-table session. Diagnosis: `onHandoffToQuery` in `App.tsx` switched mode to `'query'` without passing the session identifier or SQL statement, and `QueryPage.tsx` did not accept initial dataset props, defaulting to `queryResult = null`. Fix: Expanded `QueryHandoffResult` in `api.ts`, stored the handoff payload in `queryTarget`, `queryInitialSql`, and `queryInitialMode` state in `App.tsx`, initialized `queryResult` from `initialDataset` in `QueryPage.tsx`, and forwarded `initialSql` and `initialMode` to `SqlQueryBox.tsx`.
 - **ERD Canvas Native Pinch/Scroll Page-Zoom Collision** — Symptom: Using the mouse wheel or trackpad pinch on the ERD modeling canvas zoomed the entire browser viewport rather than zooming only the canvas viewport. Diagnosis: React attaches synthetic `onWheel` event handlers as passive by default (`{ passive: true }`), causing `e.preventDefault()` calls within React event listeners to be silently ignored by modern browser engines. Fix: Bound a native wheel listener with `{ passive: false }` directly on the canvas element ref in a `useEffect` hook, calculating cursor-directed focal zoom and clamping scale between 0.25x and 2.5x.
 - **ERD Bezier Line Cardinality Badge Visual Clashing** — Symptom: The cardinality pill badge (`1:N · 100%`) overlapped directly on top of the relational link line, visually severing the text. Diagnosis: The badge SVG coordinate `y={midY - 12}` centered the badge directly on the Bezier spline curve. Fix: Elevated the badge pill container above the Bezier curve (`y={midY - 26}`), added an opaque surface background with border hairline, and rendered a subtle vertical stem connecting the badge to the underlying curve midpoint.
+- **Temporary Storage File Accumulation & Server Disk Depletion** — Symptom: High-volume dataset profiling, format conversions, and relational joins continuously accumulated multi-gigabyte Parquet and CSV files in `data/`, eventually exhausting server disk capacity. Diagnosis: Job directories in `data/jobs`, `data/convert_jobs`, `data/query_jobs`, and `data/modeling` lacked an automated lifecycle policy or expiration metadata, requiring manual disk administration. Fix: Built `core/retention.py` with `StorageRetentionManager` and an asynchronous background daemon loop in FastAPI `lifespan`, automatically sweeping directories older than 24 hours every 30 minutes, exposing `/api/maintenance/storage` and `/api/maintenance/cleanup` endpoints, and reclaiming 50.35 GB on initial sweep while strictly safeguarding static benchmark directories.
+- **PostgreSQL Import Semicolon Execution Rejection** — Symptom: Ingesting tables from PostgreSQL failed with a DuckDB catalog syntax error when executing the generated table stream query. Diagnosis: Table extraction queries ending with a trailing semicolon (e.g. `SELECT * FROM table;`) caused syntax errors when wrapped inside DuckDB's subquery table expression `FROM (...) AS src`. Fix: Added `.rstrip().rstrip(";")` sanitization in PostgreSQL connector query generation prior to subquery wrapping.
+- **Connector Modal State Mode Shadowing** — Symptom: Testing a PostgreSQL connection returned `1 validation error for PostgresConnectorConfig: mode: Input should be 'overwrite' or 'append' [type=enum, input_value='import']`. Diagnosis: The frontend `ConnectorModal.tsx` maintained a single `mode` state variable used for both modal workflow selection (`'import' | 'export'`) and export target write mode (`'overwrite' | 'append'`), passing `"import"` directly into the export configuration payload. Fix: Separated state into `connectorAction` (`'import' | 'export'`) and `writeMode` (`'overwrite' | 'append'`), ensuring Pydantic payloads strictly receive valid enum values.
+- **Supabase IPv6 Direct Host Reachability** — Symptom: Connecting to Supabase instances via direct host `db.[ref].supabase.co` failed with `Network unreachable` or connection timeouts on standard IPv4 networks. Diagnosis: Supabase direct database hostnames resolve solely to IPv6 addresses, whereas pooler hostnames (`aws-0-[region].pooler.supabase.com`) support dual IPv4/IPv6 stacks. Fix: Enhanced connector validation to parse Supabase connection strings, automatically extract connection parameters, and render a prominent warning banner in the UI instructing users to use the Session Pooler connection string.
 - **Type Inference Sampling Bias** — Symptom: Ingesting dirty CSVs directly into standard typed SQL engines failed on row 50,000 due to unexpected string tokens in numeric columns. Diagnosis: DuckDB's automatic CSV sniffer uses sample rows that miss corruptions occurring deeper in large files. Fix: Implemented two-stage ingestion where CSVs are initially converted to Parquet with `all_varchar=true`, deferring type casting to compiled CTE stages after complete statistical profiling.
 - **Binder Error on Untyped String Aggregations in Charts** — Symptom: Chart query execution failed with `Binder Error: No function matches the given name and argument types 'avg(VARCHAR)'`. Diagnosis: Staging parquet files preserves raw columns as `VARCHAR` to avoid speculative ingestion loss, causing DuckDB aggregation functions like `avg()` and `sum()` to reject untyped string inputs. Fix: Added automated type detection and safe `TRY_CAST(col AS DOUBLE)` wrapping inside `charts/compile.py` for numeric Y-axis aggregates, histograms, and scatter plots.
 - **Group-By Column Shadowing in Category Charts** — Symptom: Chart generation crashed with `Binder Error: column must appear in the GROUP BY clause or must be part of an aggregate function`. Diagnosis: Group-by CTE queries aliased transformed category expressions using identical names as raw columns, creating identifier collisions during DuckDB query planning. Fix: Ensured discrete internal column aliasing and explicit GROUP BY clause projection alignment in `charts/compile.py`.
@@ -508,6 +520,7 @@ docker compose up --build
 
 ## Future Improvements
 
+- **Configurable Per-Tier Retention Policies** — Extend the 24-hour TTL scavenger to support user-tier retention quotas (e.g., 2 hours for anonymous uploads, 7 days for registered workspaces, indefinite for pinned projects).
 - **Fuzzy Deduplication via MinHash LSH** — Extend exact primary key deduplication to support approximate string matching for customer names and addresses using DuckDB extension bindings.
 - **Schema Drift Alerting** — Implement automated schema evolution detection comparing successive CSV uploads against historical baseline profiles.
 - **Partitioned Parquet Output** — Add optional hive-partitioned exports (`/year=2026/month=10/`) for enterprise data warehouse ingestion into Snowflake or BigQuery.
