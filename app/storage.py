@@ -32,7 +32,6 @@ class JobStorage:
             return self.base_dir / job_id
 
         tenant_dir = self.base_dir / uid / job_id
-        tenant_dir.mkdir(parents=True, exist_ok=True)
         return tenant_dir
 
     def raw_file_path(self, job_id: str, filename: str, user_id: Optional[str] = None) -> Path:
