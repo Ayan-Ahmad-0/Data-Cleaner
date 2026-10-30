@@ -166,10 +166,6 @@ async def preview_and_convert(
             tmp_path.unlink()
 
 
-# Active convert-only jobs registry for downloads & handoff
-convert_jobs: Dict[str, Any] = {}
-
-
 @app.post("/api/convert/execute")
 async def execute_convert_only(
     file: UploadFile = File(...),
