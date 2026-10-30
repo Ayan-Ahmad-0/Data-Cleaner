@@ -74,6 +74,9 @@ def resolve_job_parquet_paths(
         raise DataNotFoundError("Invalid or empty job identifier.")
 
     uid = user_id or "default"
+    if str(uid).lower() in ("anonymous", "none"):
+        uid = getattr(storage, "user_id", "default") or "default"
+
     store = storage or JobStorage(user_id=uid)
     clean_pq = store.clean_parquet_path(job_id, user_id=uid)
     staged_pq = store.staged_parquet_path(job_id, user_id=uid)
@@ -81,11 +84,24 @@ def resolve_job_parquet_paths(
     if clean_pq.exists():
         return clean_pq, staged_pq if staged_pq.exists() else None
 
+    # Check direct staged parquet if clean has not been run
+    if staged_pq.exists():
+        return staged_pq, None
+
+    # Check if legacy unpartitioned job exists for default user
+    if uid in ("default", "anonymous"):
+        legacy_clean = store.base_dir / job_id / "clean" / "cleaned.parquet"
+        legacy_staged = store.base_dir / job_id / "parquet" / "staged.parquet"
+        if legacy_clean.exists():
+            return legacy_clean, legacy_staged if legacy_staged.exists() else None
+        if legacy_staged.exists():
+            return legacy_staged, None
+
     # Check convert-only, query-only, or modeling directory under tenant workspace
     for folder_name in ("convert_jobs", "query_jobs", "modeling"):
         # Check tenant directory first
         q_dir = Path(f"data/{folder_name}").resolve() / uid / job_id
-        if not q_dir.exists() and uid == "default":
+        if not q_dir.exists() and uid in ("default", "anonymous"):
             # Fallback to legacy unpartitioned directory for default tenant
             q_dir = Path(f"data/{folder_name}").resolve() / job_id
 
@@ -96,19 +112,6 @@ def resolve_job_parquet_paths(
             parquet_files = list(q_dir.glob("**/*.parquet"))
             if parquet_files:
                 return parquet_files[0], None
-
-    # Check direct staged parquet if clean has not been run
-    if staged_pq.exists():
-        return staged_pq, None
-
-    # Check if legacy unpartitioned job exists for default user
-    if uid == "default":
-        legacy_clean = store.base_dir / job_id / "clean" / "cleaned.parquet"
-        legacy_staged = store.base_dir / job_id / "parquet" / "staged.parquet"
-        if legacy_clean.exists():
-            return legacy_clean, legacy_staged if legacy_staged.exists() else None
-        if legacy_staged.exists():
-            return legacy_staged, None
 
     raise DataNotFoundError(f"Dataset for job '{job_id}' was not found or has expired.")
 
