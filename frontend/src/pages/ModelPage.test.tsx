@@ -125,7 +125,7 @@ describe('Model Data (ERD) Studio - Comprehensive Production Test Suite', () => 
       });
     });
 
-    it('rejects files exceeding the 10GB limit before calling the upload API', async () => {
+    it('rejects files exceeding the 5GB limit before calling the upload API', async () => {
       render(<ModelPage />);
 
       await waitFor(() => {
