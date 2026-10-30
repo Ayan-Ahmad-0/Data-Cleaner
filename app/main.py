@@ -1,6 +1,8 @@
 """FastAPI application providing REST endpoints for the AI Data Cleaner."""
 
 from __future__ import annotations
+import asyncio
+from contextlib import asynccontextmanager
 import json
 import logging
 import os
@@ -16,13 +18,48 @@ from app.models import JobDetailResponse, JobMetadata
 from app.orchestrator import JobOrchestrator, get_orchestrator
 from app.storage import JobStorage
 from connectors import connectors_router
+from core.retention import StorageRetentionManager, retention_daemon_loop
 
 logger = logging.getLogger(__name__)
+
+storage = JobStorage()
+orchestrator = get_orchestrator(storage=storage)
+retention_manager = StorageRetentionManager()
+convert_jobs: Dict[str, Any] = {}
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """FastAPI application lifespan: manages background retention scavenger loop."""
+    daemon_task = None
+    if retention_manager.config.enabled:
+        daemon_task = asyncio.create_task(
+            retention_daemon_loop(
+                manager=retention_manager,
+                orchestrator=orchestrator,
+                convert_jobs=convert_jobs,
+            )
+        )
+        logger.info(
+            "Initialized storage retention background daemon (TTL: %.1fh, interval: %dm).",
+            retention_manager.config.ttl_hours,
+            retention_manager.config.cleanup_interval_minutes,
+        )
+    yield
+    if daemon_task and not daemon_task.done():
+        logger.info("Stopping storage retention background daemon.")
+        daemon_task.cancel()
+        try:
+            await daemon_task
+        except asyncio.CancelledError:
+            pass
+
 
 app = FastAPI(
     title="One-Click AI Data Cleaner API",
     description="DuckDB-powered profile-guided AI data cleaning pipeline",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 app.include_router(connectors_router)
