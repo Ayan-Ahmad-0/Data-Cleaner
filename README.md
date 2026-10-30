@@ -273,6 +273,8 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 - **SQL Injection Prevention** — All column identifiers and parameters passed into SQL generation are sanitized using `quote_ident()` with double-quote escaping.
 - **Privacy Mode Masking** — When privacy mode is enabled, sample data values and categorical token lists are stripped from LLM prompts; only statistical distributions and column names are transmitted.
 - **Deterministic Offline Fallback** — If Gemini API rate limits, network interruptions, or quota exhaustion occurs, the pipeline falls back to an offline rule-based recipe generator without pipeline stoppage.
+- **Automated 24-Hour Storage Retention & Scavenger** — To prevent unbounded server disk accumulation, an asynchronous background daemon runs on FastAPI lifespan startup, sweeping ephemeral job directories (`data/jobs`, `data/convert_jobs`, `data/query_jobs`, `data/modeling`) every 30 minutes. Directories older than 24 hours are cleanly deleted and in-memory caches evicted, while critical directories (`benchmarks`, `demo`, `evaluation`) are strictly protected. Initial test run verified reclamation of 50.35 GB without affecting active jobs or static fixtures.
+- **Enterprise Database & Schema Discovery** — External PostgreSQL and Supabase sources support direct connection testing, multi-schema table enumeration (`public`, `storage`, `auth`), and session pooler IPv4 auto-detection, eliminating manual table typing and IPv6 connection dropouts.
 - **Reconciliation Audit Gate** — Output files are verified before delivery; if unexpected row loss exceeds defined thresholds, warnings are flagged in the verification report.
 - **Fluid High-Density Layout** — The user interface uses a wide 1600px breakpoint and responsive padding across all views, eliminating artificial container constraints and bottom clutter for deep analytical data inspection.
 
@@ -345,6 +347,7 @@ data-cleaner/
 │   ├── converter.py            # Raw CSV to all-varchar ZSTD Parquet converter
 │   ├── profiler.py             # Single-pass statistical and defect profiler
 │   ├── recipe_schema.py        # Pydantic v2 strict schema models for recipes
+│   ├── retention.py            # Automated 24-hour storage retention manager, TTL scavenger, and disk metrics
 │   ├── validator.py            # Schema validation and plain-English translation
 │   └── verifier.py             # Automated post-clean assertions and reconciliation
 ├── explore/                    # Sandboxed in-browser DuckDB exploration engine
@@ -385,7 +388,8 @@ data-cleaner/
 │   │   └── lib/                # API client layer, formatters, and chartColors definitions
 │   ├── package.json            # Node dependency declarations
 │   └── vite.config.ts          # Vite build configuration with proxy support
-├── tests/                      # Pytest test suite (292 unit and integration tests)
+├── tests/                      # Pytest test suite (299 unit and integration tests)
+│   └── test_retention.py       # Automated 24-hour TTL retention and scavenger lifecycle tests
 ├── .github/workflows/ci.yml    # GitHub Actions multi-version CI workflow (Python 3.11/3.12, Node 20)
 ├── demo.py                     # Autonomous end-to-end CLI demonstration runner
 ├── docker-compose.yml          # Containerized multi-stage service deployment
