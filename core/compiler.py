@@ -201,12 +201,12 @@ class RecipeCompiler:
         out_sql_path = str(out_path).replace("\\", "/")
 
         conn = duckdb.connect(":memory:")
-        conn.execute("SET preserve_insertion_order = false;")
-        conn.execute(f"SET memory_limit = '{self.memory_limit}';")
-        conn.execute(f"SET threads = {self.threads};")
-        if self.temp_directory:
-            os.makedirs(self.temp_directory, exist_ok=True)
-            conn.execute(f"SET temp_directory = '{self.temp_directory}';")
+        configure_duckdb_connection(
+            conn,
+            memory_limit=self.memory_limit,
+            threads=self.threads,
+            temp_directory=self.temp_directory,
+        )
 
         try:
             # 1. Discover columns and initial row count
