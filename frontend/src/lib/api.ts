@@ -1229,4 +1229,26 @@ export async function downloadModelingMergedCsv(sessionId: string, relId?: strin
   window.URL.revokeObjectURL(downloadUrl);
 }
 
+export async function getStorageInventory(): Promise<any> {
+  const res = await fetch(`${API_BASE}/api/maintenance/storage`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to fetch storage inventory.');
+  }
+  return res.json();
+}
+
+export async function triggerStorageCleanup(maxAgeHours?: number): Promise<any> {
+  const url = maxAgeHours !== undefined
+    ? `${API_BASE}/api/maintenance/cleanup?max_age_hours=${encodeURIComponent(maxAgeHours)}`
+    : `${API_BASE}/api/maintenance/cleanup`;
+  const res = await fetch(url, { method: 'POST' });
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || 'Failed to trigger storage cleanup.');
+  }
+  return res.json();
+}
+
+
 
