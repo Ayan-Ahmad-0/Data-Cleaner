@@ -223,14 +223,23 @@ class StorageRetentionManager:
                         is_expired = job_created < cutoff_dt
 
                     if is_expired:
-                        job_dir = (orchestrator.storage.base_dir / job_id) if hasattr(orchestrator, "storage") else (self.data_dir / "jobs" / job_id)
+                        job_uid = getattr(job, "user_id", "default")
+                        if hasattr(orchestrator, "storage"):
+                            job_dir = orchestrator.storage.job_dir(job_id, user_id=job_uid)
+                            if not job_dir.exists():
+                                job_dir = orchestrator.storage.base_dir / job_id
+                        else:
+                            job_dir = self.data_dir / "jobs" / job_uid / job_id
+                            if not job_dir.exists():
+                                job_dir = self.data_dir / "jobs" / job_id
+
                         freed = get_dir_size_bytes(job_dir)
                         if hasattr(orchestrator, "evict_job"):
-                            orchestrator.evict_job(job_id)
+                            orchestrator.evict_job(job_id, user_id=job_uid)
                         else:
                             orchestrator.jobs.pop(job_id, None)
                             if hasattr(orchestrator, "storage"):
-                                orchestrator.storage.cleanup_job(job_id)
+                                orchestrator.storage.cleanup_job(job_id, user_id=job_uid)
 
                         result.jobs_purged += 1
                         result.bytes_freed += freed
