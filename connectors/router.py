@@ -97,6 +97,7 @@ def test_connector_connection(payload: TestConnectorRequest) -> ConnectionTestRe
 def export_dataset_to_destination(
     job_id: str,
     payload: ExportDatasetRequest,
+    user_id: str = Depends(get_current_tenant_id),
 ) -> SyncResult:
     """Export a job's Parquet dataset (cleaned or staged) directly to an external destination."""
     connector = ConnectorRegistry.get(payload.connector_type)
@@ -106,14 +107,14 @@ def export_dataset_to_destination(
             detail=f"Unknown connector type '{payload.connector_type}'.",
         )
 
-    storage = JobStorage()
+    storage = JobStorage(user_id=user_id)
     try:
-        clean_pq, staged_pq = resolve_job_parquet_paths(job_id=job_id, storage=storage)
+        clean_pq, staged_pq = resolve_job_parquet_paths(job_id=job_id, user_id=user_id, storage=storage)
         source_path = clean_pq if clean_pq and clean_pq.exists() else staged_pq
         if not source_path or not source_path.exists():
             raise HTTPException(status_code=404, detail=f"No dataset found for job '{job_id}'.")
     except Exception as e:
-        logger.warning("Could not resolve dataset for job %s: %s", job_id, e)
+        logger.warning("Could not resolve dataset for job %s (user %s): %s", job_id, user_id, e)
         raise HTTPException(status_code=404, detail=f"Dataset for job '{job_id}' not found or expired.")
 
     temp_masked_pq: Optional[Path] = None
@@ -123,7 +124,7 @@ def export_dataset_to_destination(
     options = dict(payload.options or {})
     try:
         orchestrator = get_orchestrator(storage=storage)
-        job_meta = orchestrator.jobs.get(job_id)
+        job_meta = orchestrator.get_job(job_id, user_id=user_id)
         if job_meta and job_meta.filename and "job_filename" not in options:
             options["job_filename"] = job_meta.filename
         if job_meta and job_meta.detected_format and "detected_format" not in options:
