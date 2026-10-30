@@ -134,9 +134,9 @@ describe('Model Data (ERD) Studio - Comprehensive Production Test Suite', () => 
 
       const fileInputs = document.querySelectorAll('input[type="file"]');
       const oversizedFile = new File(['test'], 'giant_warehouse.parquet', { type: 'application/octet-stream' });
-      // Set size > 10GB (10 * 1024 * 1024 * 1024 + 1 bytes)
+      // Set size > 5GB (5 * 1024 * 1024 * 1024 + 1 bytes)
       Object.defineProperty(oversizedFile, 'size', {
-        value: 10 * 1024 * 1024 * 1024 + 1024,
+        value: 5 * 1024 * 1024 * 1024 + 1024,
         writable: false,
       });
 
