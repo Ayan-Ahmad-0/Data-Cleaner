@@ -315,6 +315,13 @@ class JobOrchestrator:
             }
             export_opts = list_export_options(job.detected_format or "csv", job.row_count)
 
+        # Update remaining TTL seconds
+        ttl_remaining = None
+        if job.expires_at:
+            exp = job.expires_at if job.expires_at.tzinfo else job.expires_at.replace(tzinfo=timezone.utc)
+            ttl_remaining = max(0, int((exp - datetime.now(timezone.utc)).total_seconds()))
+            job.ttl_seconds_remaining = ttl_remaining
+
         return JobDetailResponse(
             job=job,
             profile=self.job_profiles.get(job_id),
@@ -326,7 +333,49 @@ class JobOrchestrator:
             conversion_report=self.job_conversion_reports.get(job_id),
             export_options=export_opts,
             download_urls=download_urls,
+            expires_at=job.expires_at,
+            ttl_seconds_remaining=ttl_remaining,
         )
+
+    def evict_job(self, job_id: str) -> bool:
+        """Evict a job from in-memory state and remove its directory from storage."""
+        had_job = job_id in self.jobs
+        self.jobs.pop(job_id, None)
+        self.job_profiles.pop(job_id, None)
+        self.job_reports.pop(job_id, None)
+        self.job_recipes.pop(job_id, None)
+        self.job_plain_english.pop(job_id, None)
+        self.job_questions.pop(job_id, None)
+        self.job_verifications.pop(job_id, None)
+        self.job_adapter_options.pop(job_id, None)
+        self.job_conversion_reports.pop(job_id, None)
+        self.storage.cleanup_job(job_id)
+        return had_job
+
+    def get_expired_job_ids(self, max_age_hours: Optional[float] = None) -> List[str]:
+        """Find non-active jobs whose created_at exceeds the specified TTL."""
+        ttl = max_age_hours if max_age_hours is not None else float(os.getenv("STORAGE_TTL_HOURS", "24"))
+        cutoff_dt = datetime.now(timezone.utc) - timedelta(hours=ttl)
+        expired: List[str] = []
+
+        active_statuses = {
+            JobStatus.CONVERTING,
+            JobStatus.PROFILING,
+            JobStatus.CLEANING,
+            JobStatus.VERIFYING,
+            JobStatus.DRAFTING_RECIPE,
+        }
+
+        for j_id, j_meta in list(self.jobs.items()):
+            if j_meta.status in active_statuses:
+                continue
+            created = j_meta.created_at
+            if created:
+                if created.tzinfo is None:
+                    created = created.replace(tzinfo=timezone.utc)
+                if created < cutoff_dt:
+                    expired.append(j_id)
+        return expired
 
 
 _default_orchestrator: Optional[JobOrchestrator] = None
