@@ -464,4 +464,3 @@ class Profiler:
             day_month_ambiguous=day_month_ambiguous,
             sample_values=sample_values,
         )
-        )
