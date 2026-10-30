@@ -246,10 +246,28 @@ class StorageRetentionManager:
                 continue
 
             try:
+                candidate_paths: List[Path] = []
                 for item_path in cat_dir.iterdir():
                     if not item_path.is_dir():
                         continue
+                    # Check if item is a direct job folder or a tenant directory
+                    is_direct_job = (
+                        any(item_path.name.startswith(pfx) for pfx in ("job_", "conv_", "query_", "model_"))
+                        or (item_path / "raw").exists()
+                        or (item_path / "parquet").exists()
+                        or (item_path / "clean").exists()
+                        or (item_path / "tables").exists()
+                        or (item_path / "state.json").exists()
+                    )
+                    if is_direct_job:
+                        candidate_paths.append(item_path)
+                    else:
+                        # Tenant directory: scan child folders
+                        for sub_item in item_path.iterdir():
+                            if sub_item.is_dir():
+                                candidate_paths.append(sub_item)
 
+                for item_path in candidate_paths:
                     folder_id = item_path.name
                     # Never purge an actively processing cleaning job
                     if folder_id in active_job_ids:
@@ -265,8 +283,13 @@ class StorageRetentionManager:
                     if mtime < cutoff_timestamp:
                         dir_bytes = get_dir_size_bytes(item_path)
                         try:
+                            parent_dir = item_path.parent
                             shutil.rmtree(item_path, ignore_errors=True)
                             result.bytes_freed += dir_bytes
+
+                            # If parent is a tenant folder and now empty, prune it
+                            if parent_dir != cat_dir and parent_dir.exists() and not any(parent_dir.iterdir()):
+                                shutil.rmtree(parent_dir, ignore_errors=True)
 
                             if category == "jobs":
                                 result.jobs_purged += 1
