@@ -562,10 +562,14 @@ class ExploreExportRequest(BaseModel):
 
 
 @app.get("/api/explore/{job_id}/schema")
-def get_explore_schema(job_id: str, table: str = "data"):
+def get_explore_schema(
+    job_id: str,
+    table: str = "data",
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Retrieve schema, column types, row counts, and sample values for the dataset."""
     try:
-        schema = get_schema(job_id=job_id, storage=storage, table=table)
+        schema = get_schema(job_id=job_id, user_id=user_id, storage=storage.for_user(user_id), table=table)
         return {
             "table": schema.table,
             "row_count": schema.row_count,
@@ -582,14 +586,19 @@ def get_explore_schema(job_id: str, table: str = "data"):
 
 
 @app.post("/api/explore/{job_id}/query")
-def execute_explore_query(job_id: str, payload: ExploreQueryRequest):
+def execute_explore_query(
+    job_id: str,
+    payload: ExploreQueryRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Execute a validated, read-only SQL query on the job's Parquet dataset."""
     try:
         result = run_query(
             job_id=job_id,
+            user_id=user_id,
             sql=payload.sql,
             row_limit=payload.row_limit,
-            storage=storage,
+            storage=storage.for_user(user_id),
         )
         return {
             "columns": [{"name": c.name, "type": c.type} for c in result.columns],
@@ -615,10 +624,19 @@ def execute_explore_query(job_id: str, payload: ExploreQueryRequest):
 
 
 @app.post("/api/explore/{job_id}/export")
-def export_explore_query(job_id: str, payload: ExploreExportRequest):
+def export_explore_query(
+    job_id: str,
+    payload: ExploreExportRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Export the full result of a SQL query to a downloadable CSV file."""
     try:
-        csv_path = export_query(job_id=job_id, sql=payload.sql, storage=storage)
+        csv_path = export_query(
+            job_id=job_id,
+            user_id=user_id,
+            sql=payload.sql,
+            storage=storage.for_user(user_id),
+        )
         return FileResponse(
             path=csv_path,
             media_type="text/csv",
@@ -645,7 +663,11 @@ class AnalystAskRequest(BaseModel):
 
 
 @app.post("/api/explore/{job_id}/ask")
-def ask_ai_analyst(job_id: str, payload: AnalystAskRequest):
+def ask_ai_analyst(
+    job_id: str,
+    payload: AnalystAskRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Ask a natural-language question about the dataset and receive SQL + results."""
     from analyst import (
         ask,
@@ -656,8 +678,13 @@ def ask_ai_analyst(job_id: str, payload: AnalystAskRequest):
         LLMBadResponseError,
     )
     try:
+        active_uid = user_id if user_id != "default" else (payload.user_id or "default")
         res = ask(
             job_id=job_id,
+            user_id=active_uid,
+            question=payload.question,
+            storage=storage.for_user(user_id),
+        )
             user_id=payload.user_id or "anonymous",
             question=payload.question,
             storage=storage,
