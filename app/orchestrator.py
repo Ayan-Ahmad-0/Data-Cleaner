@@ -190,16 +190,21 @@ class JobOrchestrator:
             job.current_stage = f"Profiling failed: {e}"
             job.error = str(e)
 
-    def execute_cleaning_and_verification(self, job_id: str, approved_recipe_dict: Optional[Dict[str, Any]] = None) -> None:
+    def execute_cleaning_and_verification(
+        self,
+        job_id: str,
+        approved_recipe_dict: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+    ) -> None:
         """Stage 2: Execute compiled cleaning SQL and verify output."""
-        job = self.jobs.get(job_id)
+        job = self.get_job(job_id, user_id=user_id) if user_id else self.jobs.get(job_id)
         if not job:
             return
 
         try:
             job.error = None
-            staged_pq = self.storage.staged_parquet_path(job_id)
-            raw_file = self.storage.raw_file_path(job_id, job.filename)
+            staged_pq = self.storage.staged_parquet_path(job_id, user_id=job.user_id)
+            raw_file = self.storage.raw_file_path(job_id, job.filename, user_id=job.user_id)
 
             # 1. Update recipe if edited by user
             if approved_recipe_dict:
@@ -232,11 +237,11 @@ class JobOrchestrator:
             job.current_stage = "Executing DuckDB macro CTE compilation"
             job.progress_pct = 40.0
 
-            clean_pq = self.storage.clean_parquet_path(job_id)
+            clean_pq = self.storage.clean_parquet_path(job_id, user_id=job.user_id)
             clean_res = self.compiler.execute_clean(recipe, staged_pq, clean_pq)
 
             # Export default cleaned CSV for backwards compatibility
-            clean_csv = self.storage.clean_csv_path(job_id)
+            clean_csv = self.storage.clean_csv_path(job_id, user_id=job.user_id)
             clean_pq_sql = str(clean_pq).replace("\\", "/")
             clean_csv_sql = str(clean_csv).replace("\\", "/")
             import os
@@ -264,7 +269,7 @@ class JobOrchestrator:
                 else:
                     raise FileNotFoundError(f"Staged parquet not found for verification of job {job_id}")
 
-            v_json_path = self.storage.verification_json_path(job_id)
+            v_json_path = self.storage.verification_json_path(job_id, user_id=job.user_id)
             v_result = self.verifier.verify(clean_pq, before_profile, recipe, output_verification_json=v_json_path)
 
             self.job_verifications[job_id] = v_result.to_dict()
@@ -282,23 +287,29 @@ class JobOrchestrator:
             job.current_stage = f"Cleaning failed: {e}"
             job.error = str(e)
 
-    def export_dataset(self, job_id: str, format_id: str, options: Optional[Dict[str, Any]] = None) -> List[Path]:
+    def export_dataset(
+        self,
+        job_id: str,
+        format_id: str,
+        options: Optional[Dict[str, Any]] = None,
+        user_id: Optional[str] = None,
+    ) -> List[Path]:
         """Export cleaned dataset into any supported format (reusing pre-generated artifacts when available)."""
-        job = self.jobs.get(job_id)
+        job = self.get_job(job_id, user_id=user_id) if user_id else self.jobs.get(job_id)
         if not job:
             raise ValueError(f"Job {job_id} not found")
 
         # Fast path 1: If CSV requested and cleaned.csv already generated in clean stage, return it immediately
         if format_id.lower() == "csv":
-            clean_csv = self.storage.clean_csv_path(job_id)
+            clean_csv = self.storage.clean_csv_path(job_id, user_id=job.user_id)
             if clean_csv.exists() and clean_csv.stat().st_size > 0:
                 return [clean_csv]
 
-        clean_pq = self.storage.clean_parquet_path(job_id)
+        clean_pq = self.storage.clean_parquet_path(job_id, user_id=job.user_id)
         if not clean_pq.exists():
             raise FileNotFoundError(f"Cleaned parquet not found for job {job_id}")
 
-        export_dir = self.storage.job_dir(job_id) / "exports"
+        export_dir = self.storage.job_dir(job_id, user_id=job.user_id) / "exports"
 
         # Fast path 2: If exported file already exists in export_dir and has size, return it
         from formats import ExporterRegistry
@@ -311,8 +322,8 @@ class JobOrchestrator:
 
         return export_cleaned(clean_pq, export_dir, format_id=format_id, options=options)
 
-    def get_job_detail(self, job_id: str) -> Optional[JobDetailResponse]:
-        job = self.jobs.get(job_id)
+    def get_job_detail(self, job_id: str, user_id: Optional[str] = None) -> Optional[JobDetailResponse]:
+        job = self.get_job(job_id, user_id=user_id) if user_id else self.jobs.get(job_id)
         if not job:
             return None
 
@@ -322,13 +333,13 @@ class JobOrchestrator:
 
         if job.status in (JobStatus.DONE, JobStatus.DONE_WITH_WARNINGS):
             download_urls = {
-                "parquet": f"/api/jobs/{job_id}/download/parquet",
-                "csv": f"/api/jobs/{job_id}/download/csv",
-                "tsv": f"/api/jobs/{job_id}/download/tsv",
-                "ndjson": f"/api/jobs/{job_id}/download/ndjson",
-                "json": f"/api/jobs/{job_id}/download/json",
-                "xlsx": f"/api/jobs/{job_id}/download/xlsx",
-                "report": f"/api/jobs/{job_id}/download/report",
+                "parquet": f"/api/jobs/{job_id}/download/parquet?user_id={job.user_id}",
+                "csv": f"/api/jobs/{job_id}/download/csv?user_id={job.user_id}",
+                "tsv": f"/api/jobs/{job_id}/download/tsv?user_id={job.user_id}",
+                "ndjson": f"/api/jobs/{job_id}/download/ndjson?user_id={job.user_id}",
+                "json": f"/api/jobs/{job_id}/download/json?user_id={job.user_id}",
+                "xlsx": f"/api/jobs/{job_id}/download/xlsx?user_id={job.user_id}",
+                "report": f"/api/jobs/{job_id}/download/report?user_id={job.user_id}",
             }
             export_opts = list_export_options(job.detected_format or "csv", job.row_count)
 
@@ -354,8 +365,12 @@ class JobOrchestrator:
             ttl_seconds_remaining=ttl_remaining,
         )
 
-    def evict_job(self, job_id: str) -> bool:
+    def evict_job(self, job_id: str, user_id: Optional[str] = None) -> bool:
         """Evict a job from in-memory state and remove its directory from storage."""
+        job = self.get_job(job_id, user_id=user_id) if user_id else self.jobs.get(job_id)
+        if not job and job_id not in self.jobs:
+            return False
+        user_to_clean = job.user_id if job else user_id
         had_job = job_id in self.jobs
         self.jobs.pop(job_id, None)
         self.job_profiles.pop(job_id, None)
@@ -366,7 +381,7 @@ class JobOrchestrator:
         self.job_verifications.pop(job_id, None)
         self.job_adapter_options.pop(job_id, None)
         self.job_conversion_reports.pop(job_id, None)
-        self.storage.cleanup_job(job_id)
+        self.storage.cleanup_job(job_id, user_id=user_to_clean)
         return had_job
 
     def get_expired_job_ids(self, max_age_hours: Optional[float] = None) -> List[str]:
