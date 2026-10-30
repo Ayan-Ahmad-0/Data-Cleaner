@@ -223,7 +223,7 @@ class StorageRetentionManager:
                         is_expired = job_created < cutoff_dt
 
                     if is_expired:
-                        job_dir = orchestrator.storage.job_dir(job_id) if hasattr(orchestrator, "storage") else (self.data_dir / "jobs" / job_id)
+                        job_dir = (orchestrator.storage.base_dir / job_id) if hasattr(orchestrator, "storage") else (self.data_dir / "jobs" / job_id)
                         freed = get_dir_size_bytes(job_dir)
                         if hasattr(orchestrator, "evict_job"):
                             orchestrator.evict_job(job_id)
