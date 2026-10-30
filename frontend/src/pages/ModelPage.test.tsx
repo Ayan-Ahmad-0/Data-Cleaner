@@ -145,7 +145,7 @@ describe('Model Data (ERD) Studio - Comprehensive Production Test Suite', () => 
       expect(api.uploadModelingTable).not.toHaveBeenCalled();
 
       await waitFor(() => {
-        expect(screen.getByText(/File 'giant_warehouse\.parquet' exceeds the 10GB limit\./i)).toBeInTheDocument();
+        expect(screen.getByText(/File 'giant_warehouse\.parquet' exceeds the 5GB limit\./i)).toBeInTheDocument();
       });
     });
 
