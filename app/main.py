@@ -90,9 +90,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-storage = JobStorage()
-orchestrator = get_orchestrator(storage=storage)
-
 
 @app.get("/api/health")
 def health_check():
