@@ -26,6 +26,7 @@ class JobStatus(str, Enum):
 
 class JobMetadata(BaseModel):
     id: str
+    user_id: str = Field(default="default", description="Owner tenant or user identifier")
     filename: str
     status: JobStatus = JobStatus.CREATED
     progress_pct: float = 0.0
