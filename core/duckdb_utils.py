@@ -8,20 +8,57 @@ from typing import Optional
 import duckdb
 
 
+def get_system_ram_mb() -> Optional[int]:
+    """Detect physical host RAM in MB if on Linux or inside a Docker container."""
+    try:
+        meminfo = Path("/proc/meminfo")
+        if meminfo.exists():
+            with open(meminfo, "r", encoding="utf-8") as f:
+                for line in f:
+                    if line.startswith("MemTotal:"):
+                        parts = line.split()
+                        return int(parts[1]) // 1024
+    except Exception:
+        pass
+    return None
+
+
 def get_duckdb_memory_limit() -> str:
-    """Return configured memory limit or sensible high-performance default (4GB-8GB)."""
+    """
+    Return configured memory limit or auto-tune to available physical RAM.
+    On low-memory instances (e.g. 1GB VMs), keeps limit at 70% of physical RAM
+    to prevent the OS kernel from thrashing swap memory on disk.
+    """
     limit = os.getenv("DUCKDB_MEMORY_LIMIT")
-    if not limit or limit.strip().upper() in ("600MB", "500MB"):
-        return "4GB"
-    return limit
+    if limit and limit.strip():
+        return limit.strip()
+
+    ram_mb = get_system_ram_mb()
+    if ram_mb is not None:
+        if ram_mb <= 1500:
+            # 1GB VM: ~650MB allocated to DuckDB, leaving ~300MB for OS + Uvicorn
+            return f"{max(300, int(ram_mb * 0.70))}MB"
+        elif ram_mb <= 4000:
+            return f"{int(ram_mb * 0.75)}MB"
+        elif ram_mb <= 8000:
+            return "4GB"
+        else:
+            return "8GB"
+
+    return "4GB"
 
 
 def get_duckdb_threads() -> int:
-    """Return configured thread count or default to 4."""
-    try:
-        return int(os.getenv("DUCKDB_THREADS", "4"))
-    except ValueError:
-        return 4
+    """Return configured thread count or auto-tune to available CPU cores."""
+    custom = os.getenv("DUCKDB_THREADS")
+    if custom and custom.strip():
+        try:
+            return max(1, int(custom.strip()))
+        except ValueError:
+            pass
+    cpu = os.cpu_count() or 1
+    # On 1-core machines, use 1 thread to eliminate context switching and lock contention
+    return min(4, max(1, cpu))
 
 
 def get_duckdb_temp_directory() -> str:
