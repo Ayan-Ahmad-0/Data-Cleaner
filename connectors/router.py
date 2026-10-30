@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from app.orchestrator import get_orchestrator
 from app.storage import JobStorage
+from core.tenant import get_current_tenant_id
 from connectors.base import ConnectionTestResult, ConnectorMetadata, SyncResult
 from connectors.registry import ConnectorRegistry
 from explore.service import resolve_job_parquet_paths
