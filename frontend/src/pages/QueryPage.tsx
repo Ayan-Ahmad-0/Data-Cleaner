@@ -349,7 +349,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({
                     Drag and drop your dataset here to query
                   </span>
                   <span className="text-sm text-[var(--text-muted)] block">
-                    CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
+                    CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 5 GB
                   </span>
                 </div>
 
