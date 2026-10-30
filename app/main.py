@@ -10,7 +10,7 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
 import duckdb
-from fastapi import BackgroundTasks, FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 
@@ -19,6 +19,7 @@ from app.orchestrator import JobOrchestrator, get_orchestrator
 from app.storage import JobStorage
 from connectors import connectors_router
 from core.retention import StorageRetentionManager, retention_daemon_loop
+from core.tenant import get_current_tenant_id
 
 logger = logging.getLogger(__name__)
 
