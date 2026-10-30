@@ -325,7 +325,7 @@ class Profiler:
                 # If approx distinct is >= 95% of total, check for any duplicates with short-circuit LIMIT 1
                 if distinct_count >= int(total_rows * 0.95):
                     has_dup = conn.execute(
-                        f"SELECT 1 FROM (SELECT {quoted} FROM {view_name} GROUP BY {quoted} HAVING COUNT(*) > 1 LIMIT 1)"
+                        f"SELECT 1 FROM (SELECT hash({quoted}) AS _h FROM {view_name} GROUP BY _h HAVING COUNT(*) > 1 LIMIT 1)"
                     ).fetchone()
                     is_candidate_key = (has_dup is None)
                     if is_candidate_key:
