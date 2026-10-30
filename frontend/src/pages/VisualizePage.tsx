@@ -895,7 +895,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
 
                   <p className="text-xs text-[var(--text-muted)] leading-relaxed max-w-md mx-auto">
                     {uploadStage === 'uploading'
-                      ? 'Datasets up to 10 GB stream directly with chunked I/O to avoid browser memory strain.'
+                      ? 'Datasets up to 5 GB stream directly with chunked I/O to avoid browser memory strain.'
                       : uploadStage === 'converting'
                       ? 'DuckDB engine is indexing schemas and preparing zero-copy columnar partitions.'
                       : 'Preparing intelligent distributions, heatmaps, time series, and categorical charts...'}
@@ -912,7 +912,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
                       Drag and drop your data file here to visualize
                     </span>
                     <span className="text-sm text-[var(--text-muted)] block">
-                      CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
+                      CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 5 GB
                     </span>
                   </div>
 
