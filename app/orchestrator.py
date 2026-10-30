@@ -15,6 +15,7 @@ from core.ai.gemini_client import get_gemini_callable
 from core.ai.generator import AIRecipeGenerator, AIReportResult
 from core.compiler import RecipeCompiler
 from core.converter import Converter
+from core.duckdb_utils import configure_duckdb_connection
 from core.profiler import Profiler
 from core.recipe_schema import Recipe
 from core.validator import RecipeValidator
