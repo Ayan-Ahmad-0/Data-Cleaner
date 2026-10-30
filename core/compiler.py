@@ -9,6 +9,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 import duckdb
 
+from core.duckdb_utils import (
+    configure_duckdb_connection,
+    get_duckdb_memory_limit,
+    get_duckdb_temp_directory,
+    get_duckdb_threads,
+)
+
 from core.macros.base import quote_ident
 from core.macros.dedupe import DedupeMacro
 from core.macros.strings import TrimAndNormalizeMacro
@@ -40,12 +47,12 @@ class RecipeCompiler:
     def __init__(
         self,
         memory_limit: Optional[str] = None,
-        threads: int = 4,
+        threads: Optional[int] = None,
         temp_directory: Optional[str] = None,
     ) -> None:
-        self.memory_limit = memory_limit or os.getenv("DUCKDB_MEMORY_LIMIT", "600MB")
-        self.threads = threads
-        self.temp_directory = temp_directory or os.getenv("DUCKDB_TEMP_DIR", "/tmp/duckdb_temp")
+        self.memory_limit = memory_limit or get_duckdb_memory_limit()
+        self.threads = threads or get_duckdb_threads()
+        self.temp_directory = temp_directory or get_duckdb_temp_directory()
 
     def compile_to_sql(
         self,
