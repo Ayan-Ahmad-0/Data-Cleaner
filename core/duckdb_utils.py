@@ -28,6 +28,7 @@ def get_duckdb_temp_directory() -> str:
     """
     Return a safe, cross-platform temporary directory for DuckDB spilling.
     Translates invalid Unix paths like '/tmp/duckdb' to native OS temp paths on Windows.
+    Prefers high-capacity mounted data directory (/app/data/duckdb_temp) when inside Docker.
     """
     custom = os.getenv("DUCKDB_TEMP_DIRECTORY") or os.getenv("DUCKDB_TEMP_DIR")
     if custom:
@@ -35,7 +36,13 @@ def get_duckdb_temp_directory() -> str:
             base_name = Path(custom).name or "duckdb_temp"
             custom = str(Path(tempfile.gettempdir()) / base_name)
     else:
-        custom = str(Path(tempfile.gettempdir()) / "duckdb_temp")
+        # Check if running in Docker container with mounted data volume
+        if Path("/app/data").exists() and os.access("/app/data", os.W_OK):
+            custom = "/app/data/duckdb_temp"
+        elif Path("data").exists() and os.access("data", os.W_OK):
+            custom = str(Path("data").resolve() / "duckdb_temp")
+        else:
+            custom = str(Path(tempfile.gettempdir()) / "duckdb_temp")
 
     os.makedirs(custom, exist_ok=True)
     return custom.replace("\\", "/")
