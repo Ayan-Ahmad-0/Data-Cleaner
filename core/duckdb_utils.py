@@ -60,3 +60,4 @@ def configure_duckdb_connection(
         conn.execute(f"SET threads = {th};")
 
     return conn
+
