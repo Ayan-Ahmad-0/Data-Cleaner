@@ -1,5 +1,52 @@
 const API_BASE = import.meta.env.VITE_API_BASE ?? '';
 
+const TENANT_STORAGE_KEY = 'datamorph_user_id';
+
+/**
+ * Returns or initializes a persistent anonymous user UUID for multi-tenancy data isolation.
+ */
+export function getTenantUserId(): string {
+  if (typeof window === 'undefined') return 'default';
+  try {
+    let uid = localStorage.getItem(TENANT_STORAGE_KEY);
+    if (!uid) {
+      if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+        uid = crypto.randomUUID();
+      } else {
+        uid = 'usr_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+      }
+      localStorage.setItem(TENANT_STORAGE_KEY, uid);
+    }
+    return uid;
+  } catch {
+    return 'default';
+  }
+}
+
+/**
+ * Attaches the current tenant user ID to standard headers.
+ */
+export function getAuthHeaders(customHeaders: Record<string, string> = {}): Record<string, string> {
+  return {
+    'X-User-Id': getTenantUserId(),
+    ...customHeaders,
+  };
+}
+
+/**
+ * Standard fetch wrapper that automatically injects tenant identity headers.
+ */
+export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const headers = new Headers(init?.headers || {});
+  if (!headers.has('X-User-Id')) {
+    headers.set('X-User-Id', getTenantUserId());
+  }
+  return fetch(input, {
+    ...init,
+    headers,
+  });
+}
+
 export interface ExportOption {
   format_id: string;
   name: string;
@@ -54,7 +101,7 @@ export async function detectFormat(file: File): Promise<{
   const sample = file.slice(0, 1024 * 1024);
   formData.append('file', sample, file.name);
 
-  const res = await fetch(`${API_BASE}/api/formats/detect`, {
+  const res = await apiFetch(`${API_BASE}/api/formats/detect`, {
     method: 'POST',
     body: formData,
   });
@@ -83,6 +130,7 @@ export function uploadDataset(
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE}/api/jobs/upload`);
+    xhr.setRequestHeader('X-User-Id', getTenantUserId());
 
     if (onProgress && xhr.upload) {
       xhr.upload.onprogress = (e) => {
@@ -122,7 +170,7 @@ export function uploadDataset(
 }
 
 export async function getJobDetail(jobId: string): Promise<JobDetailResponse> {
-  const res = await fetch(`${API_BASE}/api/jobs/${jobId}`);
+  const res = await apiFetch(`${API_BASE}/api/jobs/${jobId}`);
   if (!res.ok) {
     throw new Error('Failed to fetch job detail.');
   }
@@ -130,7 +178,7 @@ export async function getJobDetail(jobId: string): Promise<JobDetailResponse> {
 }
 
 export async function approveAndClean(jobId: string, recipe?: any): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/jobs/${jobId}/clean`, {
+  const res = await apiFetch(`${API_BASE}/api/jobs/${jobId}/clean`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: recipe ? JSON.stringify(recipe) : undefined,
@@ -142,7 +190,8 @@ export async function approveAndClean(jobId: string, recipe?: any): Promise<void
 }
 
 export function getDownloadUrl(jobId: string, format: string): string {
-  return `${API_BASE}/api/jobs/${jobId}/download/${format}`;
+  const uid = getTenantUserId();
+  return `${API_BASE}/api/jobs/${jobId}/download/${format}?user_id=${encodeURIComponent(uid)}`;
 }
 
 export interface ConvertResultResponse {
@@ -172,7 +221,7 @@ export async function previewConvert(
   if (format) formData.append('format', format);
   if (options) formData.append('options', JSON.stringify(options));
 
-  const res = await fetch(`${API_BASE}/api/convert`, {
+  const res = await apiFetch(`${API_BASE}/api/convert`, {
     method: 'POST',
     body: formData,
   });
@@ -203,6 +252,7 @@ export function executeConvertOnly(
 
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE}/api/convert/execute`);
+    xhr.setRequestHeader('X-User-Id', getTenantUserId());
 
     if (onProgress && xhr.upload) {
       xhr.upload.onprogress = (e) => {
@@ -238,11 +288,12 @@ export function executeConvertOnly(
 }
 
 export function getConvertDownloadUrl(convertId: string): string {
-  return `${API_BASE}/api/convert/download/${convertId}`;
+  const uid = getTenantUserId();
+  return `${API_BASE}/api/convert/download/${convertId}?user_id=${encodeURIComponent(uid)}`;
 }
 
 export async function handoffToClean(convertId: string): Promise<JobMetadata> {
-  const res = await fetch(`${API_BASE}/api/convert/${convertId}/handoff-to-clean`, {
+  const res = await apiFetch(`${API_BASE}/api/convert/${convertId}/handoff-to-clean`, {
     method: 'POST',
   });
 
@@ -280,7 +331,7 @@ export async function getExploreSchema(jobId: string, table?: string): Promise<E
   const url = table
     ? `${API_BASE}/api/explore/${jobId}/schema?table=${encodeURIComponent(table)}`
     : `${API_BASE}/api/explore/${jobId}/schema`;
-  const res = await fetch(url);
+  const res = await apiFetch(url);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to load dataset schema.');
@@ -293,7 +344,7 @@ export async function executeExploreQuery(
   sql: string,
   rowLimit?: number,
 ): Promise<ExploreQueryResult> {
-  const res = await fetch(`${API_BASE}/api/explore/${jobId}/query`, {
+  const res = await apiFetch(`${API_BASE}/api/explore/${jobId}/query`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sql, row_limit: rowLimit }),
@@ -306,7 +357,7 @@ export async function executeExploreQuery(
 }
 
 export async function exportExploreQuery(jobId: string, sql: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/explore/${jobId}/export`, {
+  const res = await apiFetch(`${API_BASE}/api/explore/${jobId}/export`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ sql }),
@@ -345,7 +396,7 @@ export async function askAiAnalyst(
   userId: string = 'anonymous',
   signal?: AbortSignal,
 ): Promise<AnalystAskResult> {
-  const res = await fetch(`${API_BASE}/api/explore/${jobId}/ask`, {
+  const res = await apiFetch(`${API_BASE}/api/explore/${jobId}/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ question, user_id: userId }),
@@ -375,6 +426,7 @@ export function uploadForQuery(
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${API_BASE}/api/query/upload`);
+    xhr.setRequestHeader('X-User-Id', getTenantUserId());
 
     if (onProgress && xhr.upload) {
       xhr.upload.onprogress = (e) => {
@@ -563,7 +615,7 @@ export interface AutoVisualizeItem {
 }
 
 export async function getColumnStats(jobId: string): Promise<ChartColumnStats[]> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/stats`);
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/stats`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to fetch column stats.');
@@ -573,7 +625,7 @@ export async function getColumnStats(jobId: string): Promise<ChartColumnStats[]>
 }
 
 export async function getStarterSpec(jobId: string): Promise<ChartSpec> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/starter-spec`);
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/starter-spec`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to fetch starter chart spec.');
@@ -583,7 +635,7 @@ export async function getStarterSpec(jobId: string): Promise<ChartSpec> {
 }
 
 export async function getTweakOptions(jobId: string, spec?: ChartSpec): Promise<TweakOptionsResponse> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/tweak-options`, {
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/tweak-options`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ spec }),
@@ -596,7 +648,7 @@ export async function getTweakOptions(jobId: string, spec?: ChartSpec): Promise<
 }
 
 export async function getChartSuggestions(jobId: string): Promise<ChartSpec[]> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/suggest`);
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/suggest`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to fetch chart suggestions.');
@@ -611,7 +663,7 @@ export async function buildChart(
   pageOptions?: PageDataOptions,
   signal?: AbortSignal,
 ): Promise<ChartDataResponse> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/build`, {
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/build`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ spec, page_options: pageOptions }),
@@ -625,7 +677,7 @@ export async function buildChart(
 }
 
 export async function exportChartCsv(jobId: string, spec: ChartSpec): Promise<void> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/export`, {
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/export`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ spec }),
@@ -646,7 +698,7 @@ export async function exportChartCsv(jobId: string, spec: ChartSpec): Promise<vo
 }
 
 export async function getChartAiStatus(jobId: string): Promise<{ enabled: boolean; model: string }> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/ai/status`);
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/ai/status`);
   if (!res.ok) {
     return { enabled: false, model: '' };
   }
@@ -658,7 +710,7 @@ export async function getVisualizationPlan(
   pageOptions?: PageDataOptions,
   forceRefresh: boolean = false,
 ): Promise<VisualizationPlan> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/ai/plan`, {
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/ai/plan`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ page_options: pageOptions, force_refresh: forceRefresh }),
@@ -676,7 +728,7 @@ export async function autoVisualizeCharts(
   maxCharts: number = 6,
   forceRefresh: boolean = false,
 ): Promise<AutoVisualizeItem[]> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/ai/auto`, {
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/ai/auto`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ page_options: pageOptions, max_charts: maxCharts, force_refresh: forceRefresh }),
@@ -694,7 +746,7 @@ export async function askChartFromText(
   request: string,
   pageOptions?: PageDataOptions,
 ): Promise<ChartFromTextResult> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/ai/ask`, {
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/ai/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ request, page_options: pageOptions }),
@@ -757,7 +809,7 @@ export interface ConnectorImportResponse {
 }
 
 export async function fetchConnectors(): Promise<ConnectorMetadata[]> {
-  const res = await fetch(`${API_BASE}/api/connectors`);
+  const res = await apiFetch(`${API_BASE}/api/connectors`);
   if (!res.ok) throw new Error('Failed to load connectors.');
   return res.json();
 }
@@ -766,7 +818,7 @@ export async function testConnector(
   connectorType: string,
   config: Record<string, any>,
 ): Promise<ConnectionTestResult> {
-  const res = await fetch(`${API_BASE}/api/connectors/test`, {
+  const res = await apiFetch(`${API_BASE}/api/connectors/test`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ connector_type: connectorType, config }),
@@ -785,7 +837,7 @@ export async function importFromConnector(
   privacyMode: boolean = false,
   options?: Record<string, any>,
 ): Promise<ConnectorImportResponse> {
-  const res = await fetch(`${API_BASE}/api/connectors/import`, {
+  const res = await apiFetch(`${API_BASE}/api/connectors/import`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -809,7 +861,7 @@ export async function exportToConnector(
   config: Record<string, any>,
   options?: Record<string, any>,
 ): Promise<ConnectorSyncResult> {
-  const res = await fetch(`${API_BASE}/api/connectors/export/${jobId}`, {
+  const res = await apiFetch(`${API_BASE}/api/connectors/export/${jobId}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -837,7 +889,7 @@ export async function validateFormula(
   formula: string,
   name?: string
 ): Promise<ValidateFormulaResponse> {
-  const res = await fetch(`${API_BASE}/api/charts/${jobId}/validate-formula`, {
+  const res = await apiFetch(`${API_BASE}/api/charts/${jobId}/validate-formula`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ formula, name }),
@@ -901,7 +953,7 @@ export interface WrangleHistoryResponse {
 }
 
 export async function detectJobPii(jobId: string): Promise<PiiDetectResponse> {
-  const res = await fetch(`${API_BASE}/api/jobs/${jobId}/pii/detect`);
+  const res = await apiFetch(`${API_BASE}/api/jobs/${jobId}/pii/detect`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to detect PII.');
@@ -913,7 +965,7 @@ export async function applyJobPiiMasking(
   jobId: string,
   columns: Record<string, { strategy: string; entity_type?: string }>
 ): Promise<{ success: boolean; message: string; row_count: number; columns: WrangleColumn[]; preview_rows: any[][] }> {
-  const res = await fetch(`${API_BASE}/api/jobs/${jobId}/pii/apply`, {
+  const res = await apiFetch(`${API_BASE}/api/jobs/${jobId}/pii/apply`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ columns }),
@@ -931,7 +983,7 @@ export async function applyWrangleAction(
   column: string,
   params?: Record<string, any>
 ): Promise<WrangleResultResponse> {
-  const res = await fetch(`${API_BASE}/api/jobs/${jobId}/wrangle`, {
+  const res = await apiFetch(`${API_BASE}/api/jobs/${jobId}/wrangle`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ action, column, params: params || {} }),
@@ -944,7 +996,7 @@ export async function applyWrangleAction(
 }
 
 export async function undoWrangleAction(jobId: string): Promise<WrangleResultResponse> {
-  const res = await fetch(`${API_BASE}/api/jobs/${jobId}/wrangle/undo`, {
+  const res = await apiFetch(`${API_BASE}/api/jobs/${jobId}/wrangle/undo`, {
     method: 'POST',
   });
   if (!res.ok) {
@@ -955,7 +1007,7 @@ export async function undoWrangleAction(jobId: string): Promise<WrangleResultRes
 }
 
 export async function resetWrangleActions(jobId: string): Promise<WrangleResultResponse> {
-  const res = await fetch(`${API_BASE}/api/jobs/${jobId}/wrangle/reset`, {
+  const res = await apiFetch(`${API_BASE}/api/jobs/${jobId}/wrangle/reset`, {
     method: 'POST',
   });
   if (!res.ok) {
@@ -966,7 +1018,7 @@ export async function resetWrangleActions(jobId: string): Promise<WrangleResultR
 }
 
 export async function getWrangleHistory(jobId: string): Promise<WrangleHistoryResponse> {
-  const res = await fetch(`${API_BASE}/api/jobs/${jobId}/wrangle/history`);
+  const res = await apiFetch(`${API_BASE}/api/jobs/${jobId}/wrangle/history`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to fetch wrangle history.');
@@ -1051,7 +1103,7 @@ export interface QueryHandoffResult {
 }
 
 export async function createModelingSession(): Promise<ModelingSessionState> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions`, {
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions`, {
     method: 'POST',
   });
   if (!res.ok) {
@@ -1062,7 +1114,7 @@ export async function createModelingSession(): Promise<ModelingSessionState> {
 }
 
 export async function getModelingSession(sessionId: string): Promise<ModelingSessionState> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}`);
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to load modeling session.');
@@ -1081,7 +1133,7 @@ export async function uploadModelingTable(
     formData.append('table_name', tableName);
   }
 
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/tables`, {
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}/tables`, {
     method: 'POST',
     body: formData,
   });
@@ -1096,7 +1148,7 @@ export async function deleteModelingTable(
   sessionId: string,
   tableName: string
 ): Promise<ModelingSessionState> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/tables/${tableName}`, {
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}/tables/${tableName}`, {
     method: 'DELETE',
   });
   if (!res.ok) {
@@ -1112,7 +1164,7 @@ export async function updateModelingTablePosition(
   x: number,
   y: number
 ): Promise<{ status: string }> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/tables/${tableName}/position`, {
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}/tables/${tableName}/position`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ x, y }),
@@ -1124,7 +1176,7 @@ export async function updateModelingTablePosition(
 }
 
 export async function detectModelingRelationships(sessionId: string): Promise<ModelingSessionState> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/detect`, {
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}/detect`, {
     method: 'POST',
   });
   if (!res.ok) {
@@ -1138,7 +1190,7 @@ export async function saveModelingRelationship(
   sessionId: string,
   relationship: Relationship
 ): Promise<Relationship> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/relationships`, {
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}/relationships`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(relationship),
@@ -1154,7 +1206,7 @@ export async function deleteModelingRelationship(
   sessionId: string,
   relId: string
 ): Promise<{ status: string }> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/relationships/${relId}`, {
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}/relationships/${relId}`, {
     method: 'DELETE',
   });
   if (!res.ok) {
@@ -1174,7 +1226,7 @@ export async function previewModelingJoin(
     join_type?: string;
   }
 ): Promise<JoinPreviewResult> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/preview-join`, {
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}/preview-join`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -1190,7 +1242,7 @@ export async function exportModelingSchema(
   sessionId: string,
   format: 'mermaid' | 'dbml' | 'sql_ddl' = 'mermaid'
 ): Promise<SchemaExportResult> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/export?format=${format}`);
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}/export?format=${format}`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to export schema.');
@@ -1199,7 +1251,7 @@ export async function exportModelingSchema(
 }
 
 export async function handoffModelingToQuery(sessionId: string): Promise<QueryHandoffResult> {
-  const res = await fetch(`${API_BASE}/api/modeling/sessions/${sessionId}/handoff-query`, {
+  const res = await apiFetch(`${API_BASE}/api/modeling/sessions/${sessionId}/handoff-query`, {
     method: 'POST',
   });
   if (!res.ok) {
@@ -1210,10 +1262,11 @@ export async function handoffModelingToQuery(sessionId: string): Promise<QueryHa
 }
 
 export async function downloadModelingMergedCsv(sessionId: string, relId?: string): Promise<void> {
+  const uid = getTenantUserId();
   const url = relId
-    ? `${API_BASE}/api/modeling/sessions/${sessionId}/export-csv?rel_id=${encodeURIComponent(relId)}`
-    : `${API_BASE}/api/modeling/sessions/${sessionId}/export-csv`;
-  const res = await fetch(url);
+    ? `${API_BASE}/api/modeling/sessions/${sessionId}/export-csv?rel_id=${encodeURIComponent(relId)}&user_id=${encodeURIComponent(uid)}`
+    : `${API_BASE}/api/modeling/sessions/${sessionId}/export-csv?user_id=${encodeURIComponent(uid)}`;
+  const res = await apiFetch(url);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to download merged CSV.');
@@ -1230,7 +1283,7 @@ export async function downloadModelingMergedCsv(sessionId: string, relId?: strin
 }
 
 export async function getStorageInventory(): Promise<any> {
-  const res = await fetch(`${API_BASE}/api/maintenance/storage`);
+  const res = await apiFetch(`${API_BASE}/api/maintenance/storage`);
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to fetch storage inventory.');
@@ -1242,7 +1295,7 @@ export async function triggerStorageCleanup(maxAgeHours?: number): Promise<any> 
   const url = maxAgeHours !== undefined
     ? `${API_BASE}/api/maintenance/cleanup?max_age_hours=${encodeURIComponent(maxAgeHours)}`
     : `${API_BASE}/api/maintenance/cleanup`;
-  const res = await fetch(url, { method: 'POST' });
+  const res = await apiFetch(url, { method: 'POST' });
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}));
     throw new Error(errorData.detail || 'Failed to trigger storage cleanup.');

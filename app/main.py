@@ -685,10 +685,6 @@ def ask_ai_analyst(
             question=payload.question,
             storage=storage.for_user(user_id),
         )
-            user_id=payload.user_id or "anonymous",
-            question=payload.question,
-            storage=storage,
-        )
         return res.to_dict()
     except DataNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -1064,13 +1060,14 @@ class ApplyPiiMaskingRequest(BaseModel):
 
 
 @app.get("/api/jobs/{job_id}/pii/detect")
-def detect_job_pii(job_id: str):
+def detect_job_pii(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Scan dataset columns for sensitive PII entities."""
     from core.privacy.detector import PiiDetector
     from explore.service import resolve_job_parquet_paths, DataNotFoundError
 
     try:
-        clean_pq, orig_pq = resolve_job_parquet_paths(job_id, storage=storage)
+        user_storage = storage.for_user(user_id)
+        clean_pq, orig_pq = resolve_job_parquet_paths(job_id, user_id=user_id, storage=user_storage)
         target_path = clean_pq if clean_pq and clean_pq.exists() else orig_pq
         if not target_path or not target_path.exists():
             raise HTTPException(status_code=404, detail="Dataset not found")
@@ -1089,7 +1086,11 @@ def detect_job_pii(job_id: str):
 
 
 @app.post("/api/jobs/{job_id}/pii/apply")
-def apply_job_pii_masking(job_id: str, payload: ApplyPiiMaskingRequest):
+def apply_job_pii_masking(
+    job_id: str,
+    payload: ApplyPiiMaskingRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Apply masking transformations to sensitive PII columns."""
     from core.recipe_schema import Recipe, ColumnRule, MaskPiiConfig
     from core.compiler import RecipeCompiler
@@ -1097,12 +1098,13 @@ def apply_job_pii_masking(job_id: str, payload: ApplyPiiMaskingRequest):
     from explore.service import resolve_job_parquet_paths, DataNotFoundError
 
     try:
-        clean_pq, _ = resolve_job_parquet_paths(job_id, storage=storage)
+        user_storage = storage.for_user(user_id)
+        clean_pq, _ = resolve_job_parquet_paths(job_id, user_id=user_id, storage=user_storage)
         if not clean_pq or not clean_pq.exists():
             raise HTTPException(status_code=404, detail="Dataset not found")
 
         # Ensure wrangle baseline exists
-        wrangler = DataWranglerService(storage=storage)
+        wrangler = DataWranglerService(storage=user_storage)
         wrangler.ensure_baseline_snapshot(job_id)
 
         mask_rules = {}
@@ -1123,7 +1125,7 @@ def apply_job_pii_masking(job_id: str, payload: ApplyPiiMaskingRequest):
             shutil.move(temp_pq, clean_pq)
 
         # Update CSV
-        clean_csv = storage.clean_csv_path(job_id)
+        clean_csv = user_storage.clean_csv_path(job_id, user_id=user_id)
         c_conn = duckdb.connect(":memory:")
         c_conn.execute(
             f"COPY (SELECT * FROM read_parquet('{clean_pq.as_posix()}')) "
@@ -1147,12 +1149,17 @@ def apply_job_pii_masking(job_id: str, payload: ApplyPiiMaskingRequest):
 
 
 @app.post("/api/jobs/{job_id}/wrangle")
-def apply_wrangle_action(job_id: str, payload: WrangleActionRequest):
+def apply_wrangle_action(
+    job_id: str,
+    payload: WrangleActionRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Execute point-and-click cell/column wrangle mutation."""
     from core.wrangler.service import DataWranglerService
 
     try:
-        wrangler = DataWranglerService(storage=storage)
+        user_storage = storage.for_user(user_id)
+        wrangler = DataWranglerService(storage=user_storage)
         result = wrangler.apply_action(
             job_id=job_id,
             action_type=payload.action,
@@ -1161,8 +1168,8 @@ def apply_wrangle_action(job_id: str, payload: WrangleActionRequest):
         )
 
         # Synchronize CSV export
-        clean_pq = storage.clean_parquet_path(job_id)
-        clean_csv = storage.clean_csv_path(job_id)
+        clean_pq = user_storage.clean_parquet_path(job_id, user_id=user_id)
+        clean_csv = user_storage.clean_csv_path(job_id, user_id=user_id)
         if clean_pq.exists():
             c_conn = duckdb.connect(":memory:")
             c_conn.execute(
@@ -1180,16 +1187,17 @@ def apply_wrangle_action(job_id: str, payload: WrangleActionRequest):
 
 
 @app.post("/api/jobs/{job_id}/wrangle/undo")
-def undo_wrangle_action(job_id: str):
+def undo_wrangle_action(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Roll back the last wrangle mutation."""
     from core.wrangler.service import DataWranglerService
 
     try:
-        wrangler = DataWranglerService(storage=storage)
+        user_storage = storage.for_user(user_id)
+        wrangler = DataWranglerService(storage=user_storage)
         result = wrangler.undo(job_id=job_id)
 
-        clean_pq = storage.clean_parquet_path(job_id)
-        clean_csv = storage.clean_csv_path(job_id)
+        clean_pq = user_storage.clean_parquet_path(job_id, user_id=user_id)
+        clean_csv = user_storage.clean_csv_path(job_id, user_id=user_id)
         if clean_pq.exists():
             c_conn = duckdb.connect(":memory:")
             c_conn.execute(
@@ -1205,16 +1213,17 @@ def undo_wrangle_action(job_id: str):
 
 
 @app.post("/api/jobs/{job_id}/wrangle/reset")
-def reset_wrangle_actions(job_id: str):
+def reset_wrangle_actions(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Revert dataset to step 0 baseline."""
     from core.wrangler.service import DataWranglerService
 
     try:
-        wrangler = DataWranglerService(storage=storage)
+        user_storage = storage.for_user(user_id)
+        wrangler = DataWranglerService(storage=user_storage)
         result = wrangler.reset(job_id=job_id)
 
-        clean_pq = storage.clean_parquet_path(job_id)
-        clean_csv = storage.clean_csv_path(job_id)
+        clean_pq = user_storage.clean_parquet_path(job_id, user_id=user_id)
+        clean_csv = user_storage.clean_csv_path(job_id, user_id=user_id)
         if clean_pq.exists():
             c_conn = duckdb.connect(":memory:")
             c_conn.execute(
@@ -1230,12 +1239,13 @@ def reset_wrangle_actions(job_id: str):
 
 
 @app.get("/api/jobs/{job_id}/wrangle/history")
-def get_wrangle_history(job_id: str):
+def get_wrangle_history(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Get list of applied wrangle actions for a job."""
     from core.wrangler.service import DataWranglerService
 
     try:
-        wrangler = DataWranglerService(storage=storage)
+        user_storage = storage.for_user(user_id)
+        wrangler = DataWranglerService(storage=user_storage)
         history = wrangler.get_history(job_id=job_id)
         return {
             "job_id": job_id,
@@ -1257,19 +1267,21 @@ modeling_service = ModelingService()
 
 
 @app.post("/api/modeling/sessions")
-def create_modeling_session():
+def create_modeling_session(user_id: str = Depends(get_current_tenant_id)):
     """Create a new multi-table modeling session."""
-    session_id = modeling_service.create_session()
-    state = modeling_service.get_session_state(session_id)
+    session_id = modeling_service.create_session(user_id=user_id)
+    state = modeling_service.get_session_state(session_id, user_id=user_id)
     return state.model_dump()
 
 
 @app.get("/api/modeling/sessions/{session_id}")
-def get_modeling_session(session_id: str):
+def get_modeling_session(session_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Retrieve full session state (staged tables, columns, relationships)."""
     try:
-        state = modeling_service.get_session_state(session_id)
+        state = modeling_service.get_session_state(session_id, user_id=user_id)
         return state.model_dump()
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         logger.exception("Failed to retrieve modeling session %s: %s", session_id, e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -1280,6 +1292,7 @@ async def upload_modeling_table(
     session_id: str,
     file: UploadFile = File(...),
     table_name: Optional[str] = Form(None),
+    user_id: str = Depends(get_current_tenant_id),
 ):
     """Upload a CSV, Parquet, JSON, Excel, or SQLite file into the modeling session."""
     import tempfile
@@ -1291,17 +1304,20 @@ async def upload_modeling_table(
 
     try:
         if suffix in (".db", ".sqlite", ".sqlite3"):
-            modeling_service.add_sqlite_database(session_id, tmp_path)
+            modeling_service.add_sqlite_database(session_id, tmp_path, user_id=user_id)
         else:
             modeling_service.add_table(
                 session_id=session_id,
                 file_path=tmp_path,
                 original_filename=file.filename or "table",
                 table_name=table_name,
+                user_id=user_id,
             )
 
-        state = modeling_service.get_session_state(session_id)
+        state = modeling_service.get_session_state(session_id, user_id=user_id)
         return state.model_dump()
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         logger.exception("Failed to add table to session %s: %s", session_id, e)
         raise HTTPException(status_code=500, detail=f"Failed to add table: {e}")
@@ -1311,12 +1327,14 @@ async def upload_modeling_table(
 
 
 @app.delete("/api/modeling/sessions/{session_id}/tables/{table_name}")
-def delete_modeling_table(session_id: str, table_name: str):
+def delete_modeling_table(session_id: str, table_name: str, user_id: str = Depends(get_current_tenant_id)):
     """Remove a staged table and its linked relationships from the session."""
     try:
-        modeling_service.remove_table(session_id, table_name)
-        state = modeling_service.get_session_state(session_id)
+        modeling_service.remove_table(session_id, table_name, user_id=user_id)
+        state = modeling_service.get_session_state(session_id, user_id=user_id)
         return state.model_dump()
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         logger.exception("Failed to remove table %s from session %s: %s", table_name, session_id, e)
         raise HTTPException(status_code=500, detail=str(e))
@@ -1327,55 +1345,64 @@ async def update_modeling_table_position(
     session_id: str,
     table_name: str,
     request: Request,
+    user_id: str = Depends(get_current_tenant_id),
 ):
     """Save canvas coordinates for a table entity card."""
     try:
         body = await request.json()
         x = float(body.get("x", 0.0))
         y = float(body.get("y", 0.0))
-        modeling_service.update_table_position(session_id, table_name, x, y)
+        modeling_service.update_table_position(session_id, table_name, x, y, user_id=user_id)
         return {"status": "ok"}
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/modeling/sessions/{session_id}/detect")
-def detect_modeling_relationships(session_id: str):
+def detect_modeling_relationships(session_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Re-run primary key and foreign key overlap detection."""
     try:
-        modeling_service.detect_relationships(session_id)
-        state = modeling_service.get_session_state(session_id)
+        modeling_service.detect_relationships(session_id, user_id=user_id)
+        state = modeling_service.get_session_state(session_id, user_id=user_id)
         return state.model_dump()
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         logger.exception("Failed to detect relationships for session %s: %s", session_id, e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/modeling/sessions/{session_id}/relationships")
-async def save_modeling_relationship(session_id: str, request: Request):
+async def save_modeling_relationship(session_id: str, request: Request, user_id: str = Depends(get_current_tenant_id)):
     """Create or update a relationship."""
     try:
         body = await request.json()
         rel = Relationship(**body)
-        saved = modeling_service.add_or_update_relationship(session_id, rel)
+        saved = modeling_service.add_or_update_relationship(session_id, rel, user_id=user_id)
         return saved.model_dump()
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         logger.exception("Failed to save relationship for session %s: %s", session_id, e)
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.delete("/api/modeling/sessions/{session_id}/relationships/{rel_id}")
-def delete_modeling_relationship(session_id: str, rel_id: str):
+def delete_modeling_relationship(session_id: str, rel_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Delete a relationship by ID."""
     try:
-        modeling_service.delete_relationship(session_id, rel_id)
+        modeling_service.delete_relationship(session_id, rel_id, user_id=user_id)
         return {"status": "ok", "deleted": rel_id}
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/modeling/sessions/{session_id}/preview-join")
-async def preview_modeling_join(session_id: str, request: Request):
+async def preview_modeling_join(session_id: str, request: Request, user_id: str = Depends(get_current_tenant_id)):
     """Preview a JOIN between two tables and inspect match stats."""
     try:
         body = await request.json()
@@ -1386,49 +1413,58 @@ async def preview_modeling_join(session_id: str, request: Request):
             to_table=body["to_table"],
             to_column=body["to_column"],
             join_type=body.get("join_type", "INNER"),
+            user_id=user_id,
         )
         return result.model_dump()
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         logger.exception("Failed to preview join for session %s: %s", session_id, e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/modeling/sessions/{session_id}/export")
-def export_modeling_schema(session_id: str, format: str = "mermaid"):
+def export_modeling_schema(session_id: str, format: str = "mermaid", user_id: str = Depends(get_current_tenant_id)):
     """Export relational schema as Mermaid ERD, DBML, or SQL DDL."""
     try:
-        content = modeling_service.export_schema(session_id, export_format=format)
+        content = modeling_service.export_schema(session_id, export_format=format, user_id=user_id)
         return {"format": format, "content": content}
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         logger.exception("Failed to export schema for session %s: %s", session_id, e)
         raise HTTPException(status_code=400, detail=str(e))
 
 
 @app.post("/api/modeling/sessions/{session_id}/handoff-query")
-def handoff_modeling_to_query(session_id: str):
+def handoff_modeling_to_query(session_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Prepare a pre-composed SQL JOIN query for the SQL Query Box."""
     try:
-        handoff = modeling_service.create_query_handoff(session_id)
+        handoff = modeling_service.create_query_handoff(session_id, user_id=user_id)
         return handoff
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         logger.exception("Failed to create query handoff for session %s: %s", session_id, e)
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/modeling/sessions/{session_id}/export-csv")
-def export_modeling_merged_csv(session_id: str, rel_id: Optional[str] = None):
+def export_modeling_merged_csv(session_id: str, rel_id: Optional[str] = None, user_id: str = Depends(get_current_tenant_id)):
     """Execute JOIN and return merged CSV download from DuckDB."""
     import tempfile
     from fastapi.responses import FileResponse
     try:
         tmp_csv = Path(tempfile.mktemp(suffix=".csv"))
-        modeling_service.export_joined_csv(session_id, tmp_csv, join_rel_id=rel_id)
+        modeling_service.export_joined_csv(session_id, tmp_csv, join_rel_id=rel_id, user_id=user_id)
         filename = f"merged_{session_id}.csv" if not rel_id else f"join_{rel_id}.csv"
         return FileResponse(
             path=str(tmp_csv),
             media_type="text/csv",
             filename=filename,
         )
+    except (PermissionError, KeyError):
+        raise HTTPException(status_code=404, detail="Modeling session not found or expired.")
     except Exception as e:
         logger.exception("Failed to export merged CSV for session %s: %s", session_id, e)
         raise HTTPException(status_code=500, detail=str(e))

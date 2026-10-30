@@ -12,6 +12,7 @@ import {
   undoWrangleAction,
   resetWrangleActions,
   getWrangleHistory,
+  apiFetch,
   type WrangleColumn,
   type WrangleHistoryItem,
 } from '../../lib/api';
@@ -61,7 +62,7 @@ export const DataWranglerGrid: React.FC<DataWranglerGridProps> = ({
       setCanUndo(histRes.can_undo || false);
 
       // Trigger a dry-run or fetch from explore query
-      const res = await fetch(`/api/explore/${jobId}/query`, {
+      const res = await apiFetch(`/api/explore/${jobId}/query`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sql: 'SELECT * FROM data LIMIT 100;', row_limit: 100 }),

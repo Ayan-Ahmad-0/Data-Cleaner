@@ -42,12 +42,34 @@ class ModelingService:
         self.base_dir = Path(base_dir or "data/modeling").resolve()
         self.base_dir.mkdir(parents=True, exist_ok=True)
 
+    def _find_session(self, session_id: str) -> Optional[tuple[Path, str]]:
+        """Locate an existing modeling session across tenant partitions or legacy flat directory."""
+        # Check tenant partition
+        if self.base_dir.exists():
+            for child in self.base_dir.iterdir():
+                if child.is_dir():
+                    state_candidate = child / session_id / "state.json"
+                    if state_candidate.exists():
+                        return child / session_id, child.name
+
+        # Check legacy flat directory
+        legacy_state = self.base_dir / session_id / "state.json"
+        if legacy_state.exists():
+            return self.base_dir / session_id, "default"
+
+        return None
+
     def _get_session_dir(self, session_id: str, user_id: Optional[str] = None) -> Path:
         uid = user_id or "default"
+        # If session already exists in legacy or tenant dir, return it
+        found = self._find_session(session_id)
+        if found:
+            s_dir, owner = found
+            if user_id is not None and owner != user_id:
+                raise PermissionError(f"User '{user_id}' does not have access to modeling session '{session_id}'")
+            return s_dir
+
         s_dir = self.base_dir / uid / session_id
-        if not s_dir.exists() and (self.base_dir / session_id).exists() and uid == "default":
-            # Backward-compatibility for flat unpartitioned sessions
-            return self.base_dir / session_id
         s_dir.mkdir(parents=True, exist_ok=True)
         (s_dir / "tables").mkdir(parents=True, exist_ok=True)
         return s_dir
@@ -57,32 +79,24 @@ class ModelingService:
 
     def _load_state(self, session_id: str, user_id: Optional[str] = None) -> ModelingSessionState:
         uid = user_id or "default"
-        state_file = self._get_state_file(session_id, user_id=uid)
-        if not state_file.exists() and uid != "default":
-            # If not in tenant dir, check legacy flat path if owner is actually default
-            legacy_file = self.base_dir / session_id / "state.json"
-            if legacy_file.exists():
-                state_file = legacy_file
+        found = self._find_session(session_id)
+        if not found:
+            raise KeyError(f"Modeling session '{session_id}' not found.")
 
+        session_dir, owner = found
+        if user_id is not None and owner != uid:
+            raise PermissionError(f"User '{user_id}' does not have access to modeling session '{session_id}'")
+
+        state_file = session_dir / "state.json"
         if state_file.exists():
-            try:
-                with open(state_file, "r", encoding="utf-8") as f:
-                    data = json.load(f)
-                state = ModelingSessionState(**data)
-                if user_id is not None and getattr(state, "user_id", "default") != user_id:
-                    raise PermissionError(f"User '{user_id}' does not have access to modeling session '{session_id}'")
-                return state
-            except PermissionError:
-                raise
-            except Exception as e:
-                logger.warning(f"Failed to load state for session {session_id}: {e}")
+            with open(state_file, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            state = ModelingSessionState(**data)
+            if user_id is not None and getattr(state, "user_id", "default") != uid:
+                raise PermissionError(f"User '{user_id}' does not have access to modeling session '{session_id}'")
+            return state
 
-        # Fallback fresh state
-        return ModelingSessionState(
-            session_id=session_id,
-            user_id=uid,
-            created_at=datetime.now(timezone.utc).isoformat(),
-        )
+        raise KeyError(f"Modeling session state for '{session_id}' is missing.")
 
     def _save_state(self, session_id: str, state: ModelingSessionState, user_id: Optional[str] = None) -> None:
         uid = user_id or getattr(state, "user_id", "default")
@@ -123,16 +137,17 @@ class ModelingService:
         file_path: Path,
         original_filename: str,
         table_name: Optional[str] = None,
+        user_id: Optional[str] = None,
     ) -> TableMetadata:
         """Stage a single data file (CSV, Parquet, JSON, Excel) into canonical Parquet and register it."""
-        state = self._load_state(session_id)
+        state = self._load_state(session_id, user_id=user_id)
         clean_name = sanitize_table_name(table_name or original_filename)
 
         # Avoid collision
         if clean_name in state.tables and (table_name is None):
             clean_name = f"{clean_name}_{len(state.tables) + 1}"
 
-        target_parquet = self._get_session_dir(session_id) / "tables" / f"{clean_name}.parquet"
+        target_parquet = self._get_session_dir(session_id, user_id=state.user_id) / "tables" / f"{clean_name}.parquet"
 
         # Convert to flat canonical Parquet
         fmt_id, _ = detect_format(file_path)
@@ -178,7 +193,7 @@ class ModelingService:
         state.tables[clean_name] = table_meta
 
         # Detect PKs and run cross-table relationship discovery
-        session_con = self._build_duckdb_connection(session_id)
+        session_con = self._build_duckdb_connection(session_id, user_id=state.user_id)
         RelationshipDetector.detect_primary_keys(session_con, state.tables)
         detected_rels = RelationshipDetector.detect_foreign_keys(session_con, state.tables)
 
@@ -192,12 +207,12 @@ class ModelingService:
             if k not in existing_keys:
                 state.relationships.append(dr)
 
-        self._save_state(session_id, state)
+        self._save_state(session_id, state, user_id=state.user_id)
         return table_meta
 
-    def add_sqlite_database(self, session_id: str, file_path: Path) -> List[TableMetadata]:
+    def add_sqlite_database(self, session_id: str, file_path: Path, user_id: Optional[str] = None) -> List[TableMetadata]:
         """Extract and stage all tables and foreign keys from an SQLite database."""
-        state = self._load_state(session_id)
+        state = self._load_state(session_id, user_id=user_id)
         added_tables: List[TableMetadata] = []
 
         try:
@@ -216,7 +231,7 @@ class ModelingService:
             pos_idx = len(state.tables)
             for t_name in tbl_names:
                 clean_name = sanitize_table_name(t_name)
-                target_parquet = self._get_session_dir(session_id) / "tables" / f"{clean_name}.parquet"
+                target_parquet = self._get_session_dir(session_id, user_id=state.user_id) / "tables" / f"{clean_name}.parquet"
 
                 # Direct dump via DuckDB or pandas
                 duck_con.execute(f"ATTACH '{file_path.as_posix()}' AS sqldb (TYPE sqlite);")
@@ -287,7 +302,7 @@ class ModelingService:
             sqlite_conn.close()
 
             # 3. Detect PKs and remaining relationships
-            session_con = self._build_duckdb_connection(session_id)
+            session_con = self._build_duckdb_connection(session_id, user_id=state.user_id)
             RelationshipDetector.detect_primary_keys(session_con, state.tables)
             detected_rels = RelationshipDetector.detect_foreign_keys(session_con, state.tables)
 
@@ -300,19 +315,19 @@ class ModelingService:
                 if k not in existing_keys:
                     state.relationships.append(dr)
 
-            self._save_state(session_id, state)
+            self._save_state(session_id, state, user_id=state.user_id)
             return added_tables
         except Exception as e:
             logger.error(f"Failed to extract SQLite database {file_path}: {e}")
             raise e
 
-    def remove_table(self, session_id: str, table_name: str) -> None:
+    def remove_table(self, session_id: str, table_name: str, user_id: Optional[str] = None) -> None:
         """Remove a staged table and any associated relationships."""
-        state = self._load_state(session_id)
+        state = self._load_state(session_id, user_id=user_id)
         if table_name in state.tables:
             del state.tables[table_name]
 
-        target_parquet = self._get_session_dir(session_id) / "tables" / f"{table_name}.parquet"
+        target_parquet = self._get_session_dir(session_id, user_id=state.user_id) / "tables" / f"{table_name}.parquet"
         if target_parquet.exists():
             target_parquet.unlink()
 
@@ -322,20 +337,20 @@ class ModelingService:
             if r.from_table != table_name and r.to_table != table_name
         ]
 
-        self._save_state(session_id, state)
+        self._save_state(session_id, state, user_id=state.user_id)
 
-    def update_table_position(self, session_id: str, table_name: str, x: float, y: float) -> None:
+    def update_table_position(self, session_id: str, table_name: str, x: float, y: float, user_id: Optional[str] = None) -> None:
         """Update canvas coordinates of a table entity card."""
-        state = self._load_state(session_id)
+        state = self._load_state(session_id, user_id=user_id)
         if table_name in state.tables:
             state.tables[table_name].position_x = x
             state.tables[table_name].position_y = y
-            self._save_state(session_id, state)
+            self._save_state(session_id, state, user_id=state.user_id)
 
-    def detect_relationships(self, session_id: str) -> List[Relationship]:
+    def detect_relationships(self, session_id: str, user_id: Optional[str] = None) -> List[Relationship]:
         """Trigger relationship discovery across all staged tables."""
-        state = self._load_state(session_id)
-        con = self._build_duckdb_connection(session_id)
+        state = self._load_state(session_id, user_id=user_id)
+        con = self._build_duckdb_connection(session_id, user_id=state.user_id)
 
         RelationshipDetector.detect_primary_keys(con, state.tables)
         new_rels = RelationshipDetector.detect_foreign_keys(con, state.tables)
@@ -348,22 +363,22 @@ class ModelingService:
                 merged.append(nr)
 
         state.relationships = merged
-        self._save_state(session_id, state)
+        self._save_state(session_id, state, user_id=state.user_id)
         return merged
 
-    def add_or_update_relationship(self, session_id: str, rel: Relationship) -> Relationship:
+    def add_or_update_relationship(self, session_id: str, rel: Relationship, user_id: Optional[str] = None) -> Relationship:
         """Create or update a relationship."""
-        state = self._load_state(session_id)
+        state = self._load_state(session_id, user_id=user_id)
         state.relationships = [r for r in state.relationships if r.id != rel.id]
         state.relationships.append(rel)
-        self._save_state(session_id, state)
+        self._save_state(session_id, state, user_id=state.user_id)
         return rel
 
-    def delete_relationship(self, session_id: str, rel_id: str) -> None:
+    def delete_relationship(self, session_id: str, rel_id: str, user_id: Optional[str] = None) -> None:
         """Delete an existing relationship by ID."""
-        state = self._load_state(session_id)
+        state = self._load_state(session_id, user_id=user_id)
         state.relationships = [r for r in state.relationships if r.id != rel_id]
-        self._save_state(session_id, state)
+        self._save_state(session_id, state, user_id=state.user_id)
 
     def preview_join(
         self,
@@ -373,9 +388,11 @@ class ModelingService:
         to_table: str,
         to_column: str,
         join_type: str = "INNER",
+        user_id: Optional[str] = None,
     ) -> JoinPreviewResult:
         """Execute a join preview query between two tables and return statistics with sample rows."""
-        con = self._build_duckdb_connection(session_id)
+        state = self._load_state(session_id, user_id=user_id)
+        con = self._build_duckdb_connection(session_id, user_id=state.user_id)
         join_type = join_type.upper()
         if join_type not in ("INNER", "LEFT", "RIGHT", "FULL"):
             join_type = "INNER"
@@ -421,9 +438,9 @@ class ModelingService:
             sample_rows=records,
         )
 
-    def export_schema(self, session_id: str, export_format: str = "mermaid") -> str:
+    def export_schema(self, session_id: str, export_format: str = "mermaid", user_id: Optional[str] = None) -> str:
         """Export the relational model as Mermaid ERD, DBML, or SQL DDL."""
-        state = self._load_state(session_id)
+        state = self._load_state(session_id, user_id=user_id)
 
         if export_format.lower() == "mermaid":
             lines = ["erDiagram"]
@@ -482,9 +499,9 @@ class ModelingService:
         else:
             raise ValueError(f"Unsupported export format '{export_format}'. Expected mermaid, dbml, or sql_ddl.")
 
-    def create_query_handoff(self, session_id: str) -> Dict[str, Any]:
+    def create_query_handoff(self, session_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
         """Prepare a multi-table JOIN query string, materializing merged.parquet for SQL & AI exploration."""
-        state = self._load_state(session_id)
+        state = self._load_state(session_id, user_id=user_id)
         if not state.tables:
             return {
                 "query_id": session_id,
@@ -500,8 +517,8 @@ class ModelingService:
 
         table_names = list(state.tables.keys())
         first_table = table_names[0]
-        con = self._build_duckdb_connection(session_id)
-        merged_pq = self._get_session_dir(session_id) / "merged.parquet"
+        con = self._build_duckdb_connection(session_id, user_id=state.user_id)
+        merged_pq = self._get_session_dir(session_id, user_id=state.user_id) / "merged.parquet"
 
         if not state.relationships:
             query = f'SELECT * FROM "{first_table}"'
@@ -539,10 +556,42 @@ class ModelingService:
             "relationships_count": len(state.relationships),
         }
 
-    def export_joined_csv(self, session_id: str, output_path: Path, join_rel_id: Optional[str] = None) -> Path:
+    def export_joined_csv(self, session_id: str, output_path: Path, join_rel_id: Optional[str] = None, user_id: Optional[str] = None) -> Path:
         """Execute relational JOIN in DuckDB and export the full merged dataset as CSV."""
-        con = self._build_duckdb_connection(session_id)
-        state = self._load_state(session_id)
+        state = self._load_state(session_id, user_id=user_id)
+        con = self._build_duckdb_connection(session_id, user_id=state.user_id)
+        if not state.tables:
+            raise ValueError("No tables staged in modeling session.")
+
+        if join_rel_id:
+            rel = next((r for r in state.relationships if r.id == join_rel_id), None)
+            if not rel:
+                raise ValueError(f"Relationship '{join_rel_id}' not found.")
+            query = (
+                f'SELECT * FROM "{rel.from_table}" '
+                f'JOIN "{rel.to_table}" '
+                f'ON "{rel.from_table}"."{rel.from_column}" = "{rel.to_table}"."{rel.to_column}"'
+            )
+        elif state.relationships:
+            # Build full chained multi-table join
+            base_tbl = state.relationships[0].from_table
+            joins = []
+            joined_tables = {base_tbl}
+            for r in state.relationships:
+                if r.to_table not in joined_tables:
+                    joins.append(f'LEFT JOIN "{r.to_table}" ON "{r.from_table}"."{r.from_column}" = "{r.to_table}"."{r.to_column}"')
+                    joined_tables.add(r.to_table)
+                elif r.from_table not in joined_tables:
+                    joins.append(f'LEFT JOIN "{r.from_table}" ON "{r.from_table}"."{r.from_column}" = "{r.to_table}"."{r.to_column}"')
+                    joined_tables.add(r.from_table)
+            query = f'SELECT * FROM "{base_tbl}" {" ".join(joins)}'
+        else:
+            first_tbl = list(state.tables.keys())[0]
+            query = f'SELECT * FROM "{first_tbl}"'
+
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        con.execute(f"COPY ({query}) TO '{output_path.as_posix()}' (HEADER, DELIMITER ',')")
+        return output_path
         if not state.tables:
             raise ValueError("No tables staged in modeling session.")
 

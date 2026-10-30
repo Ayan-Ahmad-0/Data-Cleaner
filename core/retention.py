@@ -273,14 +273,36 @@ class StorageRetentionManager:
                     if folder_id in active_job_ids:
                         continue
 
-                    # Check modification / creation time of directory
+                    # Check modification / creation time or explicit TTL expiration
                     try:
                         stat = item_path.stat()
                         mtime = stat.st_mtime
                     except OSError:
                         mtime = time.time()
 
-                    if mtime < cutoff_timestamp:
+                    is_expired = False
+                    meta_file = item_path / "meta.json"
+                    state_file = item_path / "state.json"
+                    check_file = meta_file if meta_file.exists() else (state_file if state_file.exists() else None)
+                    if check_file:
+                        try:
+                            import json
+                            with open(check_file, "r", encoding="utf-8") as f_meta:
+                                m_data = json.load(f_meta)
+                            exp_val = m_data.get("expires_at")
+                            if exp_val:
+                                exp_dt = datetime.fromisoformat(exp_val)
+                                if exp_dt.tzinfo is None:
+                                    exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+                                if exp_dt < datetime.now(timezone.utc):
+                                    is_expired = True
+                        except Exception:
+                            pass
+
+                    if not is_expired and mtime < cutoff_timestamp:
+                        is_expired = True
+
+                    if is_expired:
                         dir_bytes = get_dir_size_bytes(item_path)
                         try:
                             parent_dir = item_path.parent
