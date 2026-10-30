@@ -197,8 +197,9 @@ class Profiler:
                 cols_quoted = ", ".join(f'"{col}"' for col in column_names)
                 if total_rows > 100000:
                     # Fast short-circuit check for large datasets: verify if any duplicate rows exist
+                    # Grouping by 64-bit row hash prevents allocating memory for 15+ VARCHAR columns
                     has_dup = conn.execute(
-                        f"SELECT 1 FROM (SELECT {cols_quoted} FROM {view_name} GROUP BY {cols_quoted} HAVING COUNT(*) > 1 LIMIT 1)"
+                        f"SELECT 1 FROM (SELECT hash({cols_quoted}) AS _h FROM {view_name} GROUP BY _h HAVING COUNT(*) > 1 LIMIT 1)"
                     ).fetchone()
                     if has_dup is None:
                         exact_dup_rows = 0
