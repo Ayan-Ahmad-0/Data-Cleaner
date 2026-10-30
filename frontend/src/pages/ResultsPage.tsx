@@ -3,7 +3,7 @@ import { getDownloadUrl, type JobDetailResponse } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Tag } from '../components/ui/Tag';
 import { formatNumber, formatPercent } from '../lib/format';
-import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal, Bot, BarChart3, Database, Sliders } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Download, RotateCcw, FileText, FileCheck, ChevronDown, Terminal, Bot, BarChart3, Database, Sliders, Clock } from 'lucide-react';
 import { SqlQueryBox } from '../components/explore/SqlQueryBox';
 import { ConnectorModal } from '../components/connectors/ConnectorModal';
 import { PiiShieldCard } from '../components/privacy/PiiShieldCard';
@@ -72,6 +72,17 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
   // Selected format details
   const activeOption = exportOptions.find((o) => o.format_id === selectedFormat) || exportOptions[0];
 
+  // TTL & retention policy indicator
+  const ttlBadge = useMemo(() => {
+    const secs = jobData?.job?.ttl_seconds_remaining ?? jobData?.ttl_seconds_remaining;
+    if (secs === undefined || secs === null) return 'Retained for 24h';
+    const hours = Math.floor(secs / 3600);
+    const minutes = Math.floor((secs % 3600) / 60);
+    if (hours > 0) return `Expires in ${hours}h ${minutes}m`;
+    if (minutes > 0) return `Expires in ${minutes}m`;
+    return 'Expiring soon';
+  }, [jobData]);
+
   // If no job completed yet, show informative empty state
   const isJobCompleted = jobData?.job?.status === 'DONE' || jobData?.job?.status === 'DONE_WITH_WARNINGS' || Boolean(jobData?.verification);
   if (!jobData || !isJobCompleted) {
@@ -111,9 +122,15 @@ export const ResultsPage: React.FC<ResultsPageProps> = ({ jobData, onRestart, on
               </Tag>
             )}
           </div>
-          <p className="text-sm text-[var(--text-muted)] font-mono">
-            Dataset: <span className="text-[var(--text-primary)] font-semibold">{jobData.job.filename}</span> · Engine: Vectorized DuckDB
-          </p>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-muted)] font-mono">
+            <span>
+              Dataset: <span className="text-[var(--text-primary)] font-semibold">{jobData.job.filename}</span> · Engine: Vectorized DuckDB
+            </span>
+            <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs bg-[var(--bg-subtle)] border border-[var(--border-hairline)] text-[var(--text-muted)]">
+              <Clock className="w-3 h-3 text-[var(--accent)]" />
+              <span>{ttlBadge}</span>
+            </span>
+          </div>
         </div>
 
         {/* Top-Right Utility / Export Action Bar */}
