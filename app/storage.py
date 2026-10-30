@@ -24,12 +24,14 @@ class JobStorage:
         Gracefully resolves legacy unpartitioned directories if uid is 'default'.
         """
         uid = user_id or self.user_id
-        # Tenant partitioned directory
-        tenant_dir = self.base_dir / uid / job_id
-        if not tenant_dir.exists() and (self.base_dir / job_id).exists() and uid == "default":
-            # Backward compatibility for flat unpartitioned jobs created prior to multi-tenancy
+        if uid.lower() in ("anonymous", "none"):
+            uid = "default"
+
+        # Check if legacy unpartitioned directory exists for default tenant
+        if uid == "default" and (self.base_dir / job_id).exists() and not (self.base_dir / uid / job_id).exists():
             return self.base_dir / job_id
 
+        tenant_dir = self.base_dir / uid / job_id
         tenant_dir.mkdir(parents=True, exist_ok=True)
         return tenant_dir
 

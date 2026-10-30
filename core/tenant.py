@@ -20,7 +20,7 @@ def validate_tenant_id(tenant_id: Optional[str]) -> str:
     if not tenant_id:
         return DEFAULT_TENANT_ID
     clean = tenant_id.strip()
-    if not clean:
+    if not clean or clean.lower() in ("default", "anonymous", "none"):
         return DEFAULT_TENANT_ID
     if not TENANT_ID_REGEX.match(clean):
         raise HTTPException(
