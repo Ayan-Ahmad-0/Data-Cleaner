@@ -71,3 +71,4 @@ Because queries run on DuckDB, users have access to modern analytical SQL featur
 - **Instant Schema Tree:** Displays all column names, detected data types, and null counts in a collapsible sidebar.
 - **Query Auto-Format:** Beautifies SQL syntax with standard indentation.
 - **Export Filtered Results:** Allows downloading the exact query output as a standalone CSV with custom file naming (`/api/explore/{job_id}/export`).
+

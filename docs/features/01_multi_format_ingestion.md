@@ -90,3 +90,4 @@ Validates connectivity to an external PostgreSQL database or AWS S3 bucket.
     "tables": ["orders", "customers", "inventory_logs"]
   }
   ```
+

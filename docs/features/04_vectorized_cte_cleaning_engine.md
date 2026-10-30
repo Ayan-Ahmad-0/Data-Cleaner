@@ -86,3 +86,4 @@ TRY_CAST(column_name AS TARGET_TYPE)
 - If a value complies with the target type, it is cast natively with zero performance penalty.
 - If an outlier or dirty token fails validation, it seamlessly coerces to `NULL` without terminating the query.
 - The downstream **Verification Engine** captures these coercion events and displays exact counts in the audit report.
+

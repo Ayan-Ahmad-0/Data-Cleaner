@@ -81,3 +81,4 @@ When running in air-gapped environments, without a `GEMINI_API_KEY`, or during u
 - **Rule 5 (Timestamps):** If timestamp format drift is detected, emit `standardize_dates`.
 
 This fallback executes in **<2ms**, producing high-quality cleaning recipes matching over 90% of LLM-crafted recommendations without external network dependencies.
+

@@ -100,3 +100,4 @@ Datamorph delegates the entire aggregation workload to DuckDB's in-process vecto
   }
 }
 ```
+

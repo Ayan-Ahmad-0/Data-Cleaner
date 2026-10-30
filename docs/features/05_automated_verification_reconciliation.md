@@ -96,3 +96,4 @@ Evaluates primary key integrity:
 
 ## 5. UI Presentation
 In the Datamorph web interface, the verification results are rendered as an interactive **Reconciliation Delta Card** with color-coded badges, visual progress indicators, and an expandable Markdown Audit Log ready for compliance export.
+
