@@ -167,7 +167,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
     }
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setError(`File size (${formatBytes(file.size)}) exceeds the maximum allowed limit of 10 GB.`);
+      setError(`File size (${formatBytes(file.size)}) exceeds the maximum allowed limit of 5 GB.`);
       setStagedFile(null);
       return;
     }
@@ -689,7 +689,7 @@ export const VisualizePage: React.FC<VisualizePageProps> = ({
           Visualize Your Data
         </h1>
         <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl">
-          Upload raw datasets up to 10 GB. Instant AI-assisted charts, auto-visualization, interactive tweak panels, and zero cleaning required.
+          Upload raw datasets up to 5 GB. Instant AI-assisted charts, auto-visualization, interactive tweak panels, and zero cleaning required.
         </p>
       </div>
 
