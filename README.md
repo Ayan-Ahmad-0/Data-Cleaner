@@ -1,5 +1,5 @@
-# One-Click AI Data Cleaner Vectorized Data Profiling, Cleaning, Modeling, and Exploration Engine
-Vectorized multi-format profiling, cleaning, relational modeling, exploration, and visualization pipeline powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 10 GB datasets, extracts single-pass statistical profiles without full table scans, models multi-table relational ERDs with DuckDB joins, compiles sandboxed analytical charts, and verifies output with automated reconciliation tests.
+# One-Click AI Data Cleaner Vectorized Data Profiling, Cleaning, Modeling, Exploration, and Retention Engine
+Vectorized multi-format profiling, cleaning, relational modeling, exploration, visualization, and automated 24-hour TTL retention pipeline powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 10 GB datasets, extracts single-pass statistical profiles without full table scans, models multi-table relational ERDs with DuckDB joins, compiles sandboxed analytical charts, purges stale ephemeral storage with background scavenging, and verifies output with automated reconciliation tests.
 
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.1+-FFF000?style=flat&logo=duckdb&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=flat&logo=python&logoColor=white)
@@ -33,14 +33,15 @@ Vectorized multi-format profiling, cleaning, relational modeling, exploration, a
 9. **Query Interactively** via the integrated AI Analyst (translates natural English questions into sandboxed DuckDB SQL with auto-correction) or the direct SQL Query Studio guarded by sqlglot AST parsing and resource ceilings.
 10. **Visualize Instantly** via vectorized DuckDB chart SQL compilation across 11 chart types (bar, hbar, line, area, histogram with `#8F0926` default, scatter, pie, donut, box, heatmap, big number), AI Auto-Visualize dashboard generation, natural language chart drafting, interactive tweak controls, and 20 curated modern analytics palettes.
 11. **Handoff Seamlessly** between pipelines: multi-table ERD sessions, post-clean results, and stream conversion outputs provide 1-click downstream handoffs into AI Analyst queries, direct SQL exploration, or the visual analytics dashboard targeting verified cleaned datasets (`cleaned.parquet` or `merged.parquet`).
+12. **Enforce Ephemeral Retention** automatically with an asynchronous background scavenger daemon sweeping dynamic job workspaces (`jobs/`, `convert_jobs/`, `query_jobs/`, `modeling/`) every 30 minutes, purging artifacts older than 24 hours while strictly preserving static benchmark fixtures, reclaiming over 50 GB of disk space.
 
-Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 100% PII masking and 100% injection defense across 331 passing automated tests (292 Pytest + 39 Vitest). Deployed locally via Docker Compose and FastAPI.
+Measured on an AMD Ryzen / Intel Core workstation: 15,000,000 rows (1.05 GB) converted in 9.98s, profiled in 63.05s, and cleaned in 11.38s; AI Analyst achieved 100.0% accuracy across a 30-question NL-to-SQL benchmark with 0.026s query latency; chart query compilation and rendering completed in <15ms; 50.35 GB of stale temporary files reclaimed on initial retention sweep; 100% PII masking and 100% injection defense across 338 passing automated tests (299 Pytest + 39 Vitest). Deployed locally via Docker Compose and FastAPI.
 
 ---
 
 ## Architecture
 
-Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL) → Format Stager → Canonical Parquet → Profiler / Mode Router → AI Analyst / CTE Compiler / Chart Compiler / Relational Joiner → Verifier → Sandboxed SQL, Visualization & ERD Studio
+Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL) → Format Stager → Canonical Parquet → Profiler / Mode Router → AI Analyst / CTE Compiler / Chart Compiler / Relational Joiner → Verifier → Sandboxed SQL, Visualization & ERD Studio → Storage Retention Daemon (24h TTL)
 
 | Stage | Purpose | Format | Storage |
 |---|---|---|---|
@@ -61,6 +62,7 @@ Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL
 | AI Chart Planner | AI Auto-Visualize and prompt-to-chart plan synthesis | JSON Visualization Plan | DuckDB memory session |
 | SQL Studio & Dashboard | Sandboxed interactive exploration and chart tweaking | DuckDB Views / React Dashboards | In-Browser / Memory Session |
 | Multi-Format Export | Delivering cleaned or joined dataset in downstream formats | Parquet, CSV, JSON, NDJSON, XLSX | Local disk / API download |
+| Storage Retention Daemon | Background scavenger sweeping stale job directories (24h TTL) | Filesystem cleanup / Reclaimed metrics | Disk scavenger (`core/retention.py`) |
 
 ### Architecture Diagram
 
@@ -71,11 +73,12 @@ Raw Files & Connectors (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, S3, PostgreSQL
 
 - **Execution Engine** — DuckDB 1.1+ (in-process vectorized columnar SQL, multi-threaded aggregation, >1,300,000 rows/s cleaning throughput, zero network overhead)
 - **SQL Security & AST** — sqlglot 30.0+ (strict read-only SELECT validation, 100% forbidden AST node denial rate, 5.0s query timeout ceiling)
-- **Backend Framework** — FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13 (292 passing automated unit & integration tests)
+- **Backend Framework** — FastAPI 0.111+, Uvicorn 0.30+, Python 3.11 - 3.13 (299 passing automated unit & integration tests)
 - **Schema & Validation** — Pydantic v2 (strict allowlist models with `extra="forbid"`, 100% PII redaction for names, emails, phones, SSNs)
 - **AI Reasoning** — Google GenAI SDK (`gemini-3.5-flash` / `gemini-3-flash-preview`), 30-question NL-to-SQL benchmark set with offline heuristic fallback
 - **Visualization Engine** — Plotly.js, React 19, Lucide Icons, 20-color analytics palette with default histogram `#8F0926`, dedicated 10-query concurrency controller
 - **Frontend Architecture** — React 19, TypeScript 5.0+, Vite, Tailwind CSS (fluid 1600px high-density layout, sub-1s cold build, 39 passing Vitest tests)
+- **Storage Retention & Scavenger** — Asynchronous background lifecycle daemon (`core/retention.py`), sweeping ephemeral job workspaces every 30 minutes, enforcing 24-hour TTL file evictions, protecting static benchmark fixtures, with on-demand `/api/maintenance/storage` diagnostics
 - **End-to-End Testing** — Playwright (comprehensive ERD canvas drag-and-drop, zoom/pan, modal link, join preview, and handoff assertions)
 
 ---
