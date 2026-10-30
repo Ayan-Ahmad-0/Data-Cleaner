@@ -57,14 +57,14 @@ class ChartData:
         }
 
 
-# In-memory caches with simple TTL
-_stats_cache: Dict[str, Tuple[float, List[ColumnStats]]] = {}
+# In-memory caches with simple TTL partitioned by tenant
+_stats_cache: Dict[Tuple[str, str], Tuple[float, List[ColumnStats]]] = {}
 _chart_cache: Dict[str, Tuple[float, ChartData]] = {}
 
 
-def _get_spec_hash(job_id: str, spec: ChartSpec) -> str:
+def _get_spec_hash(job_id: str, spec: ChartSpec, user_id: str = "default") -> str:
     serialized = spec.model_dump_json(exclude_none=True)
-    return hashlib.sha256(f"{job_id}:{serialized}".encode("utf-8")).hexdigest()
+    return hashlib.sha256(f"{user_id}:{job_id}:{serialized}".encode("utf-8")).hexdigest()
 
 
 def get_column_stats(
@@ -76,19 +76,21 @@ def get_column_stats(
     """Retrieve or compute column stats for a dataset."""
     lim = limits or ChartLimits()
     now = time.time()
+    uid = user_id or "default"
+    cache_key = (uid, job_id)
 
     # Check cache
-    if job_id in _stats_cache:
-        cached_time, cached_stats = _stats_cache[job_id]
+    if cache_key in _stats_cache:
+        cached_time, cached_stats = _stats_cache[cache_key]
         if now - cached_time < lim.chart_cache_ttl_seconds:
             return cached_stats
 
-    clean_pq, orig_pq = resolve_job_parquet_paths(job_id, user_id=user_id, storage=storage)
+    clean_pq, orig_pq = resolve_job_parquet_paths(job_id, user_id=uid, storage=storage)
     # Prefer cleaned Parquet if available (e.g. post-cleaning), else staged/raw Parquet
     target_pq = clean_pq if clean_pq and clean_pq.exists() else (orig_pq or clean_pq)
 
     stats = compute_column_stats(target_pq, limits=lim)
-    _stats_cache[job_id] = (now, stats)
+    _stats_cache[cache_key] = (now, stats)
     return stats
 
 
