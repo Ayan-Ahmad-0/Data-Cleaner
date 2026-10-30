@@ -284,7 +284,7 @@ export const ConvertPage: React.FC<ConvertPageProps> = ({ onHandoffToClean, onHa
                   Drag and drop your dataset here to convert
                 </span>
                 <span className="text-sm text-[var(--text-muted)] block">
-                  CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
+                  CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 5 GB
                 </span>
               </div>
 
