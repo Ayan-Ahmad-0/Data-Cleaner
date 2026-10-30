@@ -6,4 +6,4 @@ export const APP_TAGLINE = "Transform • Clean • Prepare • Visualize";
 
 export const API_BASE_URL = "http://localhost:8000";
 
-export const MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024 * 1024; // 10 GB
+export const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024 * 1024; // 5 GB
