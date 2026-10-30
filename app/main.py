@@ -9,6 +9,9 @@ import os
 import shutil
 from pathlib import Path
 from typing import Any, Dict, Optional
+from dotenv import load_dotenv
+
+load_dotenv()
 import duckdb
 from fastapi import BackgroundTasks, Depends, FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
