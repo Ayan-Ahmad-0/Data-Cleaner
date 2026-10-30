@@ -182,6 +182,7 @@ def export_dataset_to_destination(
 def import_dataset_from_connector(
     payload: ImportDatasetRequest,
     background_tasks: BackgroundTasks,
+    user_id: str = Depends(get_current_tenant_id),
 ) -> ImportDatasetResponse:
     """Import a dataset from a cloud storage or database connector directly into a new cleaning job."""
     connector = ConnectorRegistry.get(payload.connector_type)
@@ -215,8 +216,9 @@ def import_dataset_from_connector(
         file_size=0,
         privacy_mode=payload.privacy_mode,
         format_id="parquet",
+        user_id=user_id,
     )
-    target_staged_pq = orch.storage.staged_parquet_path(job.id)
+    target_staged_pq = orch.storage.staged_parquet_path(job.id, user_id=user_id)
 
     try:
         sync_result = connector.import_dataset(
