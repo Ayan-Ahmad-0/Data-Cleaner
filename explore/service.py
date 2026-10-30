@@ -59,10 +59,10 @@ class QueryResult:
 
 def resolve_job_parquet_paths(
     job_id: str,
-    user_id: str = "anonymous",
+    user_id: str = "default",
     storage: Optional[JobStorage] = None,
 ) -> Tuple[Path, Optional[Path]]:
-    """Resolve the physical Parquet file paths for a job.
+    """Resolve the physical Parquet file paths for a job within a specific tenant workspace.
     
     Returns:
         (clean_parquet_path, staged_or_original_parquet_path)
@@ -73,16 +73,22 @@ def resolve_job_parquet_paths(
     if not job_id or not job_id.strip():
         raise DataNotFoundError("Invalid or empty job identifier.")
 
-    store = storage or JobStorage()
-    clean_pq = store.clean_parquet_path(job_id)
-    staged_pq = store.staged_parquet_path(job_id)
+    uid = user_id or "default"
+    store = storage or JobStorage(user_id=uid)
+    clean_pq = store.clean_parquet_path(job_id, user_id=uid)
+    staged_pq = store.staged_parquet_path(job_id, user_id=uid)
 
     if clean_pq.exists():
         return clean_pq, staged_pq if staged_pq.exists() else None
 
-    # Check convert-only, query-only, or modeling directory
+    # Check convert-only, query-only, or modeling directory under tenant workspace
     for folder_name in ("convert_jobs", "query_jobs", "modeling"):
-        q_dir = Path(f"data/{folder_name}").resolve() / job_id
+        # Check tenant directory first
+        q_dir = Path(f"data/{folder_name}").resolve() / uid / job_id
+        if not q_dir.exists() and uid == "default":
+            # Fallback to legacy unpartitioned directory for default tenant
+            q_dir = Path(f"data/{folder_name}").resolve() / job_id
+
         if q_dir.exists() and q_dir.is_dir():
             merged_pq = q_dir / "merged.parquet"
             if merged_pq.exists():
@@ -94,6 +100,15 @@ def resolve_job_parquet_paths(
     # Check direct staged parquet if clean has not been run
     if staged_pq.exists():
         return staged_pq, None
+
+    # Check if legacy unpartitioned job exists for default user
+    if uid == "default":
+        legacy_clean = store.base_dir / job_id / "clean" / "cleaned.parquet"
+        legacy_staged = store.base_dir / job_id / "parquet" / "staged.parquet"
+        if legacy_clean.exists():
+            return legacy_clean, legacy_staged if legacy_staged.exists() else None
+        if legacy_staged.exists():
+            return legacy_staged, None
 
     raise DataNotFoundError(f"Dataset for job '{job_id}' was not found or has expired.")
 
