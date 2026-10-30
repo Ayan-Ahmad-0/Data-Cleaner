@@ -8,8 +8,8 @@ services:
       - "8000:8000"
     environment:
       - GEMINI_API_KEY=${GEMINI_API_KEY:-}
-      - DUCKDB_MEMORY_LIMIT=${DUCKDB_MEMORY_LIMIT:-4GB}
-      - DUCKDB_THREADS=${DUCKDB_THREADS:-4}
+      - DUCKDB_MEMORY_LIMIT=${DUCKDB_MEMORY_LIMIT:-}
+      - DUCKDB_THREADS=${DUCKDB_THREADS:-}
       - DUCKDB_TEMP_DIRECTORY=/app/data/duckdb_temp
     volumes:
       - ./data:/app/data
