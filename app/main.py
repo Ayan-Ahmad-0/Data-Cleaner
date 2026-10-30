@@ -438,31 +438,26 @@ def get_job_status(job_id: str, user_id: str = Depends(get_current_tenant_id)):
             detail=f"Job '{job_id}' not found or has expired ({ttl_h}h retention policy). Please re-upload your dataset.",
         )
     return detail
-    if not detail:
-        ttl_h = int(retention_manager.config.ttl_hours)
-        raise HTTPException(
-            status_code=404,
-            detail=f"Job '{job_id}' not found or has expired ({ttl_h}h retention policy). Please re-upload your dataset.",
-        )
-    return detail
-
-
 @app.get("/api/jobs/{job_id}/export-options")
-def get_job_export_options(job_id: str):
+def get_job_export_options(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Get all export formats available for this job."""
-    job = orchestrator.jobs.get(job_id)
+    job = orchestrator.get_job(job_id, user_id=user_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(status_code=404, detail="Job not found or expired.")
     from formats import list_export_options
     return list_export_options(job.detected_format or "csv", job.row_count)
 
 
 @app.put("/api/jobs/{job_id}/recipe")
-def update_recipe(job_id: str, recipe: Dict[str, Any]):
+def update_recipe(
+    job_id: str,
+    recipe: Dict[str, Any],
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Update recipe choices or confirmation responses."""
-    job = orchestrator.jobs.get(job_id)
+    job = orchestrator.get_job(job_id, user_id=user_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(status_code=404, detail="Job not found or expired.")
     orchestrator.job_recipes[job_id] = recipe
     return {"status": "updated", "job_id": job_id}
 
@@ -472,27 +467,32 @@ def approve_and_clean(
     job_id: str,
     background_tasks: BackgroundTasks,
     recipe: Optional[Dict[str, Any]] = None,
+    user_id: str = Depends(get_current_tenant_id),
 ):
     """Approve recipe and start DuckDB CTE cleaning and verification."""
-    job = orchestrator.jobs.get(job_id)
+    job = orchestrator.get_job(job_id, user_id=user_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(status_code=404, detail="Job not found or expired.")
 
-    background_tasks.add_task(orchestrator.execute_cleaning_and_verification, job_id, recipe)
+    background_tasks.add_task(orchestrator.execute_cleaning_and_verification, job_id, recipe, user_id=user_id)
     return {"status": "started", "job_id": job_id}
 
 
 @app.get("/api/jobs/{job_id}/download/{format}")
-def download_artifact(job_id: str, format: str):
+def download_artifact(
+    job_id: str,
+    format: str,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Download cleaned dataset in any supported format (CSV, Parquet, TSV, NDJSON, JSON, XLSX) or verification report."""
-    job = orchestrator.jobs.get(job_id)
+    job = orchestrator.get_job(job_id, user_id=user_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise HTTPException(status_code=404, detail="Job not found or expired.")
 
     format_lower = format.lower()
 
     if format_lower == "report":
-        file_path = storage.verification_json_path(job_id)
+        file_path = storage.verification_json_path(job_id, user_id=job.user_id)
         if not file_path.exists():
             raise HTTPException(status_code=404, detail="Verification report not yet generated.")
         return FileResponse(path=file_path, media_type="application/json", filename=f"verification_{job.id}.json")
@@ -502,7 +502,7 @@ def download_artifact(job_id: str, format: str):
         raise HTTPException(status_code=400, detail=f"Invalid format '{format}'. Supported: csv, tsv, parquet, ndjson, json, xlsx, report.")
 
     try:
-        created_paths = orchestrator.export_dataset(job_id, format_lower)
+        created_paths = orchestrator.export_dataset(job_id, format_lower, user_id=job.user_id)
         if not created_paths:
             raise HTTPException(status_code=500, detail="Export failed to generate files.")
 
@@ -516,7 +516,7 @@ def download_artifact(job_id: str, format: str):
         else:
             # Multi-part split files (e.g. large Excel) -> package in zip
             import zipfile
-            zip_path = storage.job_dir(job_id) / f"cleaned_{Path(job.filename).stem}_{format_lower}_parts.zip"
+            zip_path = storage.job_dir(job_id, user_id=job.user_id) / f"cleaned_{Path(job.filename).stem}_{format_lower}_parts.zip"
             with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
                 for p in created_paths:
                     zf.write(p, arcname=p.name)
@@ -525,6 +525,9 @@ def download_artifact(job_id: str, format: str):
                 media_type="application/zip",
                 filename=zip_path.name,
             )
+    except Exception as e:
+        logger.exception("Export failed: %s", e)
+        raise HTTPException(status_code=500, detail=f"Export error: {e}")
     except Exception as e:
         logger.exception("Export failed: %s", e)
         raise HTTPException(status_code=500, detail=f"Export error: {e}")
