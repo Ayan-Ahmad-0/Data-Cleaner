@@ -776,10 +776,10 @@ class AIAskRequest(BaseModel):
 
 
 @app.get("/api/charts/{job_id}/stats")
-def get_dataset_column_stats(job_id: str, user_id: str = "anonymous"):
+def get_dataset_column_stats(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Get rich column stats, kind classification, and parse hints for raw datasets."""
     try:
-        stats = get_column_stats(job_id=job_id, user_id=user_id, storage=storage)
+        stats = get_column_stats(job_id=job_id, user_id=user_id, storage=storage.for_user(user_id))
         return {"job_id": job_id, "columns": [s.to_dict() for s in stats]}
     except DataNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
@@ -789,10 +789,10 @@ def get_dataset_column_stats(job_id: str, user_id: str = "anonymous"):
 
 
 @app.get("/api/charts/{job_id}/starter-spec")
-def get_starter_chart_spec(job_id: str, user_id: str = "anonymous"):
+def get_starter_chart_spec(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Generate deterministic starter spec for 'Add chart' button."""
     try:
-        stats = get_column_stats(job_id=job_id, user_id=user_id, storage=storage)
+        stats = get_column_stats(job_id=job_id, user_id=user_id, storage=storage.for_user(user_id))
         schema = {s.name: s.type for s in stats}
         spec = default_starter_spec(schema, stats)
         return {"job_id": job_id, "spec": spec.model_dump()}
@@ -804,15 +804,20 @@ def get_starter_chart_spec(job_id: str, user_id: str = "anonymous"):
 
 
 @app.post("/api/charts/{job_id}/tweak-options")
-def get_dataset_tweak_options(job_id: str, payload: TweakOptionsRequest):
+def get_dataset_tweak_options(
+    job_id: str,
+    payload: TweakOptionsRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Retrieve allowed types, aggregations, and column options for Tweak panel."""
     try:
         spec_obj = ChartSpec.model_validate(payload.spec) if payload.spec else None
+        active_uid = user_id if user_id != "default" else (payload.user_id or "default")
         options = get_tweak_options(
             job_id=job_id,
-            user_id=payload.user_id or "anonymous",
+            user_id=active_uid,
             spec=spec_obj,
-            storage=storage,
+            storage=storage.for_user(active_uid),
         )
         return options.model_dump()
     except DataNotFoundError as e:
@@ -823,10 +828,10 @@ def get_dataset_tweak_options(job_id: str, payload: TweakOptionsRequest):
 
 
 @app.get("/api/charts/{job_id}/suggest")
-def get_chart_suggestions(job_id: str, user_id: str = "anonymous"):
+def get_chart_suggestions(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Get up to 8 prioritized, rule-based chart specifications for the dataset."""
     try:
-        suggestions = suggest_charts(job_id=job_id, user_id=user_id, storage=storage)
+        suggestions = suggest_charts(job_id=job_id, user_id=user_id, storage=storage.for_user(user_id))
         return {"job_id": job_id, "suggestions": [s.model_dump() for s in suggestions]}
     except DataNotFoundError as e:
         raise HTTPException(status_code=404, detail=str(e))
