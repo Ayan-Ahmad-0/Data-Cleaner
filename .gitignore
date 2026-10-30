@@ -38,9 +38,5 @@ Thumbs.db
 #project workflow
 info/
 
-# UI Screenshots & artifacts
-docs/ui/before/
-docs/ui/after/
-docs/ui/header-fix/
-docs/ui/**/before/
-docs/ui/**/after/
+# Documentation
+docs/
