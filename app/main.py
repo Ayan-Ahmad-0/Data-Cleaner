@@ -954,7 +954,7 @@ def export_dashboard_html_endpoint(
 # ============================================================================
 
 @app.get("/api/charts/{job_id}/ai/status")
-def get_chart_ai_status(job_id: str):
+def get_chart_ai_status(job_id: str, user_id: str = Depends(get_current_tenant_id)):
     """Return whether Chart AI features are available on this server."""
     api_key = (os.getenv("GEMINI_API_KEY") or "").strip()
     enabled = bool(api_key) and os.getenv("CHARTS_AI_ENABLED", "true").lower() in ("true", "1", "yes")
@@ -965,14 +965,19 @@ def get_chart_ai_status(job_id: str):
 
 
 @app.post("/api/charts/{job_id}/ai/plan")
-def get_visualization_plan(job_id: str, payload: AIPlanRequest):
+def get_visualization_plan(
+    job_id: str,
+    payload: AIPlanRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Generate AI-assisted visualization plan and advice."""
     try:
         po = PageDataOptions.model_validate(payload.page_options) if payload.page_options else None
+        active_uid = user_id if user_id != "default" else (payload.user_id or "default")
         plan = plan_visualization(
             job_id=job_id,
-            user_id=payload.user_id or "anonymous",
-            storage=storage,
+            user_id=active_uid,
+            storage=storage.for_user(active_uid),
             page_options=po,
             force_refresh=payload.force_refresh,
         )
@@ -985,14 +990,19 @@ def get_visualization_plan(job_id: str, payload: AIPlanRequest):
 
 
 @app.post("/api/charts/{job_id}/ai/auto")
-def auto_visualize_charts(job_id: str, payload: AIAutoRequest):
+def auto_visualize_charts(
+    job_id: str,
+    payload: AIAutoRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Generate and build top AI-recommended charts."""
     try:
         po = PageDataOptions.model_validate(payload.page_options) if payload.page_options else None
+        active_uid = user_id if user_id != "default" else (payload.user_id or "default")
         charts = auto_visualize(
             job_id=job_id,
-            user_id=payload.user_id or "anonymous",
-            storage=storage,
+            user_id=active_uid,
+            storage=storage.for_user(active_uid),
             page_options=po,
             max_charts=payload.max_charts,
             force_refresh=payload.force_refresh,
@@ -1015,15 +1025,20 @@ def auto_visualize_charts(job_id: str, payload: AIAutoRequest):
 
 
 @app.post("/api/charts/{job_id}/ai/ask")
-def ask_chart_from_text(job_id: str, payload: AIAskRequest):
+def ask_chart_from_text(
+    job_id: str,
+    payload: AIAskRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Translate natural-language plain text into a validated chart."""
     try:
         po = PageDataOptions.model_validate(payload.page_options) if payload.page_options else None
+        active_uid = user_id if user_id != "default" else (payload.user_id or "default")
         result = chart_from_text(
             job_id=job_id,
-            user_id=payload.user_id or "anonymous",
+            user_id=active_uid,
             request=payload.request,
-            storage=storage,
+            storage=storage.for_user(active_uid),
             page_options=po,
         )
         return result.to_dict()
