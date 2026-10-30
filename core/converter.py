@@ -9,6 +9,13 @@ from pathlib import Path
 from typing import Optional, List, Dict, Any
 import duckdb
 
+from core.duckdb_utils import (
+    configure_duckdb_connection,
+    get_duckdb_memory_limit,
+    get_duckdb_temp_directory,
+    get_duckdb_threads,
+)
+
 logger = logging.getLogger(__name__)
 
 
