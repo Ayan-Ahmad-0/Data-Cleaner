@@ -58,6 +58,8 @@ class JobOrchestrator:
         adapter_options: Optional[Dict[str, Any]] = None,
     ) -> JobMetadata:
         import uuid
+        ttl_hours = float(os.getenv("STORAGE_TTL_HOURS", "24"))
+        now_utc = datetime.now(timezone.utc)
         job_id = f"job_{uuid.uuid4().hex[:8]}"
         job = JobMetadata(
             id=job_id,
@@ -68,6 +70,9 @@ class JobOrchestrator:
             status=JobStatus.UPLOADED,
             progress_pct=10.0,
             current_stage="File Uploaded",
+            created_at=now_utc,
+            expires_at=now_utc + timedelta(hours=ttl_hours),
+            ttl_seconds_remaining=int(ttl_hours * 3600),
         )
         self.jobs[job_id] = job
         if adapter_options:
