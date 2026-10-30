@@ -56,6 +56,7 @@ class JobOrchestrator:
         privacy_mode: bool = False,
         format_id: Optional[str] = None,
         adapter_options: Optional[Dict[str, Any]] = None,
+        user_id: str = "default",
     ) -> JobMetadata:
         import uuid
         ttl_hours = float(os.getenv("STORAGE_TTL_HOURS", "24"))
@@ -63,6 +64,7 @@ class JobOrchestrator:
         job_id = f"job_{uuid.uuid4().hex[:8]}"
         job = JobMetadata(
             id=job_id,
+            user_id=user_id,
             filename=filename,
             file_size_bytes=file_size,
             privacy_mode=privacy_mode,
@@ -79,6 +81,21 @@ class JobOrchestrator:
             self.job_adapter_options[job_id] = adapter_options
         return job
 
+    def get_job(self, job_id: str, user_id: Optional[str] = None) -> Optional[JobMetadata]:
+        """Fetch job metadata, strictly enforcing tenant ownership if user_id is provided."""
+        job = self.jobs.get(job_id)
+        if not job:
+            return None
+        if user_id is not None and job.user_id != user_id:
+            logger.warning(
+                "Tenant access violation: user '%s' attempted to access job '%s' owned by '%s'",
+                user_id,
+                job_id,
+                job.user_id,
+            )
+            return None
+        return job
+
     def run_profile_and_ai_draft(self, job_id: str) -> None:
         """Stage 1: Convert raw dataset to canonical Parquet, single-pass profile, and generate AI recipe."""
         job = self.jobs.get(job_id)
@@ -91,8 +108,8 @@ class JobOrchestrator:
             job.current_stage = "Converting input dataset to canonical Parquet staging"
             job.progress_pct = 25.0
 
-            raw_file = self.storage.raw_file_path(job_id, job.filename)
-            staged_pq = self.storage.staged_parquet_path(job_id)
+            raw_file = self.storage.raw_file_path(job_id, job.filename, user_id=job.user_id)
+            staged_pq = self.storage.staged_parquet_path(job_id, user_id=job.user_id)
 
             if not raw_file.exists() and staged_pq.exists():
                 # Direct Parquet staging (e.g. from cloud/warehouse connector import or convert handoff)
