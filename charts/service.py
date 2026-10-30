@@ -228,7 +228,7 @@ def build_chart(
     if page_options:
         spec = apply_page_options(spec, page_options, schema)
 
-    cache_key = _get_spec_hash(job_id, spec)
+    cache_key = _get_spec_hash(job_id, spec, user_id=user_id)
     now = time.time()
 
     if cache_key in _chart_cache:
