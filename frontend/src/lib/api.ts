@@ -23,6 +23,8 @@ export interface JobMetadata {
   detected_confidence?: number;
   conversion_report?: any;
   error?: string;
+  expires_at?: string;
+  ttl_seconds_remaining?: number;
 }
 
 export interface JobDetailResponse {
@@ -36,6 +38,8 @@ export interface JobDetailResponse {
   conversion_report?: any;
   export_options?: ExportOption[];
   download_urls: Record<string, string>;
+  expires_at?: string;
+  ttl_seconds_remaining?: number;
 }
 
 export async function detectFormat(file: File): Promise<{
