@@ -363,11 +363,29 @@ class StorageRetentionManager:
             if not cat_dir.exists() or not cat_dir.is_dir():
                 continue
             for item in cat_dir.iterdir():
-                if item.is_dir() and item.name not in active_job_ids:
-                    try:
-                        candidate_dirs.append((item, item.stat().st_mtime, category))
-                    except OSError:
-                        pass
+                if not item.is_dir():
+                    continue
+                is_direct_job = (
+                    any(item.name.startswith(pfx) for pfx in ("job_", "conv_", "query_", "model_"))
+                    or (item / "raw").exists()
+                    or (item / "parquet").exists()
+                    or (item / "clean").exists()
+                    or (item / "tables").exists()
+                    or (item / "state.json").exists()
+                )
+                if is_direct_job:
+                    if item.name not in active_job_ids:
+                        try:
+                            candidate_dirs.append((item, item.stat().st_mtime, category))
+                        except OSError:
+                            pass
+                else:
+                    for sub_item in item.iterdir():
+                        if sub_item.is_dir() and sub_item.name not in active_job_ids:
+                            try:
+                                candidate_dirs.append((sub_item, sub_item.stat().st_mtime, category))
+                            except OSError:
+                                pass
 
         # Sort ascending by modification time (oldest first)
         candidate_dirs.sort(key=lambda x: x[1])
