@@ -325,3 +325,4 @@ The **Multi-Tenancy & Privacy Isolation Engine** (`core/tenant.py`, `app/storage
   - `data/modeling/{user_id}/{session_id}/...`
 - **OWASP-Compliant IDOR Defense:** If Tenant B attempts to access Tenant A's dataset, Datamorph returns `404 Not Found` (never `403 Forbidden`) to prevent resource enumeration, logging a security audit warning to server logs.
 - **Zero-Login Anonymous UUID:** The frontend automatically generates and stores an anonymous UUID in `localStorage` (`datamorph_user_id`), attaching it via `X-User-Id` headers and `?user_id=` download links without forcing user login.
+
