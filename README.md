@@ -120,10 +120,6 @@ Input Sources (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, PostgreSQL, S3)
 │                                                            ▼
 │                                             [charts/compile.py] ◄─── [charts_ai/service.py]
 │                                             (TRY_CAST Aggregations & AI Auto-Visualize)
-│                                                            │
-│                                                            ▼
-│                                             [frontend/src/pages/VisualizePage.tsx]
-│                                             (High-Density Dashboard, Tweak Panels, 20 Colors)
 │
 ├───► [Mode 5: Model Data (ERD)] ► [core/modeling/service.py] ► (data/modeling/{session_id}/tables/*.parquet)
 │                                                            │
@@ -138,6 +134,14 @@ Input Sources (CSV, Parquet, JSON, NDJSON, XLSX, SQLite, PostgreSQL, S3)
 │                                                            │
 │                                                            ├───► [Ask AI Analyst Workspace]
 │                                                            └───► [Sandboxed SQL Query Box]
+│
+├───► [Storage Retention Daemon] ► [core/retention.py] ──────► Background Scavenger (30m sweep, 24h TTL)
+│                                                            │
+│                                                            ├───► (data/jobs/{id}/) ───────────► Auto-evict
+│                                                            ├───► (data/convert_jobs/{id}/) ───► Auto-evict
+│                                                            ├───► (data/query_jobs/{id}/) ─────► Auto-evict
+│                                                            └───► (data/modeling/{id}/) ───────► Auto-evict
+│                                                            (benchmarks/, demo/ fixtures protected)
 │
 └───► [Mode 2: Clean Data]
       │
@@ -211,6 +215,7 @@ Evaluated across a comprehensive 30-question test suite spanning 10 analytical d
 | **Interactive Query Latency** | Direct SQL aggregation against 100K+ rows | In-process vectorized DuckDB columnar engine | **2.0 ms** execution latency |
 | **Chart Compilation Latency** | Declarative spec compiled to DuckDB aggregate query | Vectorized SQL generator with TRY_CAST coercion | **< 15.0 ms** compilation & execution |
 | **Relational Join Execution** | Multi-table relational DuckDB join across foreign keys | In-process columnar JOIN compilation to Parquet | **< 20.0 ms** join & match ratio calculation |
+| **Automated Storage Retention** | 24-hour TTL expiration across dynamic job storage directories | Background scavenger daemon with protected static paths | **50.35 GB Reclaimed** (0 static benchmark files touched) |
 | **Resource Safety Ceilings** | Unbounded user queries or runaway Cartesian joins | sqlglot AST validation + 5.0s timeout + 10,000 row cap | **100.0% Enforced** (Zero runaway thread lockups) |
 
 ### Streaming Format Conversion Benchmarks
@@ -243,11 +248,13 @@ The most instructive failure mode occurred during timestamp parsing when mixed E
 | `cleaned.parquet` | Final analytical dataset with concrete DuckDB types (TIMESTAMP, DOUBLE, BIGINT, VARCHAR) and duplicate rows pruned |
 | `cleaned.csv` | Exported standard CSV representation for downstream spreadsheet or BI tool ingestion |
 | `verification.json` | Audit record containing before/after row delta counts, duplicate reconciliation, and assertion status |
-| `convert_jobs/{id}/*` | Isolated directory containing direct format conversion outputs and intermediate Parquet buffers |
-| `query_jobs/{id}/*` | Isolated directory containing indexed Parquet datasets for instant Query Data and Visualize Data exploration |
-| `modeling/{session_id}/tables/*.parquet` | Physical staging directory for multi-table relational entities staged in Model Data (ERD) Studio |
-| `modeling/{session_id}/state.json` | Persisted session graph containing entity coordinates, extracted primary keys, and relationship links |
-| `modeling/{session_id}/merged.parquet` | Materialized DuckDB multi-table joined dataset serving SQL Studio and AI Analyst handoff queries |
+| `convert_jobs/{id}/*` | Isolated directory containing direct format conversion outputs and intermediate Parquet buffers (24h TTL auto-purge) |
+| `query_jobs/{id}/*` | Isolated directory containing indexed Parquet datasets for instant Query Data and Visualize Data exploration (24h TTL auto-purge) |
+| `modeling/{session_id}/tables/*.parquet` | Physical staging directory for multi-table relational entities staged in Model Data (ERD) Studio (24h TTL auto-purge) |
+| `modeling/{session_id}/state.json` | Persisted session graph containing entity coordinates, extracted primary keys, and relationship links (24h TTL auto-purge) |
+| `modeling/{session_id}/merged.parquet` | Materialized DuckDB multi-table joined dataset serving SQL Studio and AI Analyst handoff queries (24h TTL auto-purge) |
+| `jobs/{id}/*` | Ephemeral cleaning workspace containing staged, recipe, profile, and cleaned artifacts (24h TTL auto-purge) |
+| `benchmarks/*`, `demo/*`, `evaluation/*` | Strictly protected evaluation fixtures and baseline datasets exempted from automated TTL eviction policies |
 
 ---
 
