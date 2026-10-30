@@ -102,7 +102,7 @@ export const QueryPage: React.FC<QueryPageProps> = ({
     }
 
     if (file.size > MAX_FILE_SIZE_BYTES) {
-      setError(`File size (${formatBytes(file.size)}) exceeds the maximum allowed limit of 10 GB.`);
+      setError(`File size (${formatBytes(file.size)}) exceeds the maximum allowed limit of 5 GB.`);
       return;
     }
 
