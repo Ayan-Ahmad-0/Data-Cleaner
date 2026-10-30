@@ -367,12 +367,13 @@ class Profiler:
 
         if sample_valid > 0 and (int_valid / sample_valid) >= 0.85:
             inferred_type = "integer"
-            # Compute numeric stats
+            # Compute numeric stats (use O(1) memory APPROX_QUANTILE for large datasets to avoid external disk merge sorts)
+            med_expr = f"MEDIAN(try_cast({quoted} AS BIGINT))" if total_rows <= 100000 else f"APPROX_QUANTILE(try_cast({quoted} AS BIGINT), 0.5)"
             num_q = f"""
                 SELECT
                     MIN(try_cast({quoted} AS BIGINT)),
                     MAX(try_cast({quoted} AS BIGINT)),
-                    MEDIAN(try_cast({quoted} AS BIGINT)),
+                    {med_expr},
                     SUM(CASE WHEN try_cast({quoted} AS BIGINT) < 0 THEN 1 ELSE 0 END)
                 FROM {view_name}
                 WHERE try_cast({quoted} AS BIGINT) IS NOT NULL;
@@ -390,11 +391,12 @@ class Profiler:
             )
         elif sample_valid > 0 and (dbl_valid / sample_valid) >= 0.85:
             inferred_type = "double"
+            med_expr = f"MEDIAN(try_cast({quoted} AS DOUBLE))" if total_rows <= 100000 else f"APPROX_QUANTILE(try_cast({quoted} AS DOUBLE), 0.5)"
             num_q = f"""
                 SELECT
                     MIN(try_cast({quoted} AS DOUBLE)),
                     MAX(try_cast({quoted} AS DOUBLE)),
-                    MEDIAN(try_cast({quoted} AS DOUBLE)),
+                    {med_expr},
                     SUM(CASE WHEN try_cast({quoted} AS DOUBLE) < 0 THEN 1 ELSE 0 END)
                 FROM {view_name}
                 WHERE try_cast({quoted} AS DOUBLE) IS NOT NULL;
