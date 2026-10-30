@@ -142,7 +142,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
           Clean Your Data
         </h1>
         <p className="text-sm sm:text-base text-[var(--text-secondary)] leading-relaxed max-w-2xl">
-          Upload raw datasets up to 10 GB. Fast out-of-core profiling and AI-assisted cleaning rules.
+          Upload raw datasets up to 5 GB. Fast out-of-core profiling and AI-assisted cleaning rules.
         </p>
       </div>
 
@@ -245,7 +245,7 @@ export const UploadPage: React.FC<UploadPageProps> = ({ onUploadComplete }) => {
                 Drag and drop your data file here
               </span>
               <span className="text-sm text-[var(--text-muted)] block">
-                CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 10 GB
+                CSV, TSV, Parquet, JSON, NDJSON, Excel (.xlsx), or SQLite (.db) up to 5 GB
               </span>
             </div>
 
