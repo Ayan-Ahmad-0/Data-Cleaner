@@ -195,10 +195,24 @@ class Profiler:
             # 2. Duplicate detection (high-efficiency 64-bit row hash to prevent memory exhaustion)
             if total_rows > 0:
                 cols_quoted = ", ".join(f'"{col}"' for col in column_names)
-                exact_dup_rows = conn.execute(
-                    f"SELECT COUNT(*) - COUNT(DISTINCT hash({cols_quoted})) FROM {view_name}"
-                ).fetchone()[0]
-                exact_dup_pct = round((exact_dup_rows / total_rows) * 100, 2)
+                if total_rows > 100000:
+                    # Fast short-circuit check for large datasets: verify if any duplicate rows exist
+                    has_dup = conn.execute(
+                        f"SELECT 1 FROM (SELECT {cols_quoted} FROM {view_name} GROUP BY {cols_quoted} HAVING COUNT(*) > 1 LIMIT 1)"
+                    ).fetchone()
+                    if has_dup is None:
+                        exact_dup_rows = 0
+                        exact_dup_pct = 0.0
+                    else:
+                        exact_dup_rows = conn.execute(
+                            f"SELECT COUNT(*) - COUNT(DISTINCT hash({cols_quoted})) FROM {view_name}"
+                        ).fetchone()[0]
+                        exact_dup_pct = round((exact_dup_rows / total_rows) * 100, 2)
+                else:
+                    exact_dup_rows = conn.execute(
+                        f"SELECT COUNT(*) - COUNT(DISTINCT hash({cols_quoted})) FROM {view_name}"
+                    ).fetchone()[0]
+                    exact_dup_pct = round((exact_dup_rows / total_rows) * 100, 2)
             else:
                 exact_dup_rows = 0
                 exact_dup_pct = 0.0
