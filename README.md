@@ -1,5 +1,5 @@
 # Datamorph In-Process Tabular Engineering & Intelligence Workspace
-High-performance tabular workspace unifying multi-format ingestion, single-pass profiling, automated cleaning, relational ERD modeling, sandboxed SQL exploration, instant visualization, and multi-tenant data privacy powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 10 GB datasets with zero-loss all-varchar staging, models relational ERDs with in-process DuckDB joins, compiles sandboxed analytical charts in <15ms, enforces automated 24-hour TTL storage scavenging, and isolates tenant data across 344 automated tests.
+High-performance tabular workspace unifying multi-format ingestion, single-pass profiling, automated cleaning, relational ERD modeling, sandboxed SQL exploration, instant visualization, and multi-tenant data privacy powered by DuckDB, sqlglot, Plotly, and Google Gemini. Ingests 1 to 5 GB datasets with zero-loss all-varchar staging, models relational ERDs with in-process DuckDB joins, compiles sandboxed analytical charts in <15ms, enforces automated 24-hour TTL storage scavenging, and isolates tenant data across 344 automated tests.
 
 ![DuckDB](https://img.shields.io/badge/DuckDB-1.1+-FFF000?style=flat&logo=duckdb&logoColor=black)
 ![Python](https://img.shields.io/badge/Python-3.11%20%7C%203.12%20%7C%203.13-3776AB?style=flat&logo=python&logoColor=white)
