@@ -45,6 +45,7 @@ class Relationship(BaseModel):
 class ModelingSessionState(BaseModel):
     """Full snapshot of an interactive multi-table modeling session."""
     session_id: str
+    user_id: str = "default"
     created_at: str
     tables: Dict[str, TableMetadata] = Field(default_factory=dict)
     relationships: List[Relationship] = Field(default_factory=list)
