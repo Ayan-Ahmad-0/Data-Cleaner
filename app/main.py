@@ -841,17 +841,22 @@ def get_chart_suggestions(job_id: str, user_id: str = Depends(get_current_tenant
 
 
 @app.post("/api/charts/{job_id}/build")
-def build_dataset_chart(job_id: str, payload: BuildChartRequest):
+def build_dataset_chart(
+    job_id: str,
+    payload: BuildChartRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Compile and execute a ChartSpec against the sandboxed dataset."""
     try:
         spec = ChartSpec.model_validate(payload.spec)
         po = PageDataOptions.model_validate(payload.page_options) if payload.page_options else None
+        active_uid = user_id if user_id != "default" else (payload.user_id or "default")
         chart_data = build_chart(
             job_id=job_id,
-            user_id=payload.user_id or "anonymous",
+            user_id=active_uid,
             spec=spec,
             page_options=po,
-            storage=storage,
+            storage=storage.for_user(active_uid),
         )
         return chart_data.to_dict()
     except DataNotFoundError as e:
@@ -868,15 +873,20 @@ def build_dataset_chart(job_id: str, payload: BuildChartRequest):
 
 
 @app.post("/api/charts/{job_id}/export")
-def export_dataset_chart(job_id: str, payload: BuildChartRequest):
+def export_dataset_chart(
+    job_id: str,
+    payload: BuildChartRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Execute chart aggregation and download the small aggregated data table as CSV."""
     try:
         spec = ChartSpec.model_validate(payload.spec)
+        active_uid = user_id if user_id != "default" else (payload.user_id or "default")
         csv_path = export_chart_data(
             job_id=job_id,
-            user_id=payload.user_id or "anonymous",
+            user_id=active_uid,
             spec=spec,
-            storage=storage,
+            storage=storage.for_user(active_uid),
         )
         return FileResponse(
             path=csv_path,
@@ -893,14 +903,19 @@ def export_dataset_chart(job_id: str, payload: BuildChartRequest):
 
 
 @app.post("/api/charts/{job_id}/validate-formula")
-def validate_dataset_formula(job_id: str, payload: ValidateFormulaRequest):
+def validate_dataset_formula(
+    job_id: str,
+    payload: ValidateFormulaRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Validate a custom SQL formula against the dataset in DuckDB."""
     try:
+        active_uid = user_id if user_id != "default" else (payload.user_id or "default")
         res = validate_formula(
             job_id=job_id,
             formula=payload.formula,
-            user_id=payload.user_id or "anonymous",
-            storage=storage,
+            user_id=active_uid,
+            storage=storage.for_user(active_uid),
         )
         return res
     except Exception as e:
@@ -909,7 +924,11 @@ def validate_dataset_formula(job_id: str, payload: ValidateFormulaRequest):
 
 
 @app.post("/api/charts/{job_id}/export-dashboard-html")
-def export_dashboard_html_endpoint(job_id: str, payload: ExportDashboardRequest):
+def export_dashboard_html_endpoint(
+    job_id: str,
+    payload: ExportDashboardRequest,
+    user_id: str = Depends(get_current_tenant_id),
+):
     """Generate and return a standalone interactive HTML dashboard report with Plotly."""
     try:
         from charts.dashboard_export import generate_dashboard_html
