@@ -100,7 +100,7 @@ export const ModelPage: React.FC<ModelPageProps> = ({ onHandoffToQuery }) => {
           throw new Error(`Unsupported file type '${ext || file.name}'. Please upload CSV, Parquet, Excel, JSON, or SQLite database files.`);
         }
         if (file.size > MAX_FILE_SIZE_BYTES) {
-          throw new Error(`File '${file.name}' exceeds the 10GB limit.`);
+          throw new Error(`File '${file.name}' exceeds the 5GB limit.`);
         }
         if (file.size === 0) {
           throw new Error(`File '${file.name}' is empty (0 bytes).`);
